@@ -30,6 +30,7 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
   bool _didEnsureInit = false;
+  bool _refreshingRepositories = false;
 
   /// One key per tab, so a repair can search the page that is actually on
   /// screen.
@@ -273,6 +274,21 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen>
           },
         ),
         title: const Text('SkyStream Providers'),
+        actions: [
+          IconButton(
+            tooltip: 'Refresh repositories and check updates',
+            onPressed: _refreshingRepositories
+                ? null
+                : () => _refreshRepositories(ref),
+            icon: _refreshingRepositories
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh_rounded),
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),
           child: Center(
@@ -290,6 +306,33 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen>
         ),
       ),
     );
+  }
+
+  Future<void> _refreshRepositories(WidgetRef ref) async {
+    setState(() => _refreshingRepositories = true);
+    try {
+      await ref
+          .read(extensionsControllerProvider.notifier)
+          .refreshRepositories();
+      if (!mounted) return;
+      final updates = ref
+          .read(extensionsControllerProvider)
+          .availableUpdates
+          .length;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              updates == 0
+                  ? 'Repositories are up to date.'
+                  : 'Found $updates plugin update${updates == 1 ? '' : 's'}.',
+            ),
+          ),
+        );
+    } finally {
+      if (mounted) setState(() => _refreshingRepositories = false);
+    }
   }
 
   Widget _buildInstalledTab(

@@ -103,6 +103,15 @@ class ExtensionsController extends _$ExtensionsController {
     await _init();
   }
 
+  /// Fetch the current repository manifests again, then compare them with
+  /// installed plugin versions. Repositories can publish updates while the
+  /// app is open, so an initialized in-memory list is not sufficient here.
+  Future<void> refreshRepositories() async {
+    _initialized = true;
+    await _init();
+    await checkForUpdates();
+  }
+
   Future<void> _init() async {
     state = ExtensionsLoading(
       installedPlugins: state.installedPlugins,
@@ -132,13 +141,15 @@ class ExtensionsController extends _$ExtensionsController {
       var urls = prefs.getStringList(repoUrlsKey) ?? [];
       // Filter out any regional Indian repositories (Hindmovie, CNCVerse, TJ-Plugins)
       final cleanUrls = urls
-          .where((u) =>
-              !u.contains('CNCVerse') &&
-              !u.contains('Hindmovie') &&
-              !u.contains('TJ-Plugins') &&
-              !u.contains('likhithkrishna1103') &&
-              !u.contains('NivinCNC') &&
-              !u.contains('Skywave22'))
+          .where(
+            (u) =>
+                !u.contains('CNCVerse') &&
+                !u.contains('Hindmovie') &&
+                !u.contains('TJ-Plugins') &&
+                !u.contains('likhithkrishna1103') &&
+                !u.contains('NivinCNC') &&
+                !u.contains('Skywave22'),
+          )
           .toList();
       if (cleanUrls.length != urls.length) {
         await prefs.setStringList(repoUrlsKey, cleanUrls);
