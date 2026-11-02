@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
+
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
@@ -83,7 +84,7 @@ class JsBasedProvider extends SkyStreamProvider {
   // Bump whenever [_buildIife]'s wrapper text changes: the version is part of
   // the .qbc filename, so bytecode compiled from an older wrapper is ignored
   // rather than loaded.
-  static const int _iifeWrapperVersion = 4;
+  static const int _iifeWrapperVersion = 5;
 
   final JsEngineService _jsEngine;
   final String _scriptPath;
@@ -287,6 +288,7 @@ class JsBasedProvider extends SkyStreamProvider {
 
                   return {
                       getHome: (typeof getHome !== 'undefined') ? getHome : (typeof globalThis.getHome !== 'undefined' ? globalThis.getHome : undefined),
+                      getCategoryPage: (typeof getCategoryPage !== 'undefined') ? getCategoryPage : (typeof globalThis.getCategoryPage !== 'undefined' ? globalThis.getCategoryPage : undefined),
                       search: (typeof search !== 'undefined') ? search : (typeof globalThis.search !== 'undefined' ? globalThis.search : undefined),
                       load: (typeof load !== 'undefined') ? load : (typeof globalThis.load !== 'undefined' ? globalThis.load : undefined),
                       loadStreams: (typeof loadStreams !== 'undefined') ? loadStreams : (typeof globalThis.loadStreams !== 'undefined' ? globalThis.loadStreams : undefined),
@@ -297,6 +299,7 @@ class JsBasedProvider extends SkyStreamProvider {
               globalThis['$_namespace'] = exports;
 
               if (globalThis.getHome) delete globalThis.getHome;
+              if (globalThis.getCategoryPage) delete globalThis.getCategoryPage;
               if (globalThis.search) delete globalThis.search;
               if (globalThis.load) delete globalThis.load;
               if (globalThis.loadStreams) delete globalThis.loadStreams;
@@ -667,6 +670,29 @@ class JsBasedProvider extends SkyStreamProvider {
         talker.error("Error in getHome: $e");
         throw Exception("Failed to load home content: $e");
       }
+    });
+  }
+
+  @override
+  Future<List<MultimediaItem>?> getCategoryPage(
+    String category,
+    int page,
+    int offset,
+  ) async {
+    if (_manifest['supportsCategoryPagination'] != true) return null;
+    await _ensureReady();
+    if (_error != null) throw JsPluginException('INIT_ERROR', _error!);
+    return _serializedInvoke(() async {
+      final result = await _jsEngine.invokeAsync(_fn('getCategoryPage'), [
+        category,
+        page,
+        offset,
+      ]);
+      if (result is! List) return null;
+      final bounded = result.length > _kMaxResultListLength
+          ? result.sublist(0, _kMaxResultListLength)
+          : result;
+      return await compute(_parseSearchResults, bounded);
     });
   }
 

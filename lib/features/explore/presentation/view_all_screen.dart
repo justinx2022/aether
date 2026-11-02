@@ -25,8 +25,8 @@ enum ViewAllCategory {
   trending,
   trendingTV,
 
-  /// Provider-sourced content from the home screen.
-  /// No TMDB pagination — shows only the initial list.
+  /// Provider-sourced content from the home screen. A provider can opt into
+  /// lazy pagination by exporting `getCategoryPage`.
   providerContent,
 }
 
@@ -38,6 +38,7 @@ class ViewAllScreen extends ConsumerStatefulWidget {
   /// Custom tap handler for items (used by provider content to go to
   /// DetailsRoute instead of TmdbDetailsRoute).
   final void Function(MultimediaItem item)? onTap;
+  final Future<List<MultimediaItem>?> Function(int page, int offset)? loadMore;
 
   const ViewAllScreen({
     super.key,
@@ -45,6 +46,7 @@ class ViewAllScreen extends ConsumerStatefulWidget {
     required this.initialMediaList,
     required this.category,
     this.onTap,
+    this.loadMore,
   });
 
   @override
@@ -65,7 +67,10 @@ class _ViewAllScreenState extends ConsumerState<ViewAllScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref
           .read(viewAllControllerProvider(widget.category).notifier)
-          .init(widget.initialMediaList);
+          .init(
+            widget.initialMediaList,
+            supportsPagination: widget.loadMore != null,
+          );
       _checkInitialFill();
     });
   }
@@ -90,7 +95,7 @@ class _ViewAllScreenState extends ConsumerState<ViewAllScreen> {
       if (state.hasMore && !state.isLoading) {
         ref
             .read(viewAllControllerProvider(widget.category).notifier)
-            .fetchNextPage()
+            .fetchNextPage(providerLoader: widget.loadMore)
             .then((_) {
               if (context.mounted) {
                 WidgetsBinding.instance.addPostFrameCallback(
@@ -113,7 +118,7 @@ class _ViewAllScreenState extends ConsumerState<ViewAllScreen> {
         _scrollController.position.maxScrollExtent - 200) {
       ref
           .read(viewAllControllerProvider(widget.category).notifier)
-          .fetchNextPage();
+          .fetchNextPage(providerLoader: widget.loadMore);
     }
   }
 

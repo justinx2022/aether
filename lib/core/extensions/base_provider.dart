@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+
 import '../domain/entity/multimedia_item.dart';
 
 enum ProviderType { movie, series, anime, livestream, other }
@@ -25,6 +26,15 @@ abstract class SkyStreamProvider {
   Future<List<MultimediaItem>> search(String query, {CancelToken? cancelToken});
   // Returns categorized content (Section Name -> Items)
   Future<Map<String, List<MultimediaItem>>> getHome();
+
+  /// Loads another page for a home category. Providers without paged category
+  /// support return null; an empty list means that category has no more items.
+  Future<List<MultimediaItem>?> getCategoryPage(
+    String category,
+    int page,
+    int offset,
+  ) async => null;
+
   Future<MultimediaItem> getDetails(String url);
 
   // Returns list of video streams (urls)

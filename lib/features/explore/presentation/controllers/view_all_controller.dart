@@ -42,6 +42,8 @@ class ViewAllState {
 
 @riverpod
 class ViewAllController extends _$ViewAllController {
+  int _providerGeneration = 0;
+
   @override
   ViewAllState build(ViewAllCategory category) {
     ref.watch(languageProvider);
@@ -49,18 +51,33 @@ class ViewAllController extends _$ViewAllController {
     return ViewAllState(category: category);
   }
 
-  void init(List<MultimediaItem> initialItems) {
+  void init(
+    List<MultimediaItem> initialItems, {
+    bool supportsPagination = false,
+  }) {
+    if (category == ViewAllCategory.providerContent) {
+      _providerGeneration++;
+      state = ViewAllState(
+        category: category,
+        items: List.from(initialItems),
+        page: 1,
+        hasMore: supportsPagination,
+      );
+      return;
+    }
     if (state.items.isEmpty && state.page == 1) {
-      // Provider content has no TMDB pagination — show only the initial items.
-      final noMore = category == ViewAllCategory.providerContent;
-      state = state.copyWith(items: List.from(initialItems), hasMore: !noMore);
+      state = state.copyWith(items: List.from(initialItems));
     }
   }
 
-  Future<void> fetchNextPage() async {
+  Future<void> fetchNextPage({
+    Future<List<MultimediaItem>?> Function(int page, int offset)?
+    providerLoader,
+  }) async {
     if (state.isLoading || !state.hasMore) return;
 
     state = state.copyWith(isLoading: true);
+    final providerGeneration = _providerGeneration;
 
     try {
       final tmdbService = ref.read(tmdbServiceProvider);
@@ -153,8 +170,30 @@ class ViewAllController extends _$ViewAllController {
           );
           break;
         case ViewAllCategory.providerContent:
-          // Provider content is fully loaded at init — no pagination.
-          state = state.copyWith(hasMore: false, isLoading: false);
+          final loader = providerLoader;
+          if (loader == null) {
+            state = state.copyWith(hasMore: false, isLoading: false);
+            return;
+          }
+          final fetched = await loader(nextPage, state.items.length);
+          if (!ref.mounted || providerGeneration != _providerGeneration) return;
+          if (fetched == null) {
+            state = state.copyWith(hasMore: false, isLoading: false);
+            return;
+          }
+          final existingUrls = state.items.map((item) => item.url).toSet();
+          newItems = fetched
+              .where((item) => existingUrls.add(item.url))
+              .toList(growable: false);
+          if (newItems.isEmpty) {
+            state = state.copyWith(hasMore: false, isLoading: false);
+            return;
+          }
+          state = state.copyWith(
+            items: [...state.items, ...newItems],
+            page: nextPage,
+            isLoading: false,
+          );
           return;
       }
 
@@ -168,6 +207,7 @@ class ViewAllController extends _$ViewAllController {
         );
       }
     } catch (e) {
+      if (!ref.mounted) return;
       state = state.copyWith(isLoading: false);
     }
   }
