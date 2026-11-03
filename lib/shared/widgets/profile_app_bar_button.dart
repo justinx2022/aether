@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/monetization/pass_service.dart';
 import '../../core/profile/profile_service.dart';
 import '../../core/profile/user_profile.dart';
-import '../../features/profile/presentation/auth_sheet.dart';
+import '../../features/profile/presentation/profiles_screen.dart';
 
 class ProfileAppBarButton extends ConsumerWidget {
   const ProfileAppBarButton({super.key});
@@ -11,7 +10,6 @@ class ProfileAppBarButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileState = ref.watch(profileControllerProvider);
-    final passState = ref.watch(passControllerProvider);
     final active = profileState.activeProfile;
 
     final avatar = active != null
@@ -19,29 +17,36 @@ class ProfileAppBarButton extends ConsumerWidget {
         : ProfileAvatars.all.first;
 
     return GestureDetector(
-      onTap: () => AuthSheet.show(context),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute<void>(
+            builder: (_) => const ProfilesScreen(isSwitching: true),
+          ),
+        );
+      },
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.06),
+          color: Colors.white.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: passState.isVip ? const Color(0xFF6366F1).withOpacity(0.5) : Colors.white12,
-            width: 1.5,
+            color: Colors.white.withValues(alpha: 0.15),
+            width: 1.0,
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 28,
-              height: 28,
+              width: 26,
+              height: 26,
               decoration: BoxDecoration(
                 gradient: LinearGradient(colors: avatar.gradientColors),
                 shape: BoxShape.circle,
               ),
-              child: Icon(avatar.icon, color: Colors.white, size: 16),
+              child: Icon(avatar.icon, color: Colors.white, size: 14),
             ),
             const SizedBox(width: 8),
             Text(
@@ -52,24 +57,6 @@ class ProfileAppBarButton extends ConsumerWidget {
                 fontSize: 13,
               ),
             ),
-            if (passState.isVip) ...[
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Text(
-                  'VIP',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
             const SizedBox(width: 4),
           ],
         ),

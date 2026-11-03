@@ -98,7 +98,7 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_crown',
-      label: 'VIP',
+      label: 'Crown',
       icon: Icons.workspace_premium_rounded,
       gradientColors: [Color(0xFFF59E0B), Color(0xFFD97706)],
     ),

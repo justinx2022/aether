@@ -90,7 +90,6 @@ flutter build windows --release
 lib/
 ├── core/
 │   ├── profile/            # User profile models, avatars, and PIN service
-│   ├── monetization/       # Seamless pass controller and sandbox frameworks
 │   ├── recommendations/    # Smart "Because you watched" recommendation engine
 │   ├── services/           # LocalProxyService, BufferSaver, and Prefetch booster
 │   └── theme/              # Celestial space backdrops and dynamic palette engine
