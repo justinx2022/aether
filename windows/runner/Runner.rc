@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "dev.akash.skystream" "\0"
-            VALUE "FileDescription", "SkyStream" "\0"
+            VALUE "CompanyName", "Aether" "\0"
+            VALUE "FileDescription", "Aether" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "skystream" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2025 dev.akash.skystream. All rights reserved." "\0"
+            VALUE "InternalName", "aether" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Aether. All rights reserved." "\0"
             VALUE "OriginalFilename", "skystream.exe" "\0"
-            VALUE "ProductName", "SkyStream" "\0"
+            VALUE "ProductName", "Aether" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

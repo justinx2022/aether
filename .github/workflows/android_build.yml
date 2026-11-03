@@ -108,13 +108,13 @@ jobs:
           mkdir -p release-apks
           cd build/app/outputs/flutter-apk/
           if [ -f "app-release.apk" ]; then
-            cp "app-release.apk" "../../../../release-apks/skystream-android-universal.apk"
+            cp "app-release.apk" "../../../../release-apks/aether-android-universal.apk"
           fi
           for f in app-*-release.apk; do
             if [ -f "$f" ]; then
               abi="${f#app-}"
               abi="${abi%-release.apk}"
-              cp "$f" "../../../../release-apks/skystream-android-${abi}.apk"
+              cp "$f" "../../../../release-apks/aether-android-${abi}.apk"
             fi
           done
           cd ../../../../release-apks
@@ -130,16 +130,14 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           tag: "android-latest"
-          name: "SkyStream Android Latest Release"
+          name: "Aether Android Latest Release"
           body: |
-            ### SkyStream Android Release
+            ### Aether Android Release
 
             **Recommended Download:**
-            - **`skystream-android-arm64-v8a.apk` (~45 MB)**: Optimized for all modern Android phones, tablets, and Google TV devices (67% smaller, zero bloat, full feature set).
-            - **`skystream-android-armeabi-v7a.apk` (~40 MB)**: For older 32-bit Android devices and Fire TV sticks.
-            - **`skystream-android-universal.apk`**: All-in-one fallback containing all architectures.
-
-            All APKs are signed with the official permanent SkyStream release key with v1 & v2 schemes.
+            - **`aether-android-arm64-v8a.apk` (~45 MB)**: Optimized for all modern Android phones, tablets, and Google TV devices.
+            - **`aether-android-armeabi-v7a.apk` (~40 MB)**: For older 32-bit Android devices and Fire TV sticks.
+            - **`aether-android-universal.apk`**: All-in-one fallback containing all architectures.
           allowUpdates: true
           replacesArtifacts: true
           artifacts: |

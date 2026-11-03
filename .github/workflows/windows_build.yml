@@ -87,7 +87,7 @@ jobs:
       - name: Compress Release ZIP
         shell: pwsh
         run: |
-          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath "skystream-windows-x64-custom.zip"
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath "aether-windows-x64-custom.zip"
 
       # sha256sum-style lines (lowercase hex, two spaces, bare file name) for
       # both published artifacts. Get-FileHash rather than sha256sum: the
@@ -100,7 +100,7 @@ jobs:
             Write-Host "::error::no installer found in windows\packaging\exe\Output"
             exit 1
           }
-          $files = $exes + @(Get-Item skystream-windows-x64-custom.zip)
+          $files = $exes + @(Get-Item aether-windows-x64-custom.zip)
           $lines = foreach ($f in $files) {
             $hash = (Get-FileHash -Algorithm SHA256 -Path $f.FullName).Hash.ToLower()
             "$hash  $($f.Name)"
@@ -113,12 +113,12 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           tag: "windows-latest"
-          name: "SkyStream Windows Latest Release"
-          body: "Windows 64-bit installer and portable ZIP with Stremio pulsating loader, 2m-90m buffering, and fast dive-in. SHA256SUMS is included."
+          name: "Aether Windows Latest Release"
+          body: "Aether Windows 64-bit installer and portable ZIP. SHA256SUMS is included."
           allowUpdates: true
           replacesArtifacts: true
           artifacts: |
             windows/packaging/exe/Output/*.exe
-            skystream-windows-x64-custom.zip
+            aether-windows-x64-custom.zip
             SHA256SUMS
           token: ${{ secrets.GITHUB_TOKEN }}

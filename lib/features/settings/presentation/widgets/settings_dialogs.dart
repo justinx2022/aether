@@ -273,7 +273,7 @@ Future<void> showDownloadSettingsDialog(
                       leading: const Icon(Icons.folder_open_rounded),
                       title: const Text('Download location'),
                       subtitle: Text(
-                        directory ?? 'System Downloads/Skystream',
+                        directory ?? 'System Downloads/Aether',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -381,7 +381,7 @@ Future<void> showDownloadLocationDialog(
                     leading: const Icon(Icons.folder_open_rounded),
                     title: const Text('Target Directory'),
                     subtitle: Text(
-                      directory ?? 'System Downloads/Skystream',
+                      directory ?? 'System Downloads/Aether',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1969,7 +1969,7 @@ void showDeveloperDialog(BuildContext context) {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Profile Picture
+            // App Branding Logo
             Container(
               width: 100,
               height: 100,
@@ -1988,66 +1988,37 @@ void showDeveloperDialog(BuildContext context) {
                 ],
               ),
               child: ClipOval(
-                child: Image.network(
-                  'https://avatars.githubusercontent.com/u/74624467?v=4',
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return const Center(child: AppLoadingIndicator());
-                  },
+                child: Image.asset(
+                  'assets/images/aether_logo.jpg',
+                  fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) =>
-                      const Icon(Icons.person_rounded, size: 50),
+                      const Icon(Icons.auto_awesome, size: 50),
                 ),
               ),
             ),
             const SizedBox(height: 20),
-            // Name and Title
+            // Title
             Text(
-              'Akash',
+              'Aether',
               style: Theme.of(context).textTheme.headlineSmall
                   ?.copyWith(fontWeight: FontWeight.bold, letterSpacing: 0.5),
             ),
+            const SizedBox(height: 8),
+            Text(
+              'Celestial Streaming Experience',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.white70,
+                  ),
+            ),
             const SizedBox(height: 24),
-            // Social Links
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                _SocialButton(
-                  svgUrl: 'https://raw.githubusercontent.com/simple-icons/simple-icons/11.10.0/icons/github.svg',
-                  color: const Color(
-                    0xFF909692,
-                  ), // GitHub Official Black/Dark Grey
-                  onTap: () => launchUrl(
-                    Uri.parse('https://github.com/akashdh11'),
-                    mode: LaunchMode.externalApplication,
-                  ),
-                ),
-                _SocialButton(
-                  svgUrl: 'https://raw.githubusercontent.com/simple-icons/simple-icons/11.10.0/icons/linkedin.svg',
-                  color: const Color(0xFF2d65bc), // LinkedIn Official Blue
-                  onTap: () => launchUrl(
-                    Uri.parse('https://www.linkedin.com/in/akashdh11'),
-                    mode: LaunchMode.externalApplication,
-                  ),
-                ),
-                _SocialButton(
-                  svgUrl: 'https://raw.githubusercontent.com/simple-icons/simple-icons/11.10.0/icons/discord.svg',
-                  color: const Color(0xFF5865F2), // Discord Blurple
-                  onTap: () => launchUrl(
-                    Uri.parse('https://discord.gg/73XGA8Mxn9'),
-                    mode: LaunchMode.externalApplication,
-                  ),
-                ),
-                _SocialButton(
-                  svgUrl: 'https://raw.githubusercontent.com/simple-icons/simple-icons/11.10.0/icons/telegram.svg',
-                  color: const Color(0xFF5baae3), // Telegram Official Blue
-                  onTap: () => launchUrl(
-                    Uri.parse('https://t.me/+Ez5Vsv2pUUFjZmNl'),
-                    mode: LaunchMode.externalApplication,
-                  ),
-                ),
-              ],
+            // Repository Link
+            _SocialButton(
+              svgUrl: 'https://raw.githubusercontent.com/simple-icons/simple-icons/11.10.0/icons/github.svg',
+              color: const Color(0xFF909692),
+              onTap: () => launchUrl(
+                Uri.parse('https://github.com/justinx2022/skystream'),
+                mode: LaunchMode.externalApplication,
+              ),
             ),
           ],
         ),
