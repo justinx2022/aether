@@ -234,11 +234,13 @@ class ViewAllRouteExtra {
     required this.initialMediaList,
     required this.category,
     this.onTap,
+    this.loadMore,
   });
   final String title;
   final List<MultimediaItem> initialMediaList;
   final ViewAllCategory category;
   final void Function(MultimediaItem item)? onTap;
+  final Future<List<MultimediaItem>?> Function(int page, int offset)? loadMore;
 }
 
 // --- Route Extra Codec ---
@@ -404,6 +406,7 @@ class ViewAllRoute extends GoRouteData with $ViewAllRoute {
       initialMediaList: $extra.initialMediaList,
       category: $extra.category,
       onTap: $extra.onTap,
+      loadMore: $extra.loadMore,
     );
   }
 }

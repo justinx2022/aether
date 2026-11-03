@@ -319,6 +319,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }) {
     final l10n = AppLocalizations.of(context)!;
     final isResolving = ref.watch(providerResolutionLoadingProvider);
+    final activeProvider = ref.watch(activeProviderProvider);
 
     if (isResolving) {
       return Center(
@@ -328,7 +329,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       );
     }
 
-    if (ref.watch(activeProviderProvider) == null) {
+    if (activeProvider == null) {
       return _buildNoProviderState(context, l10n, isWidescreen: isWidescreen);
     }
 
@@ -434,6 +435,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       title: entry.key,
                       mediaList: entry.value,
                       category: ViewAllCategory.providerContent,
+                      loadMore: (page, offset) => activeProvider
+                          .getCategoryPage(entry.key, page, offset),
                       showViewAll: true,
                       onTap: (item) {
                         DetailsRoute($extra: DetailsRouteExtra(item: item))

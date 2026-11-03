@@ -24,6 +24,7 @@ class MediaHorizontalList extends StatefulWidget {
   final bool showViewAll;
   final String? heroTagPrefix;
   final VoidCallback? onViewAll;
+  final Future<List<MultimediaItem>?> Function(int page, int offset)? loadMore;
 
   const MediaHorizontalList({
     super.key,
@@ -34,6 +35,7 @@ class MediaHorizontalList extends StatefulWidget {
     this.showViewAll = true,
     this.heroTagPrefix,
     this.onViewAll,
+    this.loadMore,
   });
 
   @override
@@ -144,6 +146,7 @@ class _MediaHorizontalListState extends State<MediaHorizontalList> {
         initialMediaList: widget.mediaList,
         category: widget.category,
         onTap: widget.onTap,
+        loadMore: widget.loadMore,
       ),
     ).push<void>(context);
   }

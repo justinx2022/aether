@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 import '../domain/entity/multimedia_item.dart';
 import '../../features/player/domain/stream_resolver.dart';
+import '../../features/player/domain/hls_video_length.dart';
 import 'local_proxy_service.dart';
 
 /// Speculative Background Pre-Warmer (Netflix-Style Warm Start).
@@ -17,14 +17,25 @@ class StreamPrewarmer {
 
   static final StreamPrewarmer instance = StreamPrewarmer._();
 
-  final Map<String, ResolvedPlayback> _prewarmedStreams = {};
+  static const Duration _entryTtl = Duration(minutes: 3);
+  static const int _maxEntries = 8;
+
+  final Map<String, _PrewarmedEntry> _prewarmedStreams = {};
   final Set<String> _inFlight = {};
 
   /// Whether candidate streams have already been resolved and verified for [targetUrl].
-  bool hasPrewarmed(String targetUrl) => _prewarmedStreams.containsKey(targetUrl);
+  bool hasPrewarmed(String targetUrl) => getPrewarmed(targetUrl) != null;
 
   /// Retrieves the pre-warmed playback session if available.
-  ResolvedPlayback? getPrewarmed(String targetUrl) => _prewarmedStreams[targetUrl];
+  ResolvedPlayback? getPrewarmed(String targetUrl) {
+    final entry = _prewarmedStreams[targetUrl];
+    if (entry == null) return null;
+    if (DateTime.now().difference(entry.createdAt) >= _entryTtl) {
+      _prewarmedStreams.remove(targetUrl);
+      return null;
+    }
+    return entry.playback;
+  }
 
   /// Silently pre-resolves [targetUrl] and primes initial media chunks in background.
   Future<void> prewarm({
@@ -33,7 +44,9 @@ class StreamPrewarmer {
     required ProviderReader read,
     Episode? episode,
   }) async {
-    if (targetUrl.isEmpty || _inFlight.contains(targetUrl) || _prewarmedStreams.containsKey(targetUrl)) {
+    if (targetUrl.isEmpty ||
+        _inFlight.contains(targetUrl) ||
+        getPrewarmed(targetUrl) != null) {
       return;
     }
 
@@ -47,24 +60,44 @@ class StreamPrewarmer {
       );
 
       if (resolved.streams.isNotEmpty) {
-        _prewarmedStreams[targetUrl] = resolved;
+        _pruneExpired();
+        _prewarmedStreams[targetUrl] = _PrewarmedEntry(
+          playback: resolved,
+          createdAt: DateTime.now(),
+        );
+        while (_prewarmedStreams.length > _maxEntries) {
+          _prewarmedStreams.remove(_prewarmedStreams.keys.first);
+        }
 
         if (kDebugMode) {
           debugPrint(
-            '[PREWARMER] Successfully prewarmed "$targetUrl" with ${resolved.streams.length} candidate mirrors (selected: ${resolved.selected.providerName})',
+            '[PREWARMER] Prewarmed ${resolved.streams.length} sources '
+            'for ${resolved.selected.providerName}',
           );
         }
 
-        // Prime the winning candidate through the local proxy
-        unawaited(_primeChunk0(resolved.selected));
+        // Only prime an explicitly named HLS playlist. Reading an unknown
+        // endpoint through the proxy can download video bytes during browsing
+        // and wastes bandwidth before the viewer presses Play.
+        final uri = Uri.tryParse(resolved.selected.url);
+        if (uri != null && looksLikeHls(uri)) {
+          unawaited(_primeChunk0(resolved.selected));
+        }
       }
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('[PREWARMER] Error pre-warming $targetUrl: $e');
+        debugPrint('[PREWARMER] Could not prewarm sources (${e.runtimeType})');
       }
     } finally {
       _inFlight.remove(targetUrl);
     }
+  }
+
+  void _pruneExpired() {
+    final now = DateTime.now();
+    _prewarmedStreams.removeWhere(
+      (_, entry) => now.difference(entry.createdAt) >= _entryTtl,
+    );
   }
 
   /// Primes the first media chunk through the proxy into memory to guarantee instant playback.
@@ -79,7 +112,7 @@ class StreamPrewarmer {
       );
 
       client = HttpClient()
-        ..connectionTimeout = const Duration(seconds: 4);
+        ..connectionTimeout = const Duration(seconds: 3);
 
       final req = await client.getUrl(Uri.parse(proxyUrl));
       headers.forEach((k, v) {
@@ -88,38 +121,16 @@ class StreamPrewarmer {
           req.headers.set(k, v);
         }
       });
+      // 0-byte or 64KB sniffer range to trigger proxy segment cache
+      req.headers.set('Range', 'bytes=0-65535');
 
-      final resp = await req.close().timeout(const Duration(seconds: 4));
-      if (resp.statusCode >= 400) {
-        client.close();
-        return;
-      }
-
-      final body = await utf8.decodeStream(resp).timeout(const Duration(seconds: 3));
-
-      // If it's a master playlist, also prime the first child variant playlist.
-      // Fetching the child variant playlist through the proxy triggers
-      // SegmentPrefetchManager.registerPlaylist, which immediately pre-caches
-      // Segment 0 and Segment 1 into local RAM.
-      if (body.contains('#EXT-X-STREAM-INF')) {
-        final lines = body.split('\n');
-        for (final line in lines) {
-          final trimmed = line.trim();
-          if (trimmed.isNotEmpty && !trimmed.startsWith('#')) {
-            final childUri = Uri.tryParse(trimmed);
-            if (childUri != null) {
-              final childReq = await client.getUrl(childUri);
-              final childResp = await childReq.close().timeout(const Duration(seconds: 3));
-              await childResp.drain<void>().timeout(const Duration(seconds: 2));
-              break;
-            }
-          }
-        }
-      }
+      final resp = await req.close().timeout(const Duration(seconds: 3));
+      // Drain first chunk into proxy memory then close
+      await resp.take(1).drain<void>().timeout(const Duration(seconds: 2));
     } catch (_) {
       // Ignore background priming errors; main player will fallback cleanly
     } finally {
-      client?.close();
+      client?.close(force: true);
     }
   }
 
@@ -128,4 +139,11 @@ class StreamPrewarmer {
     _prewarmedStreams.clear();
     _inFlight.clear();
   }
+}
+
+class _PrewarmedEntry {
+  const _PrewarmedEntry({required this.playback, required this.createdAt});
+
+  final ResolvedPlayback playback;
+  final DateTime createdAt;
 }
