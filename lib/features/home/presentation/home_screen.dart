@@ -23,6 +23,7 @@ import '../../extensions/providers/extensions_controller.dart';
 import '../../../core/extensions/models/extension_plugin.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../shared/widgets/profile_app_bar_button.dart';
 
 import 'package:skystream/core/extensions/extension_manager.dart';
 import 'package:skystream/core/extensions/base_provider.dart';
@@ -189,6 +190,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         ),
         title: Text(l10n.appTitle),
         actions: [
+          const ProfileAppBarButton(),
           // 1. Search Action Button
           Padding(
             padding: const EdgeInsets.only(right: LayoutConstants.spacingSm),

@@ -27,6 +27,7 @@ import '../../core/storage/settings_repository.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 import 'package:flutter/foundation.dart';
 import '../logger/app_logger.dart';
+import '../../features/profile/presentation/profiles_screen.dart';
 
 part 'app_router.g.dart';
 
@@ -514,7 +515,13 @@ GoRouter appRouter(Ref ref) {
     initialLocation: initial,
     navigatorKey: rootNavigatorKey,
     debugLogDiagnostics: kDebugMode,
-    routes: $appRoutes,
+    routes: [
+      ...$appRoutes,
+      GoRoute(
+        path: '/profiles',
+        builder: (context, state) => const ProfilesScreen(),
+      ),
+    ],
     extraCodec: const RouteExtraCodec(),
   );
 }

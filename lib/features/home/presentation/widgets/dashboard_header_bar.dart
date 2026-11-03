@@ -8,6 +8,7 @@ import 'package:skystream/shared/widgets/cards_wrapper.dart';
 import 'package:skystream/features/home/presentation/delegates/home_search_delegate.dart';
 import 'package:skystream/features/home/presentation/home_provider.dart';
 import 'package:skystream/features/explore/presentation/widgets/hover_border_gradient.dart';
+import 'package:skystream/shared/widgets/profile_app_bar_button.dart';
 
 import 'dart:async';
 
@@ -206,6 +207,10 @@ class DashboardHeaderBar extends ConsumerWidget {
               ],
             ),
           ),
+
+          const SizedBox(width: 8),
+
+          const ProfileAppBarButton(),
         ],
       ),
     );

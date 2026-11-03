@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 
@@ -68,6 +69,7 @@ class StreamPrewarmer {
 
   /// Primes the first media chunk through the proxy into memory to guarantee instant playback.
   Future<void> _primeChunk0(StreamResult stream) async {
+    HttpClient? client;
     try {
       final headers = playbackHeaders(stream);
       await LocalProxyService.instance.startServer();
@@ -76,8 +78,8 @@ class StreamPrewarmer {
         headers: headers,
       );
 
-      final client = HttpClient()
-        ..connectionTimeout = const Duration(seconds: 3);
+      client = HttpClient()
+        ..connectionTimeout = const Duration(seconds: 4);
 
       final req = await client.getUrl(Uri.parse(proxyUrl));
       headers.forEach((k, v) {
@@ -86,15 +88,38 @@ class StreamPrewarmer {
           req.headers.set(k, v);
         }
       });
-      // 0-byte or 64KB sniffer range to trigger proxy segment cache
-      req.headers.set('Range', 'bytes=0-65535');
 
-      final resp = await req.close().timeout(const Duration(seconds: 3));
-      // Drain first chunk into proxy memory then close
-      await resp.take(1).drain<void>().timeout(const Duration(seconds: 2));
-      client.close();
+      final resp = await req.close().timeout(const Duration(seconds: 4));
+      if (resp.statusCode >= 400) {
+        client.close();
+        return;
+      }
+
+      final body = await utf8.decodeStream(resp).timeout(const Duration(seconds: 3));
+
+      // If it's a master playlist, also prime the first child variant playlist.
+      // Fetching the child variant playlist through the proxy triggers
+      // SegmentPrefetchManager.registerPlaylist, which immediately pre-caches
+      // Segment 0 and Segment 1 into local RAM.
+      if (body.contains('#EXT-X-STREAM-INF')) {
+        final lines = body.split('\n');
+        for (final line in lines) {
+          final trimmed = line.trim();
+          if (trimmed.isNotEmpty && !trimmed.startsWith('#')) {
+            final childUri = Uri.tryParse(trimmed);
+            if (childUri != null) {
+              final childReq = await client.getUrl(childUri);
+              final childResp = await childReq.close().timeout(const Duration(seconds: 3));
+              await childResp.drain<void>().timeout(const Duration(seconds: 2));
+              break;
+            }
+          }
+        }
+      }
     } catch (_) {
       // Ignore background priming errors; main player will fallback cleanly
+    } finally {
+      client?.close();
     }
   }
 
