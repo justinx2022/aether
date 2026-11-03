@@ -511,6 +511,11 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     final background = Color(settings.subtitleBackgroundColor)
         .withValues(alpha: settings.subtitleBackgroundOpacity.clamp(0.0, 1.0));
     await native.setProperty('sub-back-color', _mpvColor(background));
+    // Crisp floating subtitle styling with outline and subtle shadow
+    await native.setProperty('sub-border-size', '2.5');
+    await native.setProperty('sub-border-color', '#ff000000');
+    await native.setProperty('sub-shadow-offset', '1.0');
+    await native.setProperty('sub-shadow-color', '#80000000');
   }
 
   String _mpvColor(Color color) =>

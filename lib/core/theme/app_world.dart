@@ -156,16 +156,16 @@ class AppWorldColors {
   }
 }
 
-/// SKY at night: the pack's midnight-blue tokens, verbatim.
+/// SKY at night: true obsidian OLED dark with subtle celestial cyan accent.
 const AppWorldColors kSkyDark = AppWorldColors(
-  background: Color(0xFF0B1220),
-  elevated: Color(0xFF172338),
-  elevatedHigh: Color(0xFF1F2E47),
+  background: Color(0xFF000000),
+  elevated: Color(0xFF0A0C14),
+  elevatedHigh: Color(0xFF141722),
   accent: Color(0xFFA9C2E4),
-  onAccent: Color(0xFF0B1220),
+  onAccent: Color(0xFF000000),
   textPrimary: Color(0xFFF4F6FA),
   textSecondary: Color(0xFFAAB7C9),
-  divider: Color(0xFF2A384D),
+  divider: Color(0xFF18202F),
 );
 
 /// SKY in daylight: the same family, inverted for AA on paper.

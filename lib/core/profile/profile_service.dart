@@ -102,6 +102,8 @@ class ProfileController extends Notifier<ProfileState> {
     required String avatarId,
     String? pin,
     bool isKids = false,
+    List<String> preferredGenres = const [],
+    String feedMode = 'all',
   }) async {
     final newProfile = UserProfile(
       id: 'profile_${DateTime.now().millisecondsSinceEpoch}',
@@ -109,6 +111,8 @@ class ProfileController extends Notifier<ProfileState> {
       avatarId: avatarId,
       pin: pin?.isNotEmpty == true ? pin : null,
       isKids: isKids,
+      preferredGenres: preferredGenres,
+      feedMode: feedMode,
       createdAt: DateTime.now(),
     );
 

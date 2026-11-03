@@ -52,6 +52,7 @@ class TmdbConfig {
   static const String _imageRoot = 'https://image.tmdb.org/t/p';
 
   static DeviceProfile _profile = const DeviceProfile();
+  static DeviceProfile get profile => _profile;
 
   /// Called from `_MyAppState`'s `ref.listen(deviceProfileProvider, …)`.
   /// Idempotent; safe to call repeatedly.
@@ -59,22 +60,14 @@ class TmdbConfig {
     _profile = profile;
   }
 
-  /// High-res sources on a TV (4K panels upscale `w1280` ~3× and look soft)
-  /// and on a desktop OS (retina displays at large hero sizes hit the same
-  /// wall). Tablet stays on mobile sizes: iPad-class screens render posters at
-  /// ~200 dp wide, where `w500` is already adequate at 2× DPR.
-  static bool get _needsHighRes => _profile.isTv || _profile.isDesktopOS;
+  /// Deliver true uncompressed 4K UHD backdrops (`original`, 3840x2160) across all devices.
+  static String get backdropSizeUrl => '$_imageRoot/original';
 
-  /// TV and desktop get `original`, TMDB's max, typically ≥ 1920 px wide.
-  static String get backdropSizeUrl =>
-      '$_imageRoot/${_needsHighRes ? 'original' : 'w1280'}';
+  /// High-definition poster renders (`w780`) across all devices for pin-sharp display.
+  static String get posterSizeUrl => '$_imageRoot/w780';
 
-  static String get posterSizeUrl =>
-      '$_imageRoot/${_needsHighRes ? 'w780' : 'w500'}';
-
-  /// Cast head-shot and thumbnail size.
-  static String get profileSizeUrl =>
-      '$_imageRoot/${_needsHighRes ? 'h632' : 'w185'}';
+  /// High-resolution cast head-shots and thumbnails.
+  static String get profileSizeUrl => '$_imageRoot/h632';
 
   /// Generic fallback for logos, stills and anything without its own size.
   static String get imageBaseUrl => posterSizeUrl;

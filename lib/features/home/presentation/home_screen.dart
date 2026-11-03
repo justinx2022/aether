@@ -114,7 +114,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final history = ref.watch(watchHistoryProvider);
     final syncedProgressAsync = ref.watch(syncedProgressProvider);
     final generalSettings = ref.watch(generalSettingsProvider);
-    final l10n = AppLocalizations.of(context)!;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final overlayStyle = isDark
@@ -189,7 +188,49 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 .withValues(alpha: opacity),
           ),
         ),
-        title: Text(l10n.appTitle),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 26,
+              height: 26,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF6366F1).withValues(alpha: 0.35),
+                    blurRadius: 10,
+                  ),
+                ],
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  width: 1,
+                ),
+              ),
+              child: ClipOval(
+                child: Image.asset(
+                  'assets/images/aether_logo.jpg',
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => const Icon(
+                    Icons.auto_awesome,
+                    color: Colors.white,
+                    size: 14,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'AETHER',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                fontSize: 17,
+                letterSpacing: 2.0,
+              ),
+            ),
+          ],
+        ),
         actions: [
           const ProfileAppBarButton(),
           // 1. Search Action Button

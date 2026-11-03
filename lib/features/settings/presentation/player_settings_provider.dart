@@ -207,7 +207,7 @@ class PlayerSettings {
     this.subtitleSize = 22.0,
     this.subtitleColor = 0xFFFFFFFF, // White
     this.subtitleBackgroundColor = 0x00000000, // Transparent
-    this.subtitleBackgroundOpacity = 0.5, // Default opacity (50%)
+    this.subtitleBackgroundOpacity = 0.0, // Default transparent floating subtitles
     this.subtitleDefault = SubtitleDefault.auto,
     this.autoSaveFullyBuffered = false,
     this.hardwareDecoding = true,
@@ -409,10 +409,14 @@ class PlayerSettingsNotifier extends _$PlayerSettingsNotifier {
     final subBg =
         (storage.getPlayerSetting('player_sub_bg') as num?)?.toInt() ??
         0x00000000;
-    final subBgOpacity =
+    final rawSubBgOpacity =
         (storage.getPlayerSetting('player_sub_bg_opacity') as num?)
-            ?.toDouble() ??
-        0.5;
+            ?.toDouble();
+    // Default to transparent floating subtitles (0.0). If legacy 0.5 default, treat as 0.0.
+    final subBgOpacity =
+        (rawSubBgOpacity == null || rawSubBgOpacity == 0.5)
+            ? 0.0
+            : rawSubBgOpacity;
     // Absent (a fresh install, or an upgrade from before this setting) and
     // unrecognised (a value written by a newer build, or a corrupted box) both
     // land on Auto, which is the behaviour every install already had.
@@ -785,7 +789,7 @@ class PlayerSettingsNotifier extends _$PlayerSettingsNotifier {
     await _repository.setPlayerSetting('player_sub_size', 22.0);
     await _repository.setPlayerSetting('player_sub_color', 0xFFFFFFFF);
     await _repository.setPlayerSetting('player_sub_bg', 0x00000000);
-    await _repository.setPlayerSetting('player_sub_bg_opacity', 0.5);
+    await _repository.setPlayerSetting('player_sub_bg_opacity', 0.0);
     await _repository.setPlayerSetting('player_sub_pos', 100.0);
 
     _update(
@@ -793,7 +797,7 @@ class PlayerSettingsNotifier extends _$PlayerSettingsNotifier {
         subtitleSize: 22.0,
         subtitleColor: 0xFFFFFFFF,
         subtitleBackgroundColor: 0x00000000,
-        subtitleBackgroundOpacity: 0.5,
+        subtitleBackgroundOpacity: 0.0,
       ),
     );
   }

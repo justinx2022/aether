@@ -8,7 +8,6 @@ import '../../../core/services/notification_service.dart';
 import '../../../core/domain/entity/multimedia_item.dart';
 import '../../../shared/widgets/thumbnail_error_placeholder.dart';
 import '../../../core/utils/image_fallbacks.dart';
-import '../../../core/utils/image_utils.dart';
 
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skystream/core/utils/layout_constants.dart';
@@ -172,12 +171,10 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                       // an overscroll bounce, so constraints here change every
                       // frame of the stretch and the decode bound would churn
                       // the image cache with them.
-                      memCacheWidth: ImageUtils.coverDecodeWidth(
-                        context,
-                        width: MediaQuery.sizeOf(context).width,
-                        height: LayoutConstants.detailsExpandedHeightMobile,
-                        sourceAspectRatio: ImageUtils.backdropAspectRatio,
-                      ),
+                      memCacheWidth:
+                          (MediaQuery.sizeOf(context).width *
+                                  MediaQuery.devicePixelRatioOf(context))
+                              .round(),
                       placeholder: (context, url) =>
                           Container(color: Theme.of(context).dividerColor),
                       errorWidget: (_, _, _) => ThumbnailErrorPlaceholder(

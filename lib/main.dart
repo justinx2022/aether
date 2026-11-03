@@ -67,8 +67,8 @@ void main() async {
   // generous for low-RAM TVs and even most phones — decoded TMDB posters fill
   // it quickly. Tighter limits force earlier eviction and keep raster smooth.
   PaintingBinding.instance.imageCache
-    ..maximumSize = 200
-    ..maximumSizeBytes = 50 * 1024 * 1024; // 50 MB
+    ..maximumSize = 300
+    ..maximumSizeBytes = 250 * 1024 * 1024; // 250 MB for pristine 4K backdrops
 
   // Repaint rainbow for the flicker hunt - see player_debug_flags.dart. A
   // compile-time constant, so a normal build carries no trace of it.

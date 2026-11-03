@@ -240,16 +240,16 @@ AppSurfaceColors resolveSurfaceColors({
         return const AppSurfaceColors(
           scaffold: Color(0xFF000000),
           surface: Color(0xFF000000),
-          card: Color(0xFF000000),
-          dialog: Color(0xFF18181F),
-          sheet: Color(0xFF18181F),
-          containerLow: Color(0xFF0C0C11),
-          containerHigh: Color(0xFF22222E),
-          containerHighest: Color(0xFF2C2C36),
-          outline: Color(0xFF3A3A46),
-          outlineVariant: Color(0xFF22222E),
-          input: Color(0xFF18181F),
-          divider: Color(0xFF22222E),
+          card: Color(0xFF080A10),
+          dialog: Color(0xFF0D0F18),
+          sheet: Color(0xFF0D0F18),
+          containerLow: Color(0xFF030406),
+          containerHigh: Color(0xFF131724),
+          containerHighest: Color(0xFF1B2032),
+          outline: Color(0xFF22283A),
+          outlineVariant: Color(0xFF141824),
+          input: Color(0xFF0B0D15),
+          divider: Color(0xFF161C2A),
         );
       case AppSurfaceStyle.midnight:
         return const AppSurfaceColors(
