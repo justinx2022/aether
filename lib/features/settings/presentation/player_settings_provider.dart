@@ -209,6 +209,7 @@ class PlayerSettings {
     this.subtitleBackgroundColor = 0x00000000, // Transparent
     this.subtitleBackgroundOpacity = 0.5, // Default opacity (50%)
     this.subtitleDefault = SubtitleDefault.auto,
+    this.autoSaveFullyBuffered = false,
     this.hardwareDecoding = true,
     this.preferredPlayer,
     this.wifiQuality = kDefaultWifiQuality,
@@ -250,6 +251,7 @@ class PlayerSettings {
     int? subtitleBackgroundColor,
     double? subtitleBackgroundOpacity,
     SubtitleDefault? subtitleDefault,
+    bool? autoSaveFullyBuffered,
     bool? hardwareDecoding,
     String? preferredPlayer,
     bool clearPreferredPlayer = false,
@@ -293,6 +295,8 @@ class PlayerSettings {
       subtitleBackgroundOpacity:
           subtitleBackgroundOpacity ?? this.subtitleBackgroundOpacity,
       subtitleDefault: subtitleDefault ?? this.subtitleDefault,
+      autoSaveFullyBuffered:
+          autoSaveFullyBuffered ?? this.autoSaveFullyBuffered,
       hardwareDecoding: hardwareDecoding ?? this.hardwareDecoding,
       preferredPlayer: clearPreferredPlayer
           ? null
@@ -427,6 +431,12 @@ class PlayerSettingsNotifier extends _$PlayerSettingsNotifier {
     final hwDec =
         storage.getPlayerSetting<bool>('player_hw_dec', defaultValue: true) ??
         true;
+    final autoSave =
+        storage.getPlayerSetting<bool>(
+          'player_auto_save_buffered',
+          defaultValue: false,
+        ) ??
+        false;
     final wifiQ = _parseQuality(
       storage.getPlayerSetting<String>('player_wifi_quality'),
       kDefaultWifiQuality,
@@ -543,6 +553,7 @@ class PlayerSettingsNotifier extends _$PlayerSettingsNotifier {
       subtitleBackgroundColor: subBg,
       subtitleBackgroundOpacity: subBgOpacity,
       subtitleDefault: subtitleDefault,
+      autoSaveFullyBuffered: autoSave,
       hardwareDecoding: hwDec,
       preferredPlayer: prefPlayer,
       wifiQuality: wifiQ,
@@ -625,6 +636,11 @@ class PlayerSettingsNotifier extends _$PlayerSettingsNotifier {
   Future<void> setLeftGesture(PlayerGesture g) async {
     await _repository.setPlayerSetting('player_gesture_left', g.name);
     _update((PlayerSettings c) => c.copyWith(leftGesture: g));
+  }
+
+  Future<void> setAutoSaveFullyBuffered(bool value) async {
+    await _repository.setPlayerSetting('player_auto_save_buffered', value);
+    _update((PlayerSettings c) => c.copyWith(autoSaveFullyBuffered: value));
   }
 
   Future<void> setRightGesture(PlayerGesture g) async {

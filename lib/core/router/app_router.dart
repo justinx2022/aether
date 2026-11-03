@@ -23,7 +23,6 @@ import '../../features/details/presentation/tmdb_movie_details_screen.dart';
 import '../../features/explore/presentation/view_all_screen.dart';
 import '../domain/entity/multimedia_item.dart';
 import 'package:skystream/shared/widgets/app_scaffold.dart';
-import '../../core/storage/settings_repository.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 import 'package:flutter/foundation.dart';
 import '../logger/app_logger.dart';

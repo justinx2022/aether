@@ -180,7 +180,8 @@ class ExtensionsController extends _$ExtensionsController {
       // If no plugins installed yet, auto-install Justin's Catalogue
       final justinPlugin = available.values
           .expand((list) => list)
-          .firstWhereOrNull((p) => p.packageName == 'dev.justin.catalogue');
+          .where((p) => p.packageName == 'dev.justin.catalogue')
+          .firstOrNull;
       if (activeInstalled.isEmpty && justinPlugin != null) {
         unawaited(installPlugin(justinPlugin));
       }

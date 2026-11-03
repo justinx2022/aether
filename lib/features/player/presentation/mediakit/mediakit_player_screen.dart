@@ -489,8 +489,9 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
           }
         }
       } catch (e) {
-        if (kDebugMode)
+        if (kDebugMode) {
           debugPrint('[MediaKit] Error configuring mpv properties: $e');
+        }
       }
     }
   }
@@ -2175,7 +2176,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                                 ? 'Fully buffered (100%) • Direct instant save to Downloads/Aether'
                                 : '${(pct * 100).toInt()}% buffered • Save current stream to Downloads/Aether',
                             icon: isFull ? Icons.download_done_rounded : Icons.save_alt_rounded,
-                            badges: isFull ? const <String>['Ready to Save'] : null,
+                            badges: isFull ? const <String>['Ready to Save'] : const <String>[],
                             onTap: () {
                               Navigator.of(sheetContext).maybePop();
                               unawaited(_saveBufferedVideoToDownloads());
@@ -2285,20 +2286,23 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     try {
       _recordFinalProgress();
     } catch (e, st) {
-      if (kDebugMode)
+      if (kDebugMode) {
         debugPrint('Error during _recordFinalProgress in dispose: $e\n$st');
+      }
     }
     try {
       _tracker?.finish();
     } catch (e, st) {
-      if (kDebugMode)
+      if (kDebugMode) {
         debugPrint('Error during _tracker.finish in dispose: $e\n$st');
+      }
     }
     try {
       _cleanupPlatformOnExit();
     } catch (e, st) {
-      if (kDebugMode)
+      if (kDebugMode) {
         debugPrint('Error during _cleanupPlatformOnExit in dispose: $e\n$st');
+      }
     }
     try {
       _sideCars.removeListener(_onSideCars);
