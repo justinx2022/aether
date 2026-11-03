@@ -47,9 +47,90 @@ class AppBackdropLayer extends StatelessWidget {
         world?.colors.pageGradient ??
         LinearGradient(colors: [base, base]);
 
+    final backdrop = tokens?.backdrop ?? AppBackdrop.nebula;
+
     return DecoratedBox(
       decoration: BoxDecoration(gradient: gradient),
-      child: child,
+      child: CustomPaint(
+        painter: SpaceBackdropPainter(
+          backdrop: backdrop,
+          brightness: theme.brightness,
+        ),
+        child: child,
+      ),
     );
   }
+}
+
+/// Paints subtle celestial space effects (nebula gas clouds, event horizon accretion glow, star clusters).
+class SpaceBackdropPainter extends CustomPainter {
+  final AppBackdrop backdrop;
+  final Brightness brightness;
+
+  const SpaceBackdropPainter({
+    required this.backdrop,
+    required this.brightness,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (backdrop == AppBackdrop.none || backdrop == AppBackdrop.obsidianVoid) {
+      return;
+    }
+
+    final isDark = brightness == Brightness.dark;
+    if (!isDark) return;
+
+    if (backdrop == AppBackdrop.nebula) {
+      final paint1 = Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(-0.6, -0.7),
+          radius: 0.8,
+          colors: [
+            const Color(0xFF7C3AED).withValues(alpha: 0.18),
+            Colors.transparent,
+          ],
+        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+      canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint1);
+
+      final paint2 = Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(0.7, -0.2),
+          radius: 0.7,
+          colors: [
+            const Color(0xFF06B6D4).withValues(alpha: 0.12),
+            Colors.transparent,
+          ],
+        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+      canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint2);
+    } else if (backdrop == AppBackdrop.blackhole) {
+      final paint = Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(0.0, -0.5),
+          radius: 0.9,
+          colors: [
+            const Color(0xFFD97706).withValues(alpha: 0.16),
+            const Color(0xFF92400E).withValues(alpha: 0.08),
+            Colors.transparent,
+          ],
+          stops: const [0.0, 0.45, 1.0],
+        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+      canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
+    } else if (backdrop == AppBackdrop.starfield) {
+      final paint = Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(0.0, -0.8),
+          radius: 1.0,
+          colors: [
+            const Color(0xFF2563EB).withValues(alpha: 0.14),
+            Colors.transparent,
+          ],
+        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+      canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant SpaceBackdropPainter oldDelegate) =>
+      oldDelegate.backdrop != backdrop || oldDelegate.brightness != brightness;
 }

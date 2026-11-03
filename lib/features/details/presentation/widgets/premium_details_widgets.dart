@@ -8,6 +8,8 @@ import 'package:skystream/shared/widgets/cards_wrapper.dart';
 import 'package:skystream/shared/widgets/shimmer_placeholder.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:skystream/shared/widgets/thumbnail_error_placeholder.dart';
+import 'package:skystream/core/recommendations/recommendations_service.dart';
+import 'package:skystream/core/router/app_router.dart';
 import 'package:skystream/core/utils/responsive_breakpoints.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -609,3 +611,38 @@ class RecommendationsCarousel extends StatelessWidget {
     );
   }
 }
+
+/// Automatically loads similar titles from Cinemeta if recommendations are not already present.
+class AutoRecommendationsSection extends ConsumerWidget {
+  final MultimediaItem item;
+
+  const AutoRecommendationsSection({super.key, required this.item});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (item.recommendations != null && item.recommendations!.isNotEmpty) {
+      return RecommendationsCarousel(
+        items: item.recommendations!,
+        onItemTap: (rec) {
+          DetailsRoute($extra: DetailsRouteExtra(item: rec)).push<void>(context);
+        },
+      );
+    }
+
+    final similarAsync = ref.watch(similarItemsProvider(item));
+    return similarAsync.when(
+      data: (items) {
+        if (items.isEmpty) return const SizedBox.shrink();
+        return RecommendationsCarousel(
+          items: items,
+          onItemTap: (rec) {
+            DetailsRoute($extra: DetailsRouteExtra(item: rec)).push<void>(context);
+          },
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (err, stack) => const SizedBox.shrink(),
+    );
+  }
+}
+

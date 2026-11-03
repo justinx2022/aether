@@ -1123,3 +1123,205 @@ class SubSourceProvider extends SubtitleProvider {
     }
   }
 }
+
+/// Public keyless OpenSubtitles v3 provider (powered by Stremio's official v3 open service).
+/// Zero API keys needed, works out of the box for movies and series in every language.
+class StremioOpenSubtitlesProvider extends SubtitleProvider {
+  final Dio _dio;
+  static const String baseUrl = 'https://opensubtitles-v3.strem.io';
+  static const String cinemetaUrl = 'https://v3-cinemeta.strem.io';
+
+  StremioOpenSubtitlesProvider(this._dio);
+
+  @override
+  String get name => "OpenSubtitles (Stremio v3)";
+
+  @override
+  String get idPrefix => "stremio_os";
+
+  @override
+  Future<List<OnlineSubtitle>> search({
+    required String query,
+    String? imdbId,
+    int? tmdbId,
+    int? season,
+    int? episode,
+    String? language,
+    CancelToken? cancelToken,
+  }) async {
+    try {
+      String? targetImdb = imdbId;
+
+      // 1. If no valid IMDb ID provided, resolve it quickly via Cinemeta catalog search
+      if (targetImdb == null || !targetImdb.startsWith('tt')) {
+        targetImdb = await _resolveImdbFromCinemeta(
+          query: query,
+          isSeries: season != null && season > 0,
+          cancelToken: cancelToken,
+        );
+      }
+
+      if (targetImdb == null || !targetImdb.startsWith('tt')) {
+        if (kDebugMode) {
+          debugPrint("[StremioOS] Could not resolve IMDb ID for '$query'");
+        }
+        return [];
+      }
+
+      // 2. Build the Stremio OpenSubtitles v3 resource URL
+      final isSeries = season != null && season > 0 && episode != null && episode > 0;
+      final type = isSeries ? 'series' : 'movie';
+      final id = isSeries ? '$targetImdb:$season:$episode' : targetImdb;
+      final endpoint = '$baseUrl/subtitles/$type/$id.json';
+
+      if (kDebugMode) {
+        debugPrint("[StremioOS] Querying endpoint: $endpoint (lang: $language)");
+      }
+
+      final response = await _dio.get<dynamic>(
+        endpoint,
+        cancelToken: cancelToken,
+        options: Options(
+          headers: const {
+            'Accept': 'application/json',
+            'User-Agent': 'Aether/1.0.0 (StremioAddonProtocol)',
+          },
+          receiveTimeout: const Duration(seconds: 12),
+          sendTimeout: const Duration(seconds: 12),
+        ),
+      );
+
+      final data = response.data;
+      if (data == null || data is! Map || data['subtitles'] is! List) {
+        return [];
+      }
+
+      final List<dynamic> list = data['subtitles'] as List;
+      final results = <OnlineSubtitle>[];
+
+      // Convert 2-letter / 3-letter language preferences
+      final filterLang = (language ?? 'en').toLowerCase().trim();
+
+      for (var i = 0; i < list.length; i++) {
+        final item = list[i];
+        if (item is! Map) continue;
+
+        final subUrl = item['url'] as String? ?? '';
+        if (subUrl.isEmpty) continue;
+
+        final subLang = (item['lang'] as String? ?? 'eng').toLowerCase();
+        final fileName = item['subtitleFileName'] as String? ??
+            item['movieReleaseName'] as String? ??
+            '$query.$subLang.srt';
+        final subId = item['id']?.toString() ?? '$targetImdb-$i';
+
+        // Check language match if language filter is specified
+        if (filterLang.isNotEmpty && filterLang != 'all') {
+          final isMatch = _matchesLanguage(subLang, filterLang);
+          if (!isMatch) continue;
+        }
+
+        results.add(
+          OnlineSubtitle(
+            id: '$idPrefix-$subId',
+            name: fileName,
+            language: subLang,
+            source: 'OpenSubtitles v3',
+            downloadUrl: subUrl,
+            isHearingImpaired: item['hi'] == true || item['hi'] == 1,
+            metadata: {
+              'url': subUrl,
+              'encoding': item['SubEncoding'],
+              'release': item['movieReleaseName'],
+            },
+          ),
+        );
+      }
+
+      if (kDebugMode) {
+        debugPrint("[StremioOS] Returned ${results.length} valid subtitles");
+      }
+      return results;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint("[StremioOS] Search error: $e");
+      }
+      return [];
+    }
+  }
+
+  bool _matchesLanguage(String subLang, String targetLang) {
+    if (subLang == targetLang) return true;
+    const langMap = {
+      'eng': 'en',
+      'spa': 'es',
+      'fre': 'fr',
+      'fra': 'fr',
+      'ger': 'de',
+      'deu': 'de',
+      'ita': 'it',
+      'por': 'pt',
+      'pob': 'pt',
+      'rus': 'ru',
+      'hin': 'hi',
+      'ara': 'ar',
+      'tur': 'tr',
+      'zho': 'zh',
+      'chi': 'zh',
+      'kor': 'ko',
+      'jpn': 'ja',
+      'swe': 'sv',
+      'dan': 'da',
+      'nor': 'no',
+      'fin': 'fi',
+      'pol': 'pl',
+      'dut': 'nl',
+      'nld': 'nl',
+      'heb': 'he',
+      'ind': 'id',
+      'vie': 'vi',
+      'tha': 'th',
+    };
+    final mapped = langMap[subLang] ?? subLang;
+    return mapped == targetLang;
+  }
+
+  Future<String?> _resolveImdbFromCinemeta({
+    required String query,
+    required bool isSeries,
+    CancelToken? cancelToken,
+  }) async {
+    try {
+      final type = isSeries ? 'series' : 'movie';
+      final clean = Uri.encodeComponent(query.trim());
+      final url = '$cinemetaUrl/catalog/$type/top/search=$clean.json';
+      final resp = await _dio.get<dynamic>(
+        url,
+        cancelToken: cancelToken,
+        options: Options(receiveTimeout: const Duration(seconds: 8)),
+      );
+      if (resp.data is Map && resp.data['metas'] is List) {
+        final metas = resp.data['metas'] as List;
+        if (metas.isNotEmpty && metas.first is Map) {
+          final first = metas.first as Map;
+          return (first['imdb_id'] ?? first['id']) as String?;
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  @override
+  Future<String?> getDownloadUrl(OnlineSubtitle subtitle) async {
+    return subtitle.downloadUrl.isNotEmpty ? subtitle.downloadUrl : null;
+  }
+
+  @override
+  Map<String, String> getDownloadHeaders(OnlineSubtitle subtitle) {
+    return {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      'Accept': '*/*',
+    };
+  }
+}
+

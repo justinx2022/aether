@@ -17,6 +17,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:archive/archive.dart';
 import 'package:flutter/foundation.dart';
 
 /// Where on the screen a cue sits.
@@ -174,7 +175,13 @@ List<SubtitleCue>? parseSubtitles(String text) {
 /// The text of a subtitle file's [bytes]: UTF-8 or UTF-16 when a byte order
 /// mark says so, UTF-8 when the bytes are valid UTF-8, and Windows-1252 -
 /// the usual legacy encoding of Western subtitle files - otherwise.
-String decodeSubtitleBytes(List<int> bytes) {
+String decodeSubtitleBytes(List<int> rawBytes) {
+  List<int> bytes = rawBytes;
+  if (bytes.length >= 2 && bytes[0] == 0x1F && bytes[1] == 0x8B) {
+    try {
+      bytes = const GZipDecoder().decodeBytes(bytes);
+    } catch (_) {}
+  }
   if (bytes.length >= 3 &&
       bytes[0] == 0xEF &&
       bytes[1] == 0xBB &&

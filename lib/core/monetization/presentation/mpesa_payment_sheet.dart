@@ -68,7 +68,7 @@ class _MpesaPaymentSheetState extends ConsumerState<MpesaPaymentSheet> {
   }
 
   void _showSuccessDialog(BuildContext context, PassTier tier) {
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF161822),

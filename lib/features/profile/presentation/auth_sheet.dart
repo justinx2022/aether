@@ -162,7 +162,7 @@ class _AuthSheetState extends ConsumerState<AuthSheet> {
                     Navigator.pop(context);
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
+                      MaterialPageRoute<void>(
                         builder: (_) => const ProfilesScreen(isSwitching: true),
                       ),
                     );

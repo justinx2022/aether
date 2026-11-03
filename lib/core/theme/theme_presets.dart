@@ -58,6 +58,10 @@ enum AppSurfaceStyle {
 /// be behind the glass.
 enum AppBackdrop {
   none,
+  nebula,
+  blackhole,
+  starfield,
+  obsidianVoid,
   aurora,
   dusk,
   ember;
@@ -66,7 +70,7 @@ enum AppBackdrop {
     for (final value in values) {
       if (value.name == raw) return value;
     }
-    return none;
+    return nebula; // Default to cosmic nebula
   }
 
   /// The gradient for [base] at this brightness, or null when there is none.
@@ -84,13 +88,25 @@ enum AppBackdrop {
     // A tenth of a vivid hue on black is still black to the eye; a tenth on
     // cream would be a different page. The light values are half the dark
     // ones so both read as the same level of "there is something there".
-    final strong = dark ? 0.14 : 0.07;
-    final soft = dark ? 0.07 : 0.04;
+    final strong = dark ? 0.22 : 0.12;
+    final soft = dark ? 0.12 : 0.06;
     final Color a;
     final Color b;
     switch (this) {
       case none:
         return null;
+      case nebula:
+        a = const Color(0xFF7C3AED);
+        b = const Color(0xFF06B6D4);
+      case blackhole:
+        a = const Color(0xFFD97706);
+        b = const Color(0xFF431407);
+      case starfield:
+        a = const Color(0xFF1E3A8A);
+        b = const Color(0xFF3B82F6);
+      case obsidianVoid:
+        a = const Color(0xFF0F172A);
+        b = const Color(0xFF030712);
       case aurora:
         a = const Color(0xFF2AA9A0);
         b = const Color(0xFF7C5CFF);

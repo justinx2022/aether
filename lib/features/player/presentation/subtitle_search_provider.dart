@@ -212,6 +212,8 @@ class SubtitleSearch extends _$SubtitleSearch {
         const PlayerSettings();
 
     _providers = [
+      // Primary: Stremio OpenSubtitles v3 (keyless, instant, public CDN, multi-language)
+      StremioOpenSubtitlesProvider(dio),
       OpenSubtitlesProvider(
         dio,
         username: settings.osUsername,

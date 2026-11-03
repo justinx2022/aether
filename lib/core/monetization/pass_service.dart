@@ -129,10 +129,11 @@ class PassController extends Notifier<PassState> {
     final now = DateTime.now();
 
     // 1. Check/initialize 3-day trial
-    int? firstLaunchMillis = _storage.getInt(_kFirstLaunchKey);
+    final firstLaunchRaw = _storage.getString(_kFirstLaunchKey);
+    int? firstLaunchMillis = firstLaunchRaw != null ? int.tryParse(firstLaunchRaw) : null;
     if (firstLaunchMillis == null) {
       firstLaunchMillis = now.millisecondsSinceEpoch;
-      _storage.setInt(_kFirstLaunchKey, firstLaunchMillis);
+      _storage.setString(_kFirstLaunchKey, firstLaunchMillis.toString());
     }
 
     final firstLaunchDate = DateTime.fromMillisecondsSinceEpoch(firstLaunchMillis);
@@ -154,7 +155,8 @@ class PassController extends Notifier<PassState> {
       } catch (_) {}
     }
 
-    final isSandbox = _storage.getBool(_kSandboxModeKey) ?? true;
+    final sandboxRaw = _storage.getString(_kSandboxModeKey);
+    final isSandbox = sandboxRaw != null ? sandboxRaw == 'true' : true;
     final isVip = isTrialActive || (activePass != null && activePass.isValid);
 
     return PassState(
@@ -167,7 +169,7 @@ class PassController extends Notifier<PassState> {
   }
 
   void toggleSandboxMode(bool enabled) {
-    _storage.setBool(_kSandboxModeKey, enabled);
+    _storage.setString(_kSandboxModeKey, enabled.toString());
     state = state.copyWith(isSandboxMode: enabled);
   }
 
@@ -214,7 +216,7 @@ class PassController extends Notifier<PassState> {
 
     if (isDemo || state.isSandboxMode) {
       // Simulate realistic network round-trip + user PIN entry
-      await Future.delayed(const Duration(seconds: 2));
+      await Future<void>.delayed(const Duration(seconds: 2));
       await activateTestPass(tier, phone: cleanedPhone);
       return (
         success: true,

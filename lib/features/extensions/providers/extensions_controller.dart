@@ -130,6 +130,15 @@ class ExtensionsController extends _$ExtensionsController {
       // Extensions screen that is five spinner-seconds they watch.
       final prefs = await SharedPreferences.getInstance();
       var urls = prefs.getStringList(repoUrlsKey) ?? [];
+
+      // Pre-seed Justin's Catalogue repo if no repositories are configured
+      if (urls.isEmpty) {
+        urls = [
+          'https://raw.githubusercontent.com/justinx2022/sstream_plugintest/main/dist/repo.json',
+        ];
+        await prefs.setStringList(repoUrlsKey, urls);
+      }
+
       // Filter out any regional Indian repositories (Hindmovie, CNCVerse, TJ-Plugins)
       final cleanUrls = urls
           .where((u) =>
@@ -151,17 +160,34 @@ class ExtensionsController extends _$ExtensionsController {
 
       final repos = <ExtensionRepository>[];
       final available = <String, List<ExtensionPlugin>>{};
+      const hibernatedPackages = {'dev.justin.yoturkish', 'dev.justin.wlext'};
+
       // Rebuilt in the persisted order, which Future.wait preserves, so the
       // list the user sees does not reshuffle itself by network latency.
       for (final entry in fetched) {
         if (entry == null) continue;
         repos.add(entry.repo);
-        available[entry.repo.url] = entry.plugins;
+        // Hibernate YoTurkish and WLEXT per user directive
+        available[entry.repo.url] = entry.plugins
+            .where((p) => !hibernatedPackages.contains(p.packageName))
+            .toList();
+      }
+
+      final activeInstalled = plugins
+          .where((p) => !hibernatedPackages.contains(p.packageName))
+          .toList();
+
+      // If no plugins installed yet, auto-install Justin's Catalogue
+      final justinPlugin = available.values
+          .expand((list) => list)
+          .firstWhereOrNull((p) => p.packageName == 'dev.justin.catalogue');
+      if (activeInstalled.isEmpty && justinPlugin != null) {
+        unawaited(installPlugin(justinPlugin));
       }
 
       // 3. Set Final State Once
       state = ExtensionsSuccess(
-        installedPlugins: plugins,
+        installedPlugins: activeInstalled,
         repositories: repos,
         availablePlugins: available,
         availableUpdates: state.availableUpdates,

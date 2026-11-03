@@ -92,6 +92,7 @@ class PlayerSettings {
   /// [SubtitleDefault.auto] is what every install did before this setting
   /// existed, so an upgrade changes nothing.
   final SubtitleDefault subtitleDefault;
+  final bool autoSaveFullyBuffered;
 
   final bool hardwareDecoding;
   final String?

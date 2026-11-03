@@ -16,8 +16,11 @@ import 'package:window_manager/window_manager.dart';
 
 import '../../../../core/domain/entity/multimedia_item.dart';
 import '../../../../core/logger/playback_trace.dart';
+import '../../../../core/network/dio_client_provider.dart';
 import '../../../../core/network/http_defaults.dart';
+import '../../data/subtitle_providers.dart';
 import '../../../../core/providers/device_info_provider.dart';
+import '../../../../core/services/buffered_video_saver.dart';
 import '../../../../core/services/local_proxy_service.dart';
 import '../../../../core/services/provider_health_service.dart';
 import '../../../../core/services/stream_prewarmer.dart';
@@ -1259,6 +1262,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
       'open',
       'attempt=$index source=${stream.providerName} quality=${stream.source}',
     );
+    _autoSubtitlesFetched = false;
     _loadSourceSubtitles(stream, headers, at ?? Duration.zero);
 
     try {
@@ -1611,6 +1615,56 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     ], _read(subtitleLanguageProvider));
     if (preferred != null) {
       unawaited(_sideCars.select(tracks[preferred], from: startAt));
+    } else {
+      unawaited(_autoFetchSubtitlesAsync(startAt));
+    }
+  }
+
+  bool _autoSubtitlesFetched = false;
+
+  /// Automatically discovers and attaches subtitles from OpenSubtitles v3 in the background
+  /// when source streams do not bundle any subtitle tracks.
+  Future<void> _autoFetchSubtitlesAsync(Duration startAt) async {
+    if (_autoSubtitlesFetched || _viewerChoseSubtitle || _subtitlesOffPending) return;
+    _autoSubtitlesFetched = true;
+
+    final target = SubtitleSearchTarget.of(_item, _effectiveCurrentEpisode);
+    final prefLang = _read(subtitleLanguageProvider);
+
+    try {
+      final dio = _read(dioClientProvider);
+      final provider = StremioOpenSubtitlesProvider(dio);
+      final results = await provider.search(
+        query: target.title,
+        imdbId: target.imdbId,
+        tmdbId: target.tmdbId,
+        season: target.season,
+        episode: target.episode,
+        language: prefLang,
+      );
+
+      if (_disposed || !mounted || _viewerChoseSubtitle || results.isEmpty) return;
+
+      SideCarTrack? firstMatchingTrack;
+      for (final sub in results) {
+        final subUri = Uri.tryParse(sub.downloadUrl);
+        if (subUri != null) {
+          final added = _sideCars.addViewerTrack(
+            subUri,
+            label: sub.name,
+            language: sub.language,
+          );
+          firstMatchingTrack ??= added;
+        }
+      }
+
+      if (_sideCars.active == null && firstMatchingTrack != null && !_subtitlesOffPending) {
+        await _sideCars.select(firstMatchingTrack, from: _position);
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[AutoSubtitles] Background discovery failed: $e');
+      }
     }
   }
 
@@ -2104,6 +2158,30 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                                 }
                               },
                             ),
+
+                        // SECTION 3: SAVE FULLY BUFFERED VIDEO
+                        const SizedBox(height: 12),
+                        const PanelSubheader(
+                          title: 'Save & Export Video',
+                        ),
+                        () {
+                          final bufferMs = _player.state.buffer.inMilliseconds;
+                          final durationMs = _player.state.duration.inMilliseconds;
+                          final pct = durationMs > 0 ? (bufferMs / durationMs).clamp(0.0, 1.0) : 0.0;
+                          final isFull = pct >= 0.95;
+                          return PanelRow(
+                            label: 'Save Video to Downloads',
+                            detail: isFull
+                                ? 'Fully buffered (100%) • Direct instant save to Downloads/Aether'
+                                : '${(pct * 100).toInt()}% buffered • Save current stream to Downloads/Aether',
+                            icon: isFull ? Icons.download_done_rounded : Icons.save_alt_rounded,
+                            badges: isFull ? const <String>['Ready to Save'] : null,
+                            onTap: () {
+                              Navigator.of(sheetContext).maybePop();
+                              unawaited(_saveBufferedVideoToDownloads());
+                            },
+                          );
+                        }(),
                       ],
                     ),
                   ),
@@ -2114,6 +2192,38 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
         );
       },
     );
+  }
+
+  Future<void> _saveBufferedVideoToDownloads() async {
+    final streams = _resolved?.streams ?? _candidates;
+    if (_attemptIndex < 0 || _attemptIndex >= streams.length) return;
+    final stream = streams[_attemptIndex];
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Saving video to Downloads/Aether...')),
+    );
+
+    final savedFile = await BufferedVideoSaver.instance.exportStreamToFile(
+      streamUrl: stream.url,
+      item: _item,
+      episode: _effectiveCurrentEpisode,
+      headers: stream.headers,
+    );
+
+    if (!mounted) return;
+    if (savedFile != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Saved to Downloads/Aether/${savedFile.uri.pathSegments.last}'),
+          backgroundColor: const Color(0xFF10B981),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not export stream to file.')),
+      );
+    }
   }
 
   void _cleanupPlatformOnExit() {

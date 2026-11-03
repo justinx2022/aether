@@ -1571,6 +1571,14 @@ String appearanceBackdropLabel(AppBackdrop backdrop, AppLocalizations l10n) {
   switch (backdrop) {
     case AppBackdrop.none:
       return l10n.none;
+    case AppBackdrop.nebula:
+      return 'Nebula (Cosmic)';
+    case AppBackdrop.blackhole:
+      return 'Black Hole (Event Horizon)';
+    case AppBackdrop.starfield:
+      return 'Deep Starfield';
+    case AppBackdrop.obsidianVoid:
+      return 'Obsidian Void (OLED)';
     case AppBackdrop.aurora:
       return l10n.appearanceBackdropAurora;
     case AppBackdrop.dusk:

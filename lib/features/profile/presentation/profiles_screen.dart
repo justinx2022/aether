@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/profile/user_profile.dart';
 import '../../../core/profile/profile_service.dart';
+import '../../../core/theme/app_backdrop_layer.dart';
 
 class ProfilesScreen extends ConsumerStatefulWidget {
   final bool isSwitching;
@@ -37,7 +38,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
 
   void _showPinDialog(UserProfile profile) {
     final controller = TextEditingController();
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF161822),
@@ -102,7 +103,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
     String selectedAvatarId = ProfileAvatars.all.first.id;
     bool isKids = false;
 
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) => AlertDialog(
@@ -212,7 +213,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
     final nameController = TextEditingController(text: profile.name);
     String selectedAvatarId = profile.avatarId;
 
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) => AlertDialog(
@@ -336,44 +337,46 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
           ),
         ],
       ),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Who is watching?',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.5,
+      body: AppBackdropLayer(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Who is watching?',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.5,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _isManaging
-                    ? 'Select a profile to edit or remove'
-                    : 'Choose your profile to resume your watch history',
-                style: const TextStyle(color: Colors.white54, fontSize: 14),
-              ),
-              const SizedBox(height: 48),
-              Wrap(
-                spacing: 24,
-                runSpacing: 24,
-                alignment: WrapAlignment.center,
-                children: [
-                  ...profiles.map((p) => _ProfileCard(
-                        profile: p,
-                        isManaging: _isManaging,
-                        onTap: () => _selectProfile(p),
-                      )),
-                  if (profiles.length < 5)
-                    _AddProfileCard(onTap: _showAddProfileDialog),
-                ],
-              ),
-            ],
+                const SizedBox(height: 8),
+                Text(
+                  _isManaging
+                      ? 'Select a profile to edit or remove'
+                      : 'Choose your profile to resume your watch history',
+                  style: const TextStyle(color: Colors.white54, fontSize: 14),
+                ),
+                const SizedBox(height: 48),
+                Wrap(
+                  spacing: 24,
+                  runSpacing: 24,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    ...profiles.map((p) => _ProfileCard(
+                          profile: p,
+                          isManaging: _isManaging,
+                          onTap: () => _selectProfile(p),
+                        )),
+                    if (profiles.length < 5)
+                      _AddProfileCard(onTap: _showAddProfileDialog),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -460,7 +463,7 @@ class _ProfileCardState extends State<_ProfileCard> {
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: Colors.black80,
+                          color: Colors.black87,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Icon(Icons.lock_rounded, color: Colors.white70, size: 12),

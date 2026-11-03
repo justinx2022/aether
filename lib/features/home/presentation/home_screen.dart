@@ -6,6 +6,7 @@ import 'home_provider.dart';
 import 'home_state.dart';
 
 import 'package:skystream/features/home/presentation/widgets/continue_watching_section.dart';
+import 'package:skystream/features/home/presentation/widgets/because_you_watched_section.dart';
 import 'package:skystream/features/search/presentation/search_provider.dart';
 import 'package:skystream/features/tracking/data/sync_manager.dart';
 import 'package:skystream/features/tracking/domain/sync_progress_item.dart';
@@ -398,6 +399,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   child: ContinueWatchingSection(
                     title: l10n.continueWatching,
                     items: history.cast<HistoryItem>(),
+                  ),
+                ),
+
+              if (watchHistoryEnabled && history.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: BecauseYouWatchedSection(
+                    item: (history.first as HistoryItem).item,
                   ),
                 ),
 

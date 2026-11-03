@@ -508,11 +508,8 @@ const List<String> kShellBranchRoutes = [
 
 @Riverpod(keepAlive: true)
 GoRouter appRouter(Ref ref) {
-  final saved = ref.read(settingsRepositoryProvider).getDefaultHomeScreen();
-  final initial = kShellBranchRoutes.contains(saved) ? saved : '/home';
-
   return GoRouter(
-    initialLocation: initial,
+    initialLocation: '/profiles',
     navigatorKey: rootNavigatorKey,
     debugLogDiagnostics: kDebugMode,
     routes: [

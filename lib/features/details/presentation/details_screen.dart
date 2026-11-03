@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/router/app_router.dart';
 import '../../../core/services/notification_service.dart';
 
 import '../../../core/domain/entity/multimedia_item.dart';
@@ -549,18 +548,9 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
           TrailersSection(trailers: item.trailers!),
         ],
 
-        // Recommendations
-        if (item.recommendations != null &&
-            item.recommendations!.isNotEmpty) ...[
-          const SizedBox(height: 32),
-          RecommendationsCarousel(
-            items: item.recommendations!,
-            onItemTap: (rec) {
-              DetailsRoute($extra: DetailsRouteExtra(item: rec))
-                  .push<void>(context);
-            },
-          ),
-        ],
+        // Recommendations / Netflix-style More Like This
+        const SizedBox(height: 32),
+        AutoRecommendationsSection(item: item),
 
         const SizedBox(height: 100),
       ],
@@ -711,17 +701,9 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                 const SizedBox(height: 32),
                 TrailersSection(trailers: item.trailers!),
               ],
-              if (item.recommendations != null &&
-                  item.recommendations!.isNotEmpty) ...[
-                const SizedBox(height: 32),
-                RecommendationsCarousel(
-                  items: item.recommendations!,
-                  onItemTap: (rec) {
-                    DetailsRoute($extra: DetailsRouteExtra(item: rec))
-                        .push<void>(context);
-                  },
-                ),
-              ],
+              // Netflix-style More Like This recommendations
+              const SizedBox(height: 32),
+              AutoRecommendationsSection(item: item),
               const SizedBox(height: 50),
             ],
           ),

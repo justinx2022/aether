@@ -27,7 +27,7 @@ extra["projectTargetSdk"] = 36
 // gives each plugin its own default: before this pin, :app and :jni built
 // against r28 while 21 other subprojects - including :vlc_player, :flutter_js
 // and :flutter_torrent_server - built against r27.
-extra["projectNdk"] = "29.0.14206865"
+extra["projectNdk"] = "27.0.12077973"
 val projectJvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
 
 val newBuildDir: Directory =
