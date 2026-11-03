@@ -2,7 +2,7 @@ name: Android Release APK
 
 on:
   push:
-    branches: [master]
+    branches: [master, main]
   workflow_dispatch:
 
 permissions:
