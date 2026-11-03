@@ -233,6 +233,15 @@ class RepositoryService {
       }
     }
 
+    allPlugins.removeWhere((p) {
+      final pkg = p.packageName.toLowerCase();
+      final name = p.name.toLowerCase();
+      return pkg.contains('yoturkish') ||
+          pkg.contains('wlext') ||
+          name.contains('yoturkish') ||
+          name.contains('wlext');
+    });
+
     return allPlugins;
   }
 

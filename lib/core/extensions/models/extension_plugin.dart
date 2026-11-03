@@ -250,9 +250,15 @@ class ExtensionPlugin {
       throw Exception('Plugin manifest missing mandatory "packageName" field');
     }
 
+    final rawName = json['name'] as String? ?? 'Unknown Plugin';
+    final parsedName = (rawName.toUpperCase().contains("JUSTIN'S CATALOGUE") ||
+            packageName == 'dev.justin.catalogue')
+        ? 'Global Catalogue'
+        : rawName;
+
     return ExtensionPlugin(
       packageName: packageName,
-      name: json['name'] as String? ?? 'Unknown Plugin',
+      name: parsedName,
       repositoryId: repositoryId,
       sourceUrl: json['url'] as String? ?? '',
       version: json['version'] as int? ?? 1,

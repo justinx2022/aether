@@ -194,7 +194,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           const ProfileAppBarButton(),
           // 1. Search Action Button
           Padding(
-            padding: const EdgeInsets.only(right: LayoutConstants.spacingSm),
+            padding: const EdgeInsets.only(right: LayoutConstants.spacingMd),
             child: CardsWrapper(
               focusNode: _firstActionFocusNode,
               onTap: () {
@@ -227,75 +227,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 ),
               ),
             ),
-          ),
-
-          // 2. Provider / Extension Pill Selector (after Search button, using matching search button design)
-          Consumer(
-            builder: (context, ref, _) {
-              final activeProvider = ref.watch(activeProviderProvider);
-              final isDebug = activeProvider?.isDebug ?? false;
-              return Padding(
-                padding: const EdgeInsets.only(
-                  right: LayoutConstants.spacingMd,
-                ),
-                child: CardsWrapper(
-                  onTap: () => _showProviderSelector(context, ref),
-                  borderRadius: BorderRadius.circular(50),
-                  child: Container(
-                    height: 36,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.35),
-                      borderRadius: BorderRadius.circular(50),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        width: 0.75,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.extension,
-                          color: Colors.white,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          activeProvider?.name ?? l10n.none,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        if (isDebug) ...[
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 4,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.red,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              l10n.debug,
-                              style: const TextStyle(
-                                fontSize: 10,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
           ),
         ],
       ),

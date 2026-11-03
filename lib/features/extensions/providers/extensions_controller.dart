@@ -262,8 +262,17 @@ class ExtensionsController extends _$ExtensionsController {
         }
       }
 
+      final cleanInstalled = plugins.where((p) {
+        final pkg = p.packageName.toLowerCase();
+        final name = p.name.toLowerCase();
+        return !pkg.contains('yoturkish') &&
+            !pkg.contains('wlext') &&
+            !name.contains('yoturkish') &&
+            !name.contains('wlext');
+      }).toList();
+
       state = ExtensionsSuccess(
-        installedPlugins: plugins,
+        installedPlugins: cleanInstalled,
         repositories: state.repositories,
         availablePlugins: state.availablePlugins,
         availableUpdates: state.availableUpdates,

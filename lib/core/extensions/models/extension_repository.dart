@@ -34,8 +34,12 @@ class ExtensionRepository {
   /// Factory constructor to parse from JSON
   factory ExtensionRepository.fromJson(Map<String, dynamic> json, String url) {
     final repoId = json['packageName'] as String? ?? 'Unknown';
+    final rawName = json['name'] as String? ?? 'Unknown Repository';
+    final cleanName = rawName
+        .replaceAll("Justin's Extensions Repo", "Aether Core Repository")
+        .replaceAll("Justin's Catalogue", "Global Catalogue");
     return ExtensionRepository(
-      name: json['name'] as String? ?? 'Unknown Repository',
+      name: cleanName,
       url: url,
       pluginLists:
           (json['pluginLists'] as List<dynamic>?)
@@ -53,9 +57,20 @@ class ExtensionRepository {
                 (e) =>
                     ExtensionPlugin.fromJson(e as Map<String, dynamic>, repoId),
               )
+              .where((p) {
+                final pkg = p.packageName.toLowerCase();
+                final name = p.name.toLowerCase();
+                return !pkg.contains('yoturkish') &&
+                    !pkg.contains('wlext') &&
+                    !name.contains('yoturkish') &&
+                    !name.contains('wlext');
+              })
               .toList() ??
           [],
-      description: json['description'] as String?,
+      description: json['description']
+          ?.toString()
+          .replaceAll("Justin's", "Aether")
+          .replaceAll(", YoTurkish, and WLEXT", ""),
       iconUrl: json['iconUrl'] as String?,
       manifestVersion: json['manifestVersion'] as int? ?? 1,
       explicitId: json['packageName'] as String?,
