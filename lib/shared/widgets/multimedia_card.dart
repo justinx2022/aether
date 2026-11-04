@@ -18,6 +18,7 @@ class MultimediaCard extends ConsumerWidget {
   final String heroTag;
   final bool isPortrait;
   final FocusNode? focusNode;
+  final int? rankIndex;
 
   const MultimediaCard({
     super.key,
@@ -27,6 +28,7 @@ class MultimediaCard extends ConsumerWidget {
     required this.heroTag,
     this.isPortrait = true,
     this.focusNode,
+    this.rankIndex,
   });
 
   @override
@@ -131,7 +133,7 @@ class MultimediaCard extends ConsumerWidget {
           : null,
     );
 
-    return RepaintBoundary(
+    final cardContent = RepaintBoundary(
       child: CardsWrapper(
         onTap: onTap,
         focusNode: focusNode,
@@ -144,6 +146,41 @@ class MultimediaCard extends ConsumerWidget {
         ),
       ),
     );
+
+    if (rankIndex != null && rankIndex! > 0) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(right: 6.0, bottom: 18.0),
+            child: Text(
+              '$rankIndex',
+              style: TextStyle(
+                fontSize: isDesktop ? 88 : 58,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -5.0,
+                height: 0.85,
+                foreground: Paint()
+                  ..style = PaintingStyle.stroke
+                  ..strokeWidth = isDesktop ? 2.8 : 2.0
+                  ..color = Colors.white.withValues(alpha: 0.85),
+                shadows: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.85),
+                    blurRadius: 10,
+                    offset: const Offset(2, 2),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          cardContent,
+        ],
+      );
+    }
+
+    return cardContent;
   }
 
   Widget _buildBelowMode(Widget imageWidget, TextStyle titleTextStyle) {

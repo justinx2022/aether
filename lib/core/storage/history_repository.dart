@@ -15,6 +15,7 @@ class HistoryItem {
   final String? episodeTitle;
   final String? episodePosterUrl;
   final int timestamp;
+  final String? profileId;
 
   HistoryItem({
     required this.item,
@@ -27,6 +28,7 @@ class HistoryItem {
     this.episodeTitle,
     this.episodePosterUrl,
     required this.timestamp,
+    this.profileId,
   });
 
   double get progress => duration > 0 ? position / duration : 0;
@@ -57,6 +59,7 @@ class HistoryItem {
       episodeTitle: map['episodeTitle'] as String?,
       episodePosterUrl: map['episodePosterUrl'] as String?,
       timestamp: (map['timestamp'] as int?) ?? 0,
+      profileId: map['profileId'] as String?,
     );
   }
 }
@@ -81,6 +84,7 @@ class HistoryRepository {
     int? episode,
     String? episodeTitle,
     String? episodePosterUrl,
+    String? profileId,
   }) async {
     await _storageService.saveProgress(
       item,
@@ -92,6 +96,7 @@ class HistoryRepository {
       episode: episode,
       episodeTitle: episodeTitle,
       episodePosterUrl: episodePosterUrl,
+      profileId: profileId,
     );
   }
 

@@ -100,21 +100,21 @@ class RecommendationsService {
           final desc = entry['description'] as String?;
           final year = entry['year'] as String? ?? entry['releaseInfo'] as String?;
 
-          results.add(
-            MultimediaItem(
-              title: name,
-              url: 'cinemeta:$id',
-              posterUrl: poster,
-              bannerUrl: banner,
-              description: desc,
-              year: int.tryParse(year?.split('-').first ?? ''),
-              contentType: isSeries
-                  ? MultimediaContentType.series
-                  : MultimediaContentType.movie,
-              imdbId: id.startsWith('tt') ? id : null,
-              provider: 'dev.justin.catalogue',
-            ),
-          );
+            results.add(
+              MultimediaItem(
+                title: name,
+                url: 'cinemeta:$id',
+                posterUrl: poster,
+                bannerUrl: banner,
+                description: desc,
+                year: int.tryParse(year?.split('-').first ?? ''),
+                contentType: isSeries
+                    ? MultimediaContentType.series
+                    : MultimediaContentType.movie,
+                imdbId: id.startsWith('tt') ? id : null,
+                provider: 'cinemeta',
+              ),
+            );
 
           if (results.length >= 20) break;
         }

@@ -22,6 +22,7 @@ import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/no_scrollbar_behavior.dart';
 import '../../extensions/providers/extensions_controller.dart';
 import '../../../core/extensions/models/extension_plugin.dart';
+import '../../../core/domain/entity/multimedia_item.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../shared/widgets/profile_app_bar_button.dart';
@@ -375,12 +376,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   ),
                 ),
 
-              if (watchHistoryEnabled && history.isNotEmpty)
-                SliverToBoxAdapter(
-                  child: BecauseYouWatchedSection(
-                    item: (history.first as HistoryItem).item,
+              if (watchHistoryEnabled && history.isNotEmpty) ...[
+                // Netflix-style: Render up to 5 distinct "Because you watched" recommendation shelves
+                for (final uniqueItem in history
+                    .cast<HistoryItem>()
+                    .map((h) => h.item)
+                    .fold<List<MultimediaItem>>([], (list, it) {
+                      final title = it.title.trim().toLowerCase();
+                      if (title.isNotEmpty &&
+                          !list.any((existing) =>
+                              existing.title.trim().toLowerCase() == title)) {
+                        list.add(it);
+                      }
+                      return list;
+                    })
+                    .take(5))
+                  SliverToBoxAdapter(
+                    key: ValueKey('because_watched_${uniqueItem.title}'),
+                    child: BecauseYouWatchedSection(
+                      item: uniqueItem,
+                    ),
                   ),
-                ),
+              ],
 
               if (syncedProgressAsync.asData?.value.isNotEmpty == true)
                 SliverToBoxAdapter(

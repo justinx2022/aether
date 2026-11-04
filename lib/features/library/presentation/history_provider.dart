@@ -2,6 +2,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/storage/history_repository.dart';
 import '../../../../core/domain/entity/multimedia_item.dart';
+import '../../../../core/profile/profile_service.dart';
 import '../../settings/presentation/general_settings_provider.dart';
 
 export '../../../../core/storage/history_repository.dart' show HistoryItem;
@@ -13,12 +14,54 @@ class WatchHistory extends _$WatchHistory {
   @override
   List<HistoryItem> build() {
     final repository = ref.watch(historyRepositoryProvider);
-    return repository.getWatchHistory();
+    final activeProfile = ref.watch(profileControllerProvider).activeProfile;
+    final all = repository.getWatchHistory();
+    if (activeProfile == null) return all;
+
+    return all.where((h) {
+      // 1. Profile isolation: match activeProfile id or legacy unassigned entries
+      if (h.profileId != null && h.profileId != activeProfile.id) {
+        return false;
+      }
+      // 2. Kids Shield: filter adult content
+      if (activeProfile.isKids) {
+        final title = h.item.title.toLowerCase();
+        final desc = (h.item.description ?? '').toLowerCase();
+        if (title.contains('18+') ||
+            desc.contains('erotic') ||
+            desc.contains('nudity') ||
+            desc.contains('violence')) {
+          return false;
+        }
+      }
+      return true;
+    }).toList();
   }
 
   void refresh() {
     final repository = ref.read(historyRepositoryProvider);
-    state = repository.getWatchHistory();
+    final activeProfile = ref.read(profileControllerProvider).activeProfile;
+    final all = repository.getWatchHistory();
+    if (activeProfile == null) {
+      state = all;
+      return;
+    }
+    state = all.where((h) {
+      if (h.profileId != null && h.profileId != activeProfile.id) {
+        return false;
+      }
+      if (activeProfile.isKids) {
+        final title = h.item.title.toLowerCase();
+        final desc = (h.item.description ?? '').toLowerCase();
+        if (title.contains('18+') ||
+            desc.contains('erotic') ||
+            desc.contains('nudity') ||
+            desc.contains('violence')) {
+          return false;
+        }
+      }
+      return true;
+    }).toList();
   }
 
   Future<void> clearAllHistory() async {
@@ -66,6 +109,8 @@ class WatchHistory extends _$WatchHistory {
     final finalPosition = isLivestream ? 0 : position;
     final finalDuration = isLivestream ? 0 : duration;
 
+    final activeProfileId =
+        ref.read(profileControllerProvider).activeProfile?.id;
     final repository = ref.read(historyRepositoryProvider);
     await repository.saveProgress(
       item,
@@ -77,6 +122,7 @@ class WatchHistory extends _$WatchHistory {
       episode: episode,
       episodeTitle: episodeTitle,
       episodePosterUrl: episodePosterUrl,
+      profileId: activeProfileId,
     );
     refresh();
   }

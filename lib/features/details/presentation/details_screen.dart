@@ -516,9 +516,27 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
         if (detailsState is AsyncLoading)
           const Center(child: AppLoadingIndicator())
         else if (detailsState is AsyncError)
-          Text(
-            "Error: ${detailsState.error}",
-            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    "Standard provider metadata unavailable. You can stream directly via Add-ons / Stremio below.",
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           )
         else if (!isMovie && details?.episodes != null)
           DetailsSeasonListWrapper(itemUrl: widget.item.url),
@@ -662,12 +680,25 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                 const Center(child: AppLoadingIndicator())
               else if (detailsState is AsyncError)
                 Container(
-                  padding: const EdgeInsets.all(16),
-                  color: Theme.of(context).colorScheme.error
-                      .withValues(alpha: 0.1),
-                  child: Text(
-                    AppLocalizations.of(context)!
-                        .errorPrefix(detailsState.error.toString()),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 16, color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          "Standard provider metadata unavailable. You can stream directly via Add-ons / Stremio below.",
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 )
               else if (!isMovie && details?.episodes != null)

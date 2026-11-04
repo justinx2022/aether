@@ -304,8 +304,14 @@ class DetailsController extends _$DetailsController {
         return;
       }
 
+      final isCatalogItem = item.provider == 'cinemeta' ||
+          item.provider == 'dev.justin.catalogue' ||
+          item.provider == 'tmdb' ||
+          item.url.startsWith('cinemeta:') ||
+          item.url.startsWith('tmdb:');
+
       SkyStreamProvider? provider;
-      if (item.provider != null) {
+      if (!isCatalogItem && item.provider != null) {
         try {
           provider = manager.getAllProviders().firstWhere(
             (p) => p.packageName == item.provider || p.name == item.provider,
@@ -315,46 +321,73 @@ class DetailsController extends _$DetailsController {
         }
       }
 
-      provider ??= active;
-
-      if (provider != null) {
-        final fetchedItem = await provider.getDetails(item.url);
-        if (!ref.mounted) return;
-
-        final withProvider = fetchedItem.copyWith(
-          provider: provider.packageName,
-          tmdbId: fetchedItem.tmdbId ?? item.tmdbId,
-          imdbId: fetchedItem.imdbId ?? item.imdbId,
-        );
-
-        // Immediately render the UI with raw provider details so it's not blocked
-        final sortedEpisodes = _processEpisodes(
-          withProvider.episodes,
-          withProvider,
-          isInitial: true,
-        );
-        state = state.copyWith(
-          details: AsyncData(withProvider.copyWith(episodes: sortedEpisodes)),
-          item: withProvider.copyWith(episodes: sortedEpisodes),
-        );
-
-        // Run Metadata Resolution in background silently (fire-and-forget).
-        unawaited(_resolveMetadataInBackground(withProvider));
-
-        // Speculatively pre-warm stream for instant playback (Netflix Warm Start)
-        final targetEp = state.targetEpisode ?? sortedEpisodes?.firstOrNull;
-        final targetUrl = targetEp?.url ?? withProvider.url;
-        unawaited(
-          StreamPrewarmer.instance.prewarm(
-            item: withProvider,
-            targetUrl: targetUrl,
-            read: ref.read,
-            episode: targetEp,
-          ),
-        );
-      } else {
-        throw Exception("No provider selected or found for this item");
+      if (!isCatalogItem) {
+        provider ??= active;
       }
+
+      MultimediaItem? fetchedItem;
+      if (provider != null) {
+        try {
+          fetchedItem = await provider.getDetails(item.url);
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('Provider getDetails failed: $e. Attempting title search fallback.');
+          }
+          try {
+            final searchResults = await provider.search(item.title);
+            if (searchResults.isNotEmpty) {
+              fetchedItem = await provider.getDetails(searchResults.first.url);
+            }
+          } catch (_) {}
+        }
+      }
+
+      if (!ref.mounted) return;
+
+      var withProvider = (fetchedItem ?? item).copyWith(
+        provider: provider?.packageName ?? item.provider ?? 'cinemeta',
+        tmdbId: fetchedItem?.tmdbId ?? item.tmdbId,
+        imdbId: fetchedItem?.imdbId ?? item.imdbId,
+      );
+
+      // Ensure episodes exist (create default single episode for movies or unparsed items)
+      if (withProvider.episodes == null || withProvider.episodes!.isEmpty) {
+        withProvider = withProvider.copyWith(
+          episodes: [
+            Episode(
+              name: withProvider.title,
+              url: withProvider.url,
+              posterUrl: withProvider.posterUrl,
+            ),
+          ],
+        );
+      }
+
+      // Immediately render the UI with raw provider details so it's not blocked
+      final sortedEpisodes = _processEpisodes(
+        withProvider.episodes,
+        withProvider,
+        isInitial: true,
+      );
+      state = state.copyWith(
+        details: AsyncData(withProvider.copyWith(episodes: sortedEpisodes)),
+        item: withProvider.copyWith(episodes: sortedEpisodes),
+      );
+
+      // Run Metadata Resolution in background silently (fire-and-forget).
+      unawaited(_resolveMetadataInBackground(withProvider));
+
+      // Speculatively pre-warm stream for instant playback (Netflix Warm Start)
+      final targetEp = state.targetEpisode ?? sortedEpisodes?.firstOrNull;
+      final targetUrl = targetEp?.url ?? withProvider.url;
+      unawaited(
+        StreamPrewarmer.instance.prewarm(
+          item: withProvider,
+          targetUrl: targetUrl,
+          read: ref.read,
+          episode: targetEp,
+        ),
+      );
     } catch (e, st) {
       if (ref.mounted) {
         state = state.copyWith(details: AsyncError(e, st));

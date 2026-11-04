@@ -57,7 +57,13 @@ class _HomeSectionState extends ConsumerState<HomeSection> {
             showButtons: isLarge, // Show nav buttons on both desktop and TV
             child: Builder(
               builder: (context) {
-                final double cardWidth = isLarge ? 200.0 : 130.0;
+                final bool isRankedSection =
+                    widget.title.toLowerCase().contains('trending') ||
+                    widget.title.toLowerCase().contains('top 10') ||
+                    widget.title.toLowerCase().contains('popular');
+
+                final double rankOffset = isRankedSection ? (isLarge ? 36.0 : 24.0) : 0.0;
+                final double cardWidth = (isLarge ? 200.0 : 130.0) + rankOffset;
                 final double spacing = isLarge
                     ? LayoutConstants.spacingLg
                     : LayoutConstants.spacingSm;
@@ -85,6 +91,7 @@ class _HomeSectionState extends ConsumerState<HomeSection> {
                             '',
                         title: item.title,
                         heroTag: 'home_${item.url}_$index',
+                        rankIndex: isRankedSection && index < 10 ? index + 1 : null,
                         onTap: () =>
                             DetailsRoute($extra: DetailsRouteExtra(item: item))
                                 .push<void>(context),

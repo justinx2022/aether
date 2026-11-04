@@ -37,6 +37,8 @@ import '../../domain/network_buffer.dart';
 import '../../domain/playback_progress.dart';
 import '../../domain/playback_tracker.dart';
 import '../../domain/side_car_subtitles.dart';
+import '../../domain/skip_segments.dart';
+import '../../../skip/data/skip_service.dart';
 import '../../domain/stream_resolver.dart';
 import '../../domain/subtitle_search_target.dart';
 import '../player_platform_service.dart';
@@ -237,6 +239,154 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   PlaybackTracker? _tracker;
   int _token = 0;
   DateTime _lastProgressSave = DateTime.now();
+
+  // Advanced playback additions (Netflix tier)
+  bool _isScreenLocked = false;
+  bool _showUnlockButton = false;
+  Timer? _unlockButtonTimer;
+
+  bool _isDialogueBoostEnabled = false;
+
+  Timer? _sleepTimer;
+  int? _sleepTimerMinutes;
+
+  List<SkipSegment> _skipSegments = const [];
+
+  SkipSegment? get _currentSkipSegment {
+    if (_skipSegments.isEmpty) return null;
+    return segmentAt(_skipSegments, _position);
+  }
+
+  Future<void> _loadSkipSegments(Episode? episode) async {
+    if (episode == null) return;
+    try {
+      final segments = await fetchSkipSegments(
+        read: _read,
+        item: _item,
+        episode: episode,
+        durationSeconds:
+            _duration.inSeconds > 0 ? _duration.inSeconds.toDouble() : null,
+      );
+      if (_disposed || !mounted || segments.isEmpty) return;
+      setState(() => _skipSegments = segments);
+    } catch (_) {}
+  }
+
+  NativePlayer? get _native =>
+      _player.platform is NativePlayer ? _player.platform as NativePlayer : null;
+
+  Future<void> _toggleDialogueBoost() async {
+    final native = _native;
+    if (native == null) return;
+    setState(() => _isDialogueBoostEnabled = !_isDialogueBoostEnabled);
+    if (_isDialogueBoostEnabled) {
+      await native.setProperty('af', 'lavfi=[dynaudnorm=f=75:g=25:p=0.55]');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Dialogue Boost (Night Mode) Enabled'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } else {
+      await native.setProperty('af', '');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Dialogue Boost Disabled'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showSleepTimerDialog() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF0D0F18),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(bottom: 12),
+                child: Text(
+                  'Sleep Timer',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 17,
+                  ),
+                ),
+              ),
+              _buildSleepOption(ctx, 'Off', null),
+              _buildSleepOption(ctx, '15 Minutes', 15),
+              _buildSleepOption(ctx, '30 Minutes', 30),
+              _buildSleepOption(ctx, '45 Minutes', 45),
+              _buildSleepOption(ctx, '60 Minutes', 60),
+              _buildSleepOption(ctx, 'End of Current Episode', -1),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSleepOption(BuildContext ctx, String label, int? minutes) {
+    final isSelected = _sleepTimerMinutes == minutes;
+    return ListTile(
+      title: Text(
+        label,
+        style: TextStyle(
+          color: isSelected ? const Color(0xFF818CF8) : Colors.white,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+      trailing:
+          isSelected ? const Icon(Icons.check, color: Color(0xFF818CF8)) : null,
+      onTap: () {
+        Navigator.pop(ctx);
+        _setSleepTimer(minutes);
+      },
+    );
+  }
+
+  void _setSleepTimer(int? minutes) {
+    _sleepTimer?.cancel();
+    _sleepTimer = null;
+    _sleepTimerMinutes = minutes;
+    if (minutes == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sleep timer turned off')),
+      );
+    } else if (minutes == -1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Playback will pause at end of episode'),
+        ),
+      );
+    } else {
+      _sleepTimer = Timer(Duration(minutes: minutes), () {
+        if (!_disposed && mounted) {
+          _player.pause();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Sleep timer paused playback')),
+          );
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Sleep timer set for $minutes minutes')),
+      );
+    }
+    setState(() {});
+  }
 
   final FocusNode _focusNode = FocusNode();
 
@@ -1144,6 +1294,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
 
     try {
       final ep = _effectiveCurrentEpisode;
+      unawaited(_loadSkipSegments(ep));
       final resumeLookup = resolveResumePoint(
         read: _read,
         item: _item,
@@ -1567,6 +1718,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   }
 
   void _onUserActivity() {
+    if (_isScreenLocked) return;
     if (!_controlsVisible) {
       setState(() => _controlsVisible = true);
     }
@@ -1580,6 +1732,9 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
 
   void _seekRelative(int seconds) {
     _onUserActivity();
+    try {
+      HapticFeedback.lightImpact();
+    } catch (_) {}
     final newPos = _position + Duration(seconds: seconds);
     final clamped = newPos < Duration.zero
         ? Duration.zero
@@ -2322,6 +2477,8 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
       WidgetsBinding.instance.removeObserver(this);
     } catch (_) {}
     _hideControlsTimer?.cancel();
+    _sleepTimer?.cancel();
+    _unlockButtonTimer?.cancel();
     _errorRecoveryTimer?.cancel();
     _trackSwitchWatchdog?.cancel();
     _startupWatchdog?.cancel();
@@ -2384,6 +2541,19 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
+    if (_isScreenLocked) {
+      if (event.logicalKey == LogicalKeyboardKey.escape) {
+        setState(() {
+          _isScreenLocked = false;
+          _showUnlockButton = false;
+          _controlsVisible = true;
+        });
+        _startControlsTimer();
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.handled;
+    }
+
     if (event.logicalKey == LogicalKeyboardKey.space) {
       _togglePlayPause();
       return KeyEventResult.handled;
@@ -2428,11 +2598,22 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
           autofocus: true,
           onKeyEvent: _handleKeyEvent,
           child: MouseRegion(
-            onHover: (_) => _onUserActivity(),
+            onHover: (_) => _isScreenLocked ? null : _onUserActivity(),
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: _toggleControlsVisibility,
+              onTap: () {
+                if (_isScreenLocked) {
+                  setState(() => _showUnlockButton = true);
+                  _unlockButtonTimer?.cancel();
+                  _unlockButtonTimer = Timer(const Duration(seconds: 3), () {
+                    if (mounted) setState(() => _showUnlockButton = false);
+                  });
+                  return;
+                }
+                _toggleControlsVisibility();
+              },
               onDoubleTapDown: (details) {
+                if (_isScreenLocked) return;
                 if (!kIsWeb &&
                     (Platform.isWindows ||
                         Platform.isLinux ||
@@ -2631,7 +2812,8 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                   if (!_playing &&
                       !_isBuffering &&
                       !_isLoading &&
-                      _error.isEmpty)
+                      _error.isEmpty &&
+                      !_isScreenLocked)
                     Center(
                       child: PlayerCenterPlayButton(
                         playing: false,
@@ -2640,8 +2822,141 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                       ),
                     ),
 
+                  // Skip Intro / Outro / Recap Floating Pill Button
+                  if (!_isScreenLocked &&
+                      _currentSkipSegment != null &&
+                      !_isLoading &&
+                      _error.isEmpty)
+                    Builder(
+                      builder: (context) {
+                        final seg = _currentSkipSegment!;
+                        final l10n = AppLocalizations.of(context);
+                        final label = seg.type == SkipType.intro
+                            ? (l10n?.skipIntro ?? 'Skip Intro')
+                            : (seg.type == SkipType.outro
+                                ? (l10n?.skipOutro ?? 'Skip Outro')
+                                : (l10n?.skipRecap ?? 'Skip Recap'));
+                        return Positioned(
+                          bottom: _controlsVisible ? 90 : 36,
+                          right: 24,
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(24),
+                              onTap: () {
+                                final target = Duration(
+                                  milliseconds: (seg.endTime * 1000).round(),
+                                );
+                                _player.seek(target);
+                                _onUserActivity();
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 18,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.85),
+                                  borderRadius: BorderRadius.circular(24),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.35),
+                                    width: 1.2,
+                                  ),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Colors.black45,
+                                      blurRadius: 12,
+                                      offset: Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.fast_forward_rounded,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      label,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+
+                  // Floating Unlock Button when Screen is Locked
+                  if (_isScreenLocked && _showUnlockButton)
+                    Center(
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(30),
+                          onTap: () {
+                            setState(() {
+                              _isScreenLocked = false;
+                              _showUnlockButton = false;
+                              _controlsVisible = true;
+                            });
+                            _startControlsTimer();
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.9),
+                              borderRadius: BorderRadius.circular(30),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.3),
+                                width: 1.5,
+                              ),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Colors.black54,
+                                  blurRadius: 16,
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.lock_open_rounded,
+                                  color: Colors.white,
+                                  size: 22,
+                                ),
+                                SizedBox(width: 10),
+                                Text(
+                                  'Screen Locked. Tap to Unlock',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
                   // Player Controls Layer (Top & Bottom Bars)
-                  if (!_isLoading && _error.isEmpty)
+                  if (!_isLoading && _error.isEmpty && !_isScreenLocked)
                     AnimatedOpacity(
                       opacity: _controlsVisible ? 1.0 : 0.0,
                       duration: const Duration(milliseconds: 200),
@@ -2885,6 +3200,39 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
               isTv: _isTv,
               onPressed: _toggleFullscreen,
             ),
+          PlayerIconButton(
+            icon: _isDialogueBoostEnabled
+                ? Icons.graphic_eq_rounded
+                : Icons.equalizer_rounded,
+            tooltip:
+                'Dialogue Boost (${_isDialogueBoostEnabled ? "On" : "Off"})',
+            highlight: _isDialogueBoostEnabled,
+            isTv: _isTv,
+            onPressed: _toggleDialogueBoost,
+          ),
+          PlayerIconButton(
+            icon: _sleepTimerMinutes != null
+                ? Icons.alarm_on_rounded
+                : Icons.bedtime_outlined,
+            tooltip: _sleepTimerMinutes != null
+                ? 'Sleep Timer: $_sleepTimerMinutes m'
+                : 'Sleep Timer',
+            highlight: _sleepTimerMinutes != null,
+            isTv: _isTv,
+            onPressed: _showSleepTimerDialog,
+          ),
+          PlayerIconButton(
+            icon: Icons.lock_outline_rounded,
+            tooltip: 'Lock Screen',
+            isTv: _isTv,
+            onPressed: () {
+              setState(() {
+                _isScreenLocked = true;
+                _controlsVisible = false;
+                _showUnlockButton = false;
+              });
+            },
+          ),
           PlayerIconButton(
             icon: Icons.tune_rounded,
             tooltip: l10n?.options ?? 'Options',

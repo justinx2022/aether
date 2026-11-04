@@ -180,7 +180,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
-  /// **'SkyStream'**
+  /// **'Aether'**
   String get appTitle;
 
   /// No description provided for @languageName.
