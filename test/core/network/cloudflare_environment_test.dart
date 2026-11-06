@@ -2,7 +2,7 @@
 ///
 /// The app creates no `WebViewEnvironment`, so WebView2 falls back to its
 /// default: `<exe_dir>\WebView2`. `windows/packaging/exe/setup.iss` installs to
-/// `{autopf}\SkyStream` — Program Files — with no `PrivilegesRequired` line, so
+/// `{autopf}\Aether` — Program Files — with no `PrivilegesRequired` line, so
 /// a standard user cannot write there and environment creation fails. If that
 /// is live, the Cloudflare bypass has never worked in the shipped Windows
 /// artifact, only under `flutter run` from a writable source tree.
@@ -31,7 +31,7 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/network/cloudflare_bypass.dart';
+import 'package:aether/core/network/cloudflare_bypass.dart';
 
 const MethodChannel _pathProvider = MethodChannel(
   'plugins.flutter.io/path_provider',
@@ -63,7 +63,7 @@ void main() {
 
     messenger.setMockMethodCallHandler(
       _pathProvider,
-      (call) async => r'C:\Users\someone\AppData\Roaming\dev.akash.skystream',
+      (call) async => r'C:\Users\someone\AppData\Roaming\com.justinx2022.aether',
     );
     CloudflareBypass.createEnvironment = (folder) async {
       folders.add(folder);

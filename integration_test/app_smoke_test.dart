@@ -6,7 +6,7 @@
 ///
 ///   * `screen_brightness_windows` issued DDC/CI (I²C over the display cable)
 ///     to the monitor's firmware from its constructor, and wrote brightness
-///     back on every `WM_CLOSE`. Users reported SkyStream resetting their
+///     back on every `WM_CLOSE`. Users reported Aether resetting their
 ///     screen brightness.
 ///   * WebView2 was handed its default user-data folder, `<exe_dir>\WebView2`,
 ///     which on an installed build is inside `C:\Program Files` and unwritable
@@ -26,7 +26,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'package:skystream/core/providers/bootstrap_provider.dart'
+import 'package:aether/core/providers/bootstrap_provider.dart'
     show debugResetDesktopBrightnessQuieted, quietDesktopBrightness;
 
 bool get _isDesktop =>

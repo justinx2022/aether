@@ -134,7 +134,7 @@ void main() {
       );
       expect(
         source,
-        contains('ACTION_MEDIA_CONTROL = "dev.akash.skystream.MEDIA_CONTROL"'),
+        contains('ACTION_MEDIA_CONTROL = "com.justinx2022.aether.MEDIA_CONTROL"'),
         reason:
             'a bare "media_control" action is a name any other app can guess '
             'and, on Android 12 and below, send',

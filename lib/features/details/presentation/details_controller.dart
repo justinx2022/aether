@@ -11,8 +11,8 @@ import '../../../core/extensions/extension_manager.dart';
 import '../../../../core/storage/library_repository.dart';
 import '../../../../core/storage/history_repository.dart';
 
-import 'package:skystream/core/storage/episode_watch_repository.dart';
-import 'package:skystream/core/storage/storage_service.dart';
+import 'package:aether/core/storage/episode_watch_repository.dart';
+import 'package:aether/core/storage/storage_service.dart';
 
 import '../../library/presentation/library_provider.dart';
 import '../../library/presentation/history_provider.dart';

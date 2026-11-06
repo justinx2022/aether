@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/utils/layout_constants.dart';
 import '../../../core/router/app_router.dart';
 
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 import 'widgets/settings_widgets.dart';
 import 'widgets/settings_dialogs.dart';
@@ -655,7 +655,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                     title: 'Download location',
                     subtitle:
                         generalSettings.downloadDirectory ??
-                        'System Downloads/Skystream',
+                        'System Downloads/Aether',
                     onTap: () => showDownloadLocationDialog(
                       context,
                       ref,

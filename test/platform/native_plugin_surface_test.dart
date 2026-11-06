@@ -14,7 +14,7 @@
 ///     silently bought a Windows plugin that drives DDC/CI — I²C over the
 ///     display cable — at its registrar and again on `WM_CLOSE`, for a feature
 ///     `vlc_player_controls.dart` returns early from on desktop. Users reported
-///     SkyStream resetting their monitor's brightness.
+///     Aether resetting their monitor's brightness.
 ///   * `flutter_inappwebview` was added for the Cloudflare bypass. It silently
 ///     bought a Windows plugin whose constructor builds a WinRT dispatcher
 ///     queue, a Graphics.Capture probe, a hardware D3D11 device and a

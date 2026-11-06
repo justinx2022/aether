@@ -1,8 +1,8 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/utils/stream_quality_sorter.dart';
-import 'package:skystream/features/settings/presentation/player_settings_provider.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/utils/stream_quality_sorter.dart';
+import 'package:aether/features/settings/presentation/player_settings_provider.dart';
 
 StreamResult sourceLabelled(String label, {String url = 'https://a/b.mkv'}) =>
     StreamResult(url: url, source: label, providerName: 'Plugin');

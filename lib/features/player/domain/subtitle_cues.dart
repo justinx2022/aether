@@ -1,4 +1,4 @@
-/// Subtitle files SkyStream draws itself, read into timed cues.
+/// Subtitle files Aether draws itself, read into timed cues.
 ///
 /// libVLC draws subtitles into the picture, so they shared its fate: Zoom
 /// pushed lines off the screen, Stretch squashed them, and a file libVLC could

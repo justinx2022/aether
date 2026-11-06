@@ -1,11 +1,11 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/features/tracking/data/sync_manager.dart';
-import 'package:skystream/features/tracking/data/sync_outbox.dart';
-import 'package:skystream/features/tracking/data/tracking_service.dart';
-import 'package:skystream/features/tracking/domain/sync_progress_item.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/features/tracking/data/sync_manager.dart';
+import 'package:aether/features/tracking/data/sync_outbox.dart';
+import 'package:aether/features/tracking/data/tracking_service.dart';
+import 'package:aether/features/tracking/domain/sync_progress_item.dart';
 
 /// Durability for the terminal tracking writes.
 ///

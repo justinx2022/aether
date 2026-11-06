@@ -263,7 +263,7 @@ class PlayerPanel extends StatefulWidget {
   /// the panel still under the screen's republishes.
   final EpisodeProgressLookup? episodeProgress;
 
-  /// The subtitle files SkyStream draws, for the Subtitles tab to list beside
+  /// The subtitle files Aether draws, for the Subtitles tab to list beside
   /// the video's own tracks. A listenable of its own rather than part of
   /// [data], because a file's progress is not something to republish the
   /// whole panel over.

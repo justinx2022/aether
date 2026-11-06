@@ -4,14 +4,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/providers/device_info_provider.dart';
-import 'package:skystream/features/library/presentation/library_provider.dart';
-import 'package:skystream/features/library/presentation/library_state.dart';
-import 'package:skystream/features/library/presentation/widgets/bookmarks_tab.dart';
-import 'package:skystream/features/settings/presentation/general_settings_provider.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
-import 'package:skystream/shared/widgets/cards_wrapper.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/providers/device_info_provider.dart';
+import 'package:aether/features/library/presentation/library_provider.dart';
+import 'package:aether/features/library/presentation/library_state.dart';
+import 'package:aether/features/library/presentation/widgets/bookmarks_tab.dart';
+import 'package:aether/features/settings/presentation/general_settings_provider.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
+import 'package:aether/shared/widgets/cards_wrapper.dart';
 
 /// The bookmarks list, without Hive underneath it.
 ///

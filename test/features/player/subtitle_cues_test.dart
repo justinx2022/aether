@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/player/domain/subtitle_cues.dart';
+import 'package:aether/features/player/domain/subtitle_cues.dart';
 
 Duration _ms(int milliseconds) => Duration(milliseconds: milliseconds);
 

@@ -10,7 +10,7 @@ class AppLocalizationsMl extends AppLocalizations {
   AppLocalizationsMl([String locale = 'ml']) : super(locale);
 
   @override
-  String get appTitle => 'SkyStream';
+  String get appTitle => 'Aether';
 
   @override
   String get languageName => 'മലയാളം';

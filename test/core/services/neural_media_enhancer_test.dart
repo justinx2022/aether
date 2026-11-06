@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/services/neural_media_enhancer.dart';
-import 'package:skystream/features/settings/presentation/ai_settings_provider.dart';
+import 'package:aether/core/services/neural_media_enhancer.dart';
+import 'package:aether/features/settings/presentation/ai_settings_provider.dart';
 
 /// mpv takes `demuxer-lavf-analyzeduration` in seconds. `500000` is not a
 /// half-second expressed in microseconds, it is five and a half days, and mpv

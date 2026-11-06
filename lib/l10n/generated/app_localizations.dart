@@ -3393,7 +3393,7 @@ abstract class AppLocalizations {
   /// **'Not a video'**
   String get playerSourceNotVideo;
 
-  /// Title of the Nuvio source card on a TMDB details screen. Sits beside the 'Available sources' card, which is the SkyStream plugin system; the two are peers. 'Nuvio' is the name of the third-party scraper project and is never translated.
+  /// Title of the Nuvio source card on a TMDB details screen. Sits beside the 'Available sources' card, which is the Aether plugin system; the two are peers. 'Nuvio' is the name of the third-party scraper project and is never translated.
   ///
   /// In en, this message translates to:
   /// **'Nuvio plugins'**

@@ -6,12 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/router/app_router.dart';
-import 'package:skystream/core/services/notification_service.dart';
-import 'package:skystream/features/details/presentation/playback_launcher.dart';
-import 'package:skystream/features/settings/presentation/player_settings_provider.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/router/app_router.dart';
+import 'package:aether/core/services/notification_service.dart';
+import 'package:aether/features/details/presentation/playback_launcher.dart';
+import 'package:aether/features/settings/presentation/player_settings_provider.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 /// Where an already-resolved link goes.
 ///

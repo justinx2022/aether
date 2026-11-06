@@ -12,7 +12,7 @@ import 'full_screen_mode_provider.dart';
 import 'general_settings_provider.dart';
 import 'app_version_provider.dart';
 
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 import '../../../core/providers/locale_provider.dart';
 import '../../../core/router/app_router.dart';
@@ -60,7 +60,7 @@ class SettingsScreen extends ConsumerWidget {
                   children: [
                     SettingsTile(
                       icon: Icons.extension_rounded,
-                      title: 'SkyStream Providers',
+                      title: 'Aether Providers',
                       subtitle: l10n.installRemoveProviders,
                       onTap: () => const ExtensionsRoute().go(context),
                     ),

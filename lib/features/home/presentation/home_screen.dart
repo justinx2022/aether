@@ -5,13 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'home_provider.dart';
 import 'home_state.dart';
 
-import 'package:skystream/features/home/presentation/widgets/continue_watching_section.dart';
-import 'package:skystream/features/home/presentation/widgets/because_you_watched_section.dart';
-import 'package:skystream/features/search/presentation/search_provider.dart';
-import 'package:skystream/features/tracking/data/sync_manager.dart';
-import 'package:skystream/features/tracking/domain/sync_progress_item.dart';
-import 'package:skystream/features/home/presentation/widgets/synced_progress_section.dart';
-import 'package:skystream/features/library/presentation/history_provider.dart';
+import 'package:aether/features/home/presentation/widgets/continue_watching_section.dart';
+import 'package:aether/features/home/presentation/widgets/because_you_watched_section.dart';
+import 'package:aether/features/search/presentation/search_provider.dart';
+import 'package:aether/features/tracking/data/sync_manager.dart';
+import 'package:aether/features/tracking/domain/sync_progress_item.dart';
+import 'package:aether/features/home/presentation/widgets/synced_progress_section.dart';
+import 'package:aether/features/library/presentation/history_provider.dart';
 
 import '../../settings/presentation/general_settings_provider.dart';
 import '../../explore/presentation/widgets/explore_carousel.dart';
@@ -27,9 +27,9 @@ import '../../../core/domain/entity/multimedia_item.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../shared/widgets/profile_app_bar_button.dart';
 
-import 'package:skystream/core/extensions/extension_manager.dart';
-import 'package:skystream/core/extensions/base_provider.dart';
-import 'package:skystream/core/router/app_router.dart';
+import 'package:aether/core/extensions/extension_manager.dart';
+import 'package:aether/core/extensions/base_provider.dart';
+import 'package:aether/core/router/app_router.dart';
 
 import 'delegates/home_search_delegate.dart';
 import '../../../shared/widgets/cards_wrapper.dart';

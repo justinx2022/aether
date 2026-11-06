@@ -4,8 +4,8 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
-import 'package:skystream/core/utils/layout_constants.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
+import 'package:aether/core/utils/layout_constants.dart';
 
 import '../../core/theme/app_world.dart';
 import '../../core/theme/design_tokens.dart';

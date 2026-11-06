@@ -6,10 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path/path.dart' as p;
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/logger/app_logger.dart';
-import 'package:skystream/core/services/download_service.dart';
-import 'package:skystream/core/storage/storage_service.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/logger/app_logger.dart';
+import 'package:aether/core/services/download_service.dart';
+import 'package:aether/core/storage/storage_service.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
 /// Two manners problems in the download path, driven through the real

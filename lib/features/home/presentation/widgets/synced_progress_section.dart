@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:skystream/core/utils/responsive_breakpoints.dart';
-import 'package:skystream/core/utils/layout_constants.dart';
-import 'package:skystream/features/tracking/domain/sync_progress_item.dart';
-import 'package:skystream/shared/widgets/desktop_scroll_wrapper.dart';
+import 'package:aether/core/utils/responsive_breakpoints.dart';
+import 'package:aether/core/utils/layout_constants.dart';
+import 'package:aether/features/tracking/domain/sync_progress_item.dart';
+import 'package:aether/shared/widgets/desktop_scroll_wrapper.dart';
 
 import 'synced_progress_card.dart';
 

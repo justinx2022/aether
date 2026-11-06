@@ -13,7 +13,7 @@ import '../../../core/providers/device_info_provider.dart';
 import '../../../core/router/app_router.dart';
 import 'widgets/settings_widgets.dart';
 
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 import '../../../core/services/notification_service.dart';
 
@@ -255,9 +255,9 @@ class _DeveloperOptionsScreenState
 
     final item = MultimediaItem(
       title: 'Series Benchmark & Verification Lab',
-      url: 'skystream://benchmark/series-lab',
+      url: 'aether://benchmark/series-lab',
       posterUrl: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=500',
-      provider: 'SkyStream Benchmark Engine',
+      provider: 'Aether Benchmark Engine',
       contentType: MultimediaContentType.series,
       episodes: [ep1, ep2, ep3],
     );

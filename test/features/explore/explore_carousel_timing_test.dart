@@ -13,9 +13,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/features/explore/presentation/widgets/explore_carousel.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/features/explore/presentation/widgets/explore_carousel.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 MultimediaItem _movie(int i) => MultimediaItem(

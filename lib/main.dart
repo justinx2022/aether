@@ -38,7 +38,7 @@ import 'core/services/notification_service.dart';
 import 'core/services/lan_sync_service.dart';
 
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 import 'core/providers/locale_provider.dart';
 import 'core/network/cloudflare_bypass.dart';
@@ -366,7 +366,7 @@ class _MyAppState extends ConsumerState<MyApp> {
   /// screen, so it waits until the launch is over rather than racing it.
   static const Duration _extensionsCheckDelay = Duration(seconds: 15);
 
-  /// Brings every extension system up to date in the background - SkyStream
+  /// Brings every extension system up to date in the background - Aether
   /// plugins, Nuvio scrapers and Stremio add-ons - and says what changed:
   /// what was updated, which repositories a followed collection brought in,
   /// and which plugins appeared in a repository.
@@ -382,7 +382,7 @@ class _MyAppState extends ConsumerState<MyApp> {
 
     final reports = await Future.wait(<Future<ExtensionUpdateReport>>[
       _updating(
-        'SkyStream plugins',
+        'Aether plugins',
         () => ref.read(extensionsControllerProvider.notifier).autoUpdate(),
       ),
       _updating(
@@ -486,7 +486,7 @@ class _MyAppState extends ConsumerState<MyApp> {
           scaffoldMessengerKey: ref
               .read(notificationServiceProvider)
               .messengerKey,
-          title: 'SkyStream',
+          title: 'Aether',
           debugShowCheckedModeBanner: false,
           themeMode: themeMode,
           theme: AppTheme.createLightTheme(
@@ -578,7 +578,7 @@ class _MyAppState extends ConsumerState<MyApp> {
           rootWidget = PlatformMenuBar(
             menus: <PlatformMenuItem>[
               PlatformMenu(
-                label: 'SkyStream',
+                label: 'Aether',
                 menus: <PlatformMenuItem>[
                   if (PlatformProvidedMenuItem.hasMenu(
                     PlatformProvidedMenuItemType.about,

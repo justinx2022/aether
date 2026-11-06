@@ -822,7 +822,7 @@ class StorageService {
     try {
       final prefs = await SharedPreferences.getInstance();
 
-      // If keepRepos is true, preserve SkyStream extensions, Nuvio plugins, and Stremio addons
+      // If keepRepos is true, preserve Aether extensions, Nuvio plugins, and Stremio addons
       List<String>? savedExtensionRepos;
       List<String>? savedRemovedExtensionRepos;
       final savedExtensionRepoStrings = <String, String>{};
@@ -981,7 +981,7 @@ class StorageService {
     try {
       final supportDir = await getApplicationSupportDirectory();
 
-      // 1. Delete SkyStream Extensions Folder
+      // 1. Delete Aether Extensions Folder
       final extDir = Directory('${supportDir.path}/extensions');
       if (await extDir.exists()) {
         await extDir.delete(recursive: true);

@@ -533,7 +533,7 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
   bool _restorePending = false;
 
   /// The subtitle files of what is playing - the source's and any the viewer
-  /// added - which SkyStream draws itself rather than handing to libVLC. See
+  /// added - which Aether draws itself rather than handing to libVLC. See
   /// [SideCarSubtitles].
   late final SideCarSubtitles _sideCars = SideCarSubtitles(
     fetch: (url, headers) => _read(sideCarFetchProvider)(url, headers),
@@ -967,8 +967,9 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
         videoUrl: _videoUrl,
         preloadedStreams: _preloaded,
         probeCandidates: probeCandidates,
-        probeBudget:
-            seamless ? const Duration(milliseconds: 3500) : kProbeBudget,
+        probeBudget: seamless
+            ? const Duration(milliseconds: 3500)
+            : kProbeBudget,
         isCancelled: () => _disposed,
         onCandidates: (streams) => _onCandidates(generation, streams),
         onProbe: (index, outcome) => _onProbe(generation, index, outcome),
@@ -1297,10 +1298,7 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
             ':network-caching=${Platform.isWindows ? 800 : 1500}',
             ':http-caching=${Platform.isWindows ? 800 : 1500}',
           ],
-          if (Platform.isWindows) ...[
-            ':avcodec-hw=any',
-            ':directx-hw-yuv=1',
-          ],
+          if (Platform.isWindows) ...[':avcodec-hw=any', ':directx-hw-yuv=1'],
           if (_adaptiveMaxHeight != _deviceAdaptiveMaxHeight)
             ':adaptive-maxheight=$_adaptiveMaxHeight',
         ],
@@ -1323,7 +1321,7 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
       _hlsMedia = (uri: uri, headers: headers);
     }
 
-    // The source's subtitle files are read and drawn by SkyStream rather than
+    // The source's subtitle files are read and drawn by Aether rather than
     // handed to libVLC, which drew them into the picture - so Zoom cut them
     // off - and could not open the ones behind a playlist or headers at all.
     // Listed here and fetched when first shown; see [SideCarSubtitles].
@@ -1431,7 +1429,7 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
   /// opened stays on. The viewer is looking at the subtitle list when it
   /// happens, which is the one moment they can undo it.
   ///
-  /// The same rule keeps libVLC's own subtitle off while SkyStream draws a
+  /// The same rule keeps libVLC's own subtitle off while Aether draws a
   /// side-car: two subtitles on screen at once is never what anyone chose,
   /// and the media can put an embedded track on at any time - when its
   /// streams appear, after a seek, at an HLS discontinuity. Picking a track
@@ -1736,7 +1734,7 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
     unawaited(_sideCars.select(sources.last, from: _controller.value.position));
   }
 
-  /// A side-car in a format SkyStream does not read - MicroDVD, VobSub, TTML
+  /// A side-car in a format Aether does not read - MicroDVD, VobSub, TTML
   /// - goes to libVLC, as every side-car once did. libVLC's add selects what
   /// it adds, and it arrives as one of the video's own tracks.
   void _handSideCarToEngine(SideCarTrack track) {
@@ -1773,7 +1771,7 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
 
     final autoHealthEnabled =
         _read(playerSettingsProvider).asData?.value.autoHealthScoringEnabled ??
-            true;
+        true;
 
     if (autoHealthEnabled &&
         _attemptIndex >= 0 &&
@@ -2306,8 +2304,11 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
     if (health == VideoHealth.ok) {
       if (_videoWindow >= const Duration(seconds: 15)) {
         final autoHealthEnabled =
-            _read(playerSettingsProvider).asData?.value.autoHealthScoringEnabled ??
-                true;
+            _read(playerSettingsProvider)
+                .asData
+                ?.value
+                .autoHealthScoringEnabled ??
+            true;
         final resolved = _resolved;
         if (autoHealthEnabled &&
             resolved != null &&
@@ -2552,9 +2553,7 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
     // Numbering only where the plugin actually populated it; a great many hand
     // back zeroes, and `S0 E0` is worse than nothing.
     if (episode.season > 0 && episode.episode > 0) {
-      parts.add(
-        l10n.playerSeasonEpisode(episode.season, episode.episode),
-      );
+      parts.add(l10n.playerSeasonEpisode(episode.season, episode.episode));
     }
     final name = episode.name.trim();
     // Dropped when it is the numbering again under another name, which is what
@@ -3899,8 +3898,11 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
   int get _bufferMb => resolveNetworkBufferMb(
     ref.read(playerSettingsProvider).asData?.value.networkBufferMb,
     ref.read(deviceProfileProvider).asData?.value.tier ?? DeviceTier.standard,
-    chosenDurationMinutes:
-        ref.read(playerSettingsProvider).asData?.value.bufferDurationMinutes,
+    chosenDurationMinutes: ref
+        .read(playerSettingsProvider)
+        .asData
+        ?.value
+        .bufferDurationMinutes,
   );
 
   @override
@@ -3923,156 +3925,178 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
         if (didPop) return;
         _handleBack();
       },
-      child: Scaffold(
-        backgroundColor: playerScaffoldColor,
-        // One Stack in every stage. The VlcPlayer is its first child whenever
-        // there is one: a separate PiP branch would change the widget in this
-        // slot, detaching and killing the native player, so the episode
-        // restarts every time the window shrinks. Hiding the chrome inside the
-        // same Stack keeps the element and the engine.
-        body: Stack(
-          fit: StackFit.expand,
-          children: [
-            // The fit is the widget's, not just the engine's: on the texture
-            // path VlcPlayer draws its own FittedBox from this, and the
-            // native setFit behind it is a no-op on Windows and Linux.
-            //
-            // Offstage rather than absent under the diagnostic switch: on
-            // the texture platforms VlcPlayer's own initState attaches the
-            // native player, so a widget left out of the tree is no player
-            // at all. Offstage keeps the element and drops only the paint.
-            if (_stage == _Stage.playing)
-              Offstage(
-                offstage: PlayerDiagnostics.suppressVideoSurface,
-                child: RepaintBoundary(
-                  child: VlcPlayer(
+      child: Focus(
+        // Escape is a control key while a viewer is watching, not an implicit
+        // command to leave the player route. The controls below may consume it
+        // first (for example to leave desktop full screen); otherwise toggle
+        // the chrome and keep playback alive. The visible Back button and the
+        // platform Back action still use `_handleBack`.
+        onKeyEvent: (node, event) {
+          if (event.logicalKey != LogicalKeyboardKey.escape) {
+            return KeyEventResult.ignored;
+          }
+          if (event is KeyDownEvent) {
+            if (!_dismissOverlay()) {
+              if (_chrome.value) {
+                _chrome.toggle();
+              } else {
+                _chrome.poke();
+              }
+            }
+          }
+          return KeyEventResult.handled;
+        },
+        child: Scaffold(
+          backgroundColor: playerScaffoldColor,
+          // One Stack in every stage. The VlcPlayer is its first child whenever
+          // there is one: a separate PiP branch would change the widget in this
+          // slot, detaching and killing the native player, so the episode
+          // restarts every time the window shrinks. Hiding the chrome inside the
+          // same Stack keeps the element and the engine.
+          body: Stack(
+            fit: StackFit.expand,
+            children: [
+              // The fit is the widget's, not just the engine's: on the texture
+              // path VlcPlayer draws its own FittedBox from this, and the
+              // native setFit behind it is a no-op on Windows and Linux.
+              //
+              // Offstage rather than absent under the diagnostic switch: on
+              // the texture platforms VlcPlayer's own initState attaches the
+              // native player, so a widget left out of the tree is no player
+              // at all. Offstage keeps the element and drops only the paint.
+              if (_stage == _Stage.playing)
+                Offstage(
+                  offstage: PlayerDiagnostics.suppressVideoSurface,
+                  child: RepaintBoundary(
+                    child: VlcPlayer(
+                      controller: _controller,
+                      fit: _fit,
+                      darwinRenderer: playerDarwinRenderer,
+                      androidRenderer: playerAndroidRenderer,
+                      backgroundColor: playerBackdropColor,
+                    ),
+                  ),
+                ),
+              // Subtitle files, drawn over the picture rather than into it, so
+              // the fit never reaches them - and in PiP as well, as libVLC's
+              // were. Lifted over the controls while those are up.
+              if (_stage == _Stage.playing) _sideCarSubtitles(isTv: isTv),
+              // Everything before a picture: getting links, checking them,
+              // opening one - `setMedia` hands libVLC a URL and returns, so the
+              // playing stage begins with the video widget an empty surface -
+              // and the dead end when none of them played. Keyed, so the view
+              // is one element across all of it: the player is inserted
+              // beneath it as opening begins, and unkeyed it would be rebuilt
+              // there with its list back at the top.
+              if (_stage != _Stage.playing || (!_inPip && !_sawFrames))
+                _startupView(l10n, isTv: isTv),
+              // At PiP size the frame is about a sixth of the screen: bars,
+              // scrims and gesture layers are an unreadable smear over most of
+              // it, and there is nothing there to tap them with anyway.
+              //
+              // `_ended == null` unmounts this subtree rather than fading it.
+              // The controls' play button carries `autofocus: isTv`, so
+              // leaving them mounted under the card would be two autofocus
+              // nodes in one route, and their key sink would keep taking the
+              // remote back.
+              if (_stage == _Stage.playing &&
+                  !_inPip &&
+                  _sawFrames &&
+                  _ended == null) ...[
+                // The overlay gets its own layer so a chrome repaint never
+                // forces the embedder to recomposite the video surface beneath
+                // it.
+                RepaintBoundary(
+                  child: VlcPlayerControls(
                     controller: _controller,
+                    bufferedFraction: _bufferedFraction,
+                    chrome: _chrome,
+                    // The texture platforms honour fit through VlcPlayer's
+                    // FittedBox, not through the native setFit, so the button
+                    // has to reach this state to do anything there.
                     fit: _fit,
-                    darwinRenderer: playerDarwinRenderer,
-                    androidRenderer: playerAndroidRenderer,
-                    backgroundColor: playerBackdropColor,
+                    onFitChanged: (fit) {
+                      if (mounted) setState(() => _fit = fit);
+                    },
+                    title: _chromeTitle(l10n),
+                    subtitle: _chromeSubtitle(),
+                    onBack: () => _handleBack(fromChrome: true),
+                    // Each is null unless the thing it does is actually
+                    // available, so the overlay never renders a button that
+                    // would do nothing.
+                    onNextEpisode: _hasNextEpisode
+                        ? () => unawaited(_advance())
+                        : null,
+                    // Null on a film and on the first episode, so the bar has no
+                    // previous button to render rather than a dead one.
+                    onPreviousEpisode: _previousEpisode == null
+                        ? null
+                        : () => unawaited(_goToPreviousEpisode()),
+                    // One panel, one callback: the controls render a button
+                    // per tab in [panelTabs] and open the panel on it. The
+                    // tabs come from the same helper the panel strip reads, so
+                    // a button can never open a tab that does not exist.
+                    onOpenPanel: (tab) => _openPanel(tab),
+                    panelTabs: _panelData.value.tabs,
+                    onEnterPip: _pipAvailable ? _enterPip : null,
+                    onToggleFullscreen: _fullscreenAvailable
+                        ? _toggleFullscreen
+                        : null,
+                    isFullscreen: _isFullscreen,
+                    isLive: _isLive,
+                    skipSegments: _skipSegments,
+                    // Null on a film and on the last episode, where the chip
+                    // keeps its plain seek to the end of the credits because
+                    // there is nothing to move on to.
+                    onSkipOutro: _hasNextEpisode ? _offerNextEpisodeNow : null,
+                    // The skip chip and the up-next card are both bottom-right
+                    // and the card is a later child of this Stack, so without
+                    // this the chip stays underneath it: a tap that lands on
+                    // the card, and an invisible focus stop inside the card's
+                    // rectangle on a remote. `_ended` is here so the rule
+                    // survives the gate above changing.
+                    promptVisible: _nextEpisodeOffer != null || _ended != null,
+                    // Phone and tablet only, and null - not false - anywhere
+                    // else: with nothing here the controls have no padlock to
+                    // render and no locked branch to reach. A remote has no
+                    // accidental surface and a mouse has no pocket.
+                    locked: _form.isTouch ? _locked : null,
+                    torrentStatus: _torrentStatus,
                   ),
                 ),
-              ),
-            // Subtitle files, drawn over the picture rather than into it, so
-            // the fit never reaches them - and in PiP as well, as libVLC's
-            // were. Lifted over the controls while those are up.
-            if (_stage == _Stage.playing) _sideCarSubtitles(isTv: isTv),
-            // Everything before a picture: getting links, checking them,
-            // opening one - `setMedia` hands libVLC a URL and returns, so the
-            // playing stage begins with the video widget an empty surface -
-            // and the dead end when none of them played. Keyed, so the view
-            // is one element across all of it: the player is inserted
-            // beneath it as opening begins, and unkeyed it would be rebuilt
-            // there with its list back at the top.
-            if (_stage != _Stage.playing || (!_inPip && !_sawFrames))
-              _startupView(l10n, isTv: isTv),
-            // At PiP size the frame is about a sixth of the screen: bars,
-            // scrims and gesture layers are an unreadable smear over most of
-            // it, and there is nothing there to tap them with anyway.
-            //
-            // `_ended == null` unmounts this subtree rather than fading it.
-            // The controls' play button carries `autofocus: isTv`, so
-            // leaving them mounted under the card would be two autofocus
-            // nodes in one route, and their key sink would keep taking the
-            // remote back.
-            if (_stage == _Stage.playing &&
-                !_inPip &&
-                _sawFrames &&
-                _ended == null) ...[
-              // The overlay gets its own layer so a chrome repaint never
-              // forces the embedder to recomposite the video surface beneath
-              // it.
-              RepaintBoundary(
-                child: VlcPlayerControls(
-                  controller: _controller,
-                  bufferedFraction: _bufferedFraction,
-                  chrome: _chrome,
-                  // The texture platforms honour fit through VlcPlayer's
-                  // FittedBox, not through the native setFit, so the button
-                  // has to reach this state to do anything there.
-                  fit: _fit,
-                  onFitChanged: (fit) {
-                    if (mounted) setState(() => _fit = fit);
-                  },
-                  title: _chromeTitle(l10n),
-                  subtitle: _chromeSubtitle(),
-                  onBack: () => _handleBack(fromChrome: true),
-                  // Each is null unless the thing it does is actually
-                  // available, so the overlay never renders a button that
-                  // would do nothing.
-                  onNextEpisode: _hasNextEpisode
-                      ? () => unawaited(_advance())
-                      : null,
-                  // Null on a film and on the first episode, so the bar has no
-                  // previous button to render rather than a dead one.
-                  onPreviousEpisode: _previousEpisode == null
-                      ? null
-                      : () => unawaited(_goToPreviousEpisode()),
-                  // One panel, one callback: the controls render a button
-                  // per tab in [panelTabs] and open the panel on it. The
-                  // tabs come from the same helper the panel strip reads, so
-                  // a button can never open a tab that does not exist.
-                  onOpenPanel: (tab) => _openPanel(tab),
-                  panelTabs: _panelData.value.tabs,
-                  onEnterPip: _pipAvailable ? _enterPip : null,
-                  onToggleFullscreen: _fullscreenAvailable
-                      ? _toggleFullscreen
-                      : null,
-                  isFullscreen: _isFullscreen,
-                  isLive: _isLive,
-                  skipSegments: _skipSegments,
-                  // Null on a film and on the last episode, where the chip
-                  // keeps its plain seek to the end of the credits because
-                  // there is nothing to move on to.
-                  onSkipOutro: _hasNextEpisode ? _offerNextEpisodeNow : null,
-                  // The skip chip and the up-next card are both bottom-right
-                  // and the card is a later child of this Stack, so without
-                  // this the chip stays underneath it: a tap that lands on
-                  // the card, and an invisible focus stop inside the card's
-                  // rectangle on a remote. `_ended` is here so the rule
-                  // survives the gate above changing.
-                  promptVisible: _nextEpisodeOffer != null || _ended != null,
-                  // Phone and tablet only, and null - not false - anywhere
-                  // else: with nothing here the controls have no padlock to
-                  // render and no locked branch to reach. A remote has no
-                  // accidental surface and a mouse has no pocket.
-                  locked: _form.isTouch ? _locked : null,
-                  torrentStatus: _torrentStatus,
-                ),
-              ),
-              // Both overlays position themselves against the chrome and sit
-              // above it, so they stay readable while the bars are down.
-              if (_showResumeHint && _initialResume != null)
-                _unlessLocked(
-                  ResumeHint(
-                    position: _initialResume!.position,
-                    isTv: isTv,
-                    onStartOver: () {
-                      _resumePosition = Duration.zero;
-                      unawaited(_controller.seekTo(Duration.zero));
-                    },
-                    onDismissed: () {
-                      if (mounted) setState(() => _showResumeHint = false);
-                    },
+                // Both overlays position themselves against the chrome and sit
+                // above it, so they stay readable while the bars are down.
+                if (_showResumeHint && _initialResume != null)
+                  _unlessLocked(
+                    ResumeHint(
+                      position: _initialResume!.position,
+                      isTv: isTv,
+                      onStartOver: () {
+                        _resumePosition = Duration.zero;
+                        unawaited(_controller.seekTo(Duration.zero));
+                      },
+                      onDismissed: () {
+                        if (mounted) setState(() => _showResumeHint = false);
+                      },
+                    ),
                   ),
-                ),
-              if (_nextEpisodeOffer != null)
-                _unlessLocked(_nextEpisodeCard(isTv: isTv)),
-              // Anything the player has to say while a picture is actually
-              // up. A failover no longer lands here - it clears the frame
-              // flag and the startup view takes the screen instead.
-              if (_status.isNotEmpty)
-                Align(
-                  alignment: Alignment.topCenter,
-                  child: IgnorePointer(child: _statusPill(_status)),
-                ),
+                if (_nextEpisodeOffer != null)
+                  _unlessLocked(_nextEpisodeCard(isTv: isTv)),
+                // Anything the player has to say while a picture is actually
+                // up. A failover no longer lands here - it clears the frame
+                // flag and the startup view takes the screen instead.
+                if (_status.isNotEmpty)
+                  Align(
+                    alignment: Alignment.topCenter,
+                    child: IgnorePointer(child: _statusPill(_status)),
+                  ),
+              ],
+              // A sibling of the controls, never a child: see the gate above.
+              if (_ended case final kind?
+                  when _stage == _Stage.playing && !_inPip && _sawFrames)
+                _endedCard(kind, isTv: isTv),
             ],
-            // A sibling of the controls, never a child: see the gate above.
-            if (_ended case final kind?
-                when _stage == _Stage.playing && !_inPip && _sawFrames)
-              _endedCard(kind, isTv: isTv),
-          ],
+          ),
         ),
       ),
     );

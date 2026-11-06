@@ -20,12 +20,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:skystream/core/data/models/github_release.dart';
-import 'package:skystream/core/providers/update_provider.dart';
-import 'package:skystream/core/router/app_router.dart';
-import 'package:skystream/core/storage/storage_service.dart';
-import 'package:skystream/core/widgets/update_dialog.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/core/data/models/github_release.dart';
+import 'package:aether/core/providers/update_provider.dart';
+import 'package:aether/core/router/app_router.dart';
+import 'package:aether/core/storage/storage_service.dart';
+import 'package:aether/core/widgets/update_dialog.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 GithubRelease _release(String tag) => GithubRelease(
   tagName: tag,

@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/storage/settings_repository.dart';
 
-/// Configuration and toggles for SkyStream's in-app AI Neural Engine (Dahl).
+/// Configuration and toggles for Aether's in-app AI Neural Engine (Dahl).
 class AiSettings {
   const AiSettings({
     this.aiEnabled = false,

@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/utils/source_text.dart';
+import 'package:aether/core/utils/source_text.dart';
 
-/// The sources sheet mixes SkyStream plugin links with Nuvio scraper links.
+/// The sources sheet mixes Aether plugin links with Nuvio scraper links.
 /// Each system labels a link in its own style, which made one list read like
 /// two. These are the real shapes seen from the installed repositories.
 void main() {
@@ -62,7 +62,7 @@ void main() {
       );
     });
 
-    test('a Nuvio row and a SkyStream row end up in the same style', () {
+    test('a Nuvio row and a Aether row end up in the same style', () {
       final nuvio = buildSourceDetail([
         '71.41GB',
         'Hindi',

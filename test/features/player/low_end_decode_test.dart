@@ -19,10 +19,10 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/providers/device_info_provider.dart';
-import 'package:skystream/features/settings/presentation/player_settings_provider.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/providers/device_info_provider.dart';
+import 'package:aether/features/settings/presentation/player_settings_provider.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 import 'fake_vlc_engine.dart';
 import 'vlc_screen_harness.dart';

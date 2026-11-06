@@ -169,7 +169,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   final List<String> _mpvLogTail = <String>[];
 
   /// The subtitle files of what is playing - the source's and any the viewer
-  /// added - which SkyStream draws over the picture rather than handing to
+  /// added - which Aether draws over the picture rather than handing to
   /// mpv. See [SideCarSubtitles].
   late final SideCarSubtitles _sideCars;
 
@@ -207,11 +207,15 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   bool _viewerChoseSubtitle = false;
 
   Duration _position = Duration.zero;
+  final ValueNotifier<Duration> _positionForChrome = ValueNotifier(
+    Duration.zero,
+  );
   Duration _duration = Duration.zero;
   Duration _buffer = Duration.zero;
   bool _playing = false;
   bool _controlsVisible = true;
   Timer? _hideControlsTimer;
+  DateTime? _lastPointerActivity;
   double _playbackSpeed = 1.0;
   bool _isFullscreen = false;
   BoxFit _fit = BoxFit.contain;
@@ -264,16 +268,18 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
         read: _read,
         item: _item,
         episode: episode,
-        durationSeconds:
-            _duration.inSeconds > 0 ? _duration.inSeconds.toDouble() : null,
+        durationSeconds: _duration.inSeconds > 0
+            ? _duration.inSeconds.toDouble()
+            : null,
       );
       if (_disposed || !mounted || segments.isEmpty) return;
       setState(() => _skipSegments = segments);
     } catch (_) {}
   }
 
-  NativePlayer? get _native =>
-      _player.platform is NativePlayer ? _player.platform as NativePlayer : null;
+  NativePlayer? get _native => _player.platform is NativePlayer
+      ? _player.platform as NativePlayer
+      : null;
 
   Future<void> _toggleDialogueBoost() async {
     final native = _native;
@@ -349,8 +355,9 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
       ),
-      trailing:
-          isSelected ? const Icon(Icons.check, color: Color(0xFF818CF8)) : null,
+      trailing: isSelected
+          ? const Icon(Icons.check, color: Color(0xFF818CF8))
+          : null,
       onTap: () {
         Navigator.pop(ctx);
         _setSleepTimer(minutes);
@@ -363,14 +370,12 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     _sleepTimer = null;
     _sleepTimerMinutes = minutes;
     if (minutes == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sleep timer turned off')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Sleep timer turned off')));
     } else if (minutes == -1) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Playback will pause at end of episode'),
-        ),
+        const SnackBar(content: Text('Playback will pause at end of episode')),
       );
     } else {
       _sleepTimer = Timer(Duration(minutes: minutes), () {
@@ -451,7 +456,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
 
     _player = Player(
       configuration: PlayerConfiguration(
-        title: 'SkyStream',
+        title: 'Aether',
         bufferSize: _bufferPlan().megabytes * 1024 * 1024,
         // `info`, not `error`: a source that opens and then draws nothing
         // usually has no error to report, only messages about what it was
@@ -612,7 +617,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
         await native.setProperty('audio-pitch-correction', 'yes');
         await native.setProperty('user-agent', kDefaultBrowserUserAgent);
 
-        // SkyStream Neural AI Enhancements (Dahl Core)
+        // Aether Neural AI Enhancements (Dahl Core)
         final aiSettings = _read(aiSettingsProvider).asData?.value;
         if (aiSettings != null && aiSettings.aiEnabled) {
           // 1. Dialogue Isolation & Night Mode Audio Filters
@@ -764,6 +769,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
       _currentEpisode = next;
       _currentVideoUrl = next.url;
       _position = Duration.zero;
+      _positionForChrome.value = Duration.zero;
       _duration = Duration.zero;
       _buffer = Duration.zero;
       _isLoading = true;
@@ -831,8 +837,12 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
           }
         }
 
+        // Position is the only value most often changing during playback.
+        // Publish it to the two chrome widgets that display it rather than
+        // rebuilding the video route, which also rebuilds the surrounding
+        // controls and overlays on every mpv clock tick.
         if (_controlsVisible || _isDragging) {
-          setState(() {});
+          _positionForChrome.value = pos;
         }
       }),
     );
@@ -1124,19 +1134,16 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     final openedAt = _attemptOpenedAt ??= DateTime.now();
     final wait = _attemptWatchdogWait = _watchdogWait;
     final remaining = wait - DateTime.now().difference(openedAt);
-    _startupWatchdog = Timer(
-      remaining.isNegative ? Duration.zero : remaining,
-      () {
-        if (_disposed || !mounted || token != _openToken) return;
-        if (_attemptHasVideoTrack || _isSettlingTrackChange) return;
-        _trace?.warn(
-          'no-picture',
-          'watchdog-${wait.inSeconds}s attempt=$_attemptIndex '
-              'proxy-tried=$_attemptTriedProxy direct-tried=$_attemptTriedDirect',
-        );
-        unawaited(_recoverFromSilentOpen(token));
-      },
-    );
+    _startupWatchdog = Timer(remaining.isNegative ? Duration.zero : remaining, () {
+      if (_disposed || !mounted || token != _openToken) return;
+      if (_attemptHasVideoTrack || _isSettlingTrackChange) return;
+      _trace?.warn(
+        'no-picture',
+        'watchdog-${wait.inSeconds}s attempt=$_attemptIndex '
+            'proxy-tried=$_attemptTriedProxy direct-tried=$_attemptTriedDirect',
+      );
+      unawaited(_recoverFromSilentOpen(token));
+    });
   }
 
   void _rememberMpvLine(String line) {
@@ -1709,6 +1716,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   }
 
   void _toggleControlsVisibility() {
+    if (!_controlsVisible) _positionForChrome.value = _position;
     setState(() => _controlsVisible = !_controlsVisible);
     if (_controlsVisible) {
       _startControlsTimer();
@@ -1720,8 +1728,27 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   void _onUserActivity() {
     if (_isScreenLocked) return;
     if (!_controlsVisible) {
+      _positionForChrome.value = _position;
       setState(() => _controlsVisible = true);
     }
+    _startControlsTimer();
+  }
+
+  /// Mouse hover arrives at pointer frequency. Keep the controls responsive,
+  /// but avoid cancelling and allocating a hide timer for every pixel moved.
+  void _onPointerActivity() {
+    if (_isScreenLocked) return;
+    if (!_controlsVisible) {
+      _onUserActivity();
+      return;
+    }
+    final now = DateTime.now();
+    final last = _lastPointerActivity;
+    if (last != null &&
+        now.difference(last) < const Duration(milliseconds: 250)) {
+      return;
+    }
+    _lastPointerActivity = now;
     _startControlsTimer();
   }
 
@@ -1830,7 +1857,8 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   /// Automatically discovers and attaches subtitles from OpenSubtitles v3 in the background
   /// when source streams do not bundle any subtitle tracks.
   Future<void> _autoFetchSubtitlesAsync(Duration startAt) async {
-    if (_autoSubtitlesFetched || _viewerChoseSubtitle || _subtitlesOffPending) return;
+    if (_autoSubtitlesFetched || _viewerChoseSubtitle || _subtitlesOffPending)
+      return;
     _autoSubtitlesFetched = true;
 
     final target = SubtitleSearchTarget.of(_item, _effectiveCurrentEpisode);
@@ -1848,7 +1876,8 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
         language: prefLang,
       );
 
-      if (_disposed || !mounted || _viewerChoseSubtitle || results.isEmpty) return;
+      if (_disposed || !mounted || _viewerChoseSubtitle || results.isEmpty)
+        return;
 
       SideCarTrack? firstMatchingTrack;
       for (final sub in results) {
@@ -1863,7 +1892,9 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
         }
       }
 
-      if (_sideCars.active == null && firstMatchingTrack != null && !_subtitlesOffPending) {
+      if (_sideCars.active == null &&
+          firstMatchingTrack != null &&
+          !_subtitlesOffPending) {
         await _sideCars.select(firstMatchingTrack, from: _position);
       }
     } catch (e) {
@@ -1873,7 +1904,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     }
   }
 
-  /// Turns off a subtitle mpv selected for itself while one of SkyStream's own
+  /// Turns off a subtitle mpv selected for itself while one of Aether's own
   /// files is on - two on screen at once is never what anyone chose - or while
   /// the setting says Off.
   ///
@@ -1912,7 +1943,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     unawaited(_player.setSubtitleTrack(SubtitleTrack.no()));
   }
 
-  /// A file arrived in a format SkyStream does not read. mpv can be handed
+  /// A file arrived in a format Aether does not read. mpv can be handed
   /// files a different way, but not from here, so the viewer is told rather
   /// than left wondering why the row disappeared.
   void _handSideCarToEngine(SideCarTrack track) {
@@ -2046,7 +2077,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     unawaited(_player.setSubtitleTrack(track));
   }
 
-  /// Moves the lines against the picture, for both SkyStream's files and the
+  /// Moves the lines against the picture, for both Aether's files and the
   /// tracks mpv draws.
   void _setSubtitleDelay(Duration delay) {
     _subtitlePlayback.setDelay(delay);
@@ -2366,21 +2397,26 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
 
                         // SECTION 3: SAVE FULLY BUFFERED VIDEO
                         const SizedBox(height: 12),
-                        const PanelSubheader(
-                          title: 'Save & Export Video',
-                        ),
+                        const PanelSubheader(title: 'Save & Export Video'),
                         () {
                           final bufferMs = _player.state.buffer.inMilliseconds;
-                          final durationMs = _player.state.duration.inMilliseconds;
-                          final pct = durationMs > 0 ? (bufferMs / durationMs).clamp(0.0, 1.0) : 0.0;
+                          final durationMs =
+                              _player.state.duration.inMilliseconds;
+                          final pct = durationMs > 0
+                              ? (bufferMs / durationMs).clamp(0.0, 1.0)
+                              : 0.0;
                           final isFull = pct >= 0.95;
                           return PanelRow(
                             label: 'Save Video to Downloads',
                             detail: isFull
                                 ? 'Fully buffered (100%) • Direct instant save to Downloads/Aether'
                                 : '${(pct * 100).toInt()}% buffered • Save current stream to Downloads/Aether',
-                            icon: isFull ? Icons.download_done_rounded : Icons.save_alt_rounded,
-                            badges: isFull ? const <String>['Ready to Save'] : const <String>[],
+                            icon: isFull
+                                ? Icons.download_done_rounded
+                                : Icons.save_alt_rounded,
+                            badges: isFull
+                                ? const <String>['Ready to Save']
+                                : const <String>[],
                             onTap: () {
                               Navigator.of(sheetContext).maybePop();
                               unawaited(_saveBufferedVideoToDownloads());
@@ -2420,7 +2456,9 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     if (savedFile != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Saved to Downloads/Aether/${savedFile.uri.pathSegments.last}'),
+          content: Text(
+            'Saved to Downloads/Aether/${savedFile.uri.pathSegments.last}',
+          ),
           backgroundColor: const Color(0xFF10B981),
         ),
       );
@@ -2535,6 +2573,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     try {
       _focusNode.dispose();
     } catch (_) {}
+    _positionForChrome.dispose();
     super.dispose();
   }
 
@@ -2570,7 +2609,9 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
       if (_isFullscreen) {
         _toggleFullscreen();
       } else {
-        _exitPlayer();
+        // Escape dismisses player chrome; leaving playback remains an
+        // explicit Back-button action so a stray Escape cannot close a film.
+        _toggleControlsVisibility();
       }
       return KeyEventResult.handled;
     }
@@ -2598,7 +2639,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
           autofocus: true,
           onKeyEvent: _handleKeyEvent,
           child: MouseRegion(
-            onHover: (_) => _isScreenLocked ? null : _onUserActivity(),
+            onHover: (_) => _onPointerActivity(),
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () {
@@ -2834,8 +2875,8 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                         final label = seg.type == SkipType.intro
                             ? (l10n?.skipIntro ?? 'Skip Intro')
                             : (seg.type == SkipType.outro
-                                ? (l10n?.skipOutro ?? 'Skip Outro')
-                                : (l10n?.skipRecap ?? 'Skip Recap'));
+                                  ? (l10n?.skipOutro ?? 'Skip Outro')
+                                  : (l10n?.skipRecap ?? 'Skip Recap'));
                         return Positioned(
                           bottom: _controlsVisible ? 90 : 36,
                           right: 24,
@@ -3032,9 +3073,6 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     final String speedLabel =
         '${_playbackSpeed == 1.0 ? '1' : _playbackSpeed.toString()}x';
     final String fitTooltip = '${l10n?.fit ?? 'Fit'}: ${_fitLabel(_fit)}';
-    final displayPos = _isDragging && _dragPosition != null
-        ? _dragPosition!
-        : _position;
     // A feed's clock has no end to count towards, so the label reads LIVE
     // instead of `00:12:04 / --:--` - the same rule, and the same helper, as
     // libVLC's bar.
@@ -3051,35 +3089,40 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
         // Its own boundary: the scrubber repaints on every position tick,
         // which would otherwise repaint the bar, its scrim and every button.
         progressBar: RepaintBoundary(
-          child: PlayerScrubber(
-            position: displayPos,
-            duration: _duration,
-            hasDuration: _duration > Duration.zero,
-            bufferRatio: _bufferRatio,
-            canSeek: !live && _duration > Duration.zero,
-            isTv: _isTv,
-            onChangeStart: (ms) {
-              _onUserActivity();
-              setState(() {
-                _isDragging = true;
-                _dragPosition = Duration(milliseconds: ms.round());
-              });
-            },
-            onChanged: (ms) {
-              _onUserActivity();
-              setState(() {
-                _dragPosition = Duration(milliseconds: ms.round());
-              });
-            },
-            onChangeEnd: (ms) {
-              _onUserActivity();
-              final target = Duration(milliseconds: ms.round());
-              setState(() {
-                _isDragging = false;
-                _dragPosition = null;
-              });
-              _player.seek(target);
-            },
+          child: ValueListenableBuilder<Duration>(
+            valueListenable: _positionForChrome,
+            builder: (context, position, _) => PlayerScrubber(
+              position: _isDragging && _dragPosition != null
+                  ? _dragPosition!
+                  : position,
+              duration: _duration,
+              hasDuration: _duration > Duration.zero,
+              bufferRatio: _bufferRatio,
+              canSeek: !live && _duration > Duration.zero,
+              isTv: _isTv,
+              onChangeStart: (ms) {
+                _onUserActivity();
+                setState(() {
+                  _isDragging = true;
+                  _dragPosition = Duration(milliseconds: ms.round());
+                });
+              },
+              onChanged: (ms) {
+                _onUserActivity();
+                setState(() {
+                  _dragPosition = Duration(milliseconds: ms.round());
+                });
+              },
+              onChangeEnd: (ms) {
+                _onUserActivity();
+                final target = Duration(milliseconds: ms.round());
+                setState(() {
+                  _isDragging = false;
+                  _dragPosition = null;
+                });
+                _player.seek(target);
+              },
+            ),
           ),
         ),
         leading: [
@@ -3134,11 +3177,16 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
           Padding(
             padding: const EdgeInsets.only(left: 8, right: 4),
             child: RepaintBoundary(
-              child: PlayerTimeLabel(
-                position: displayPos,
-                duration: _duration,
-                hasDuration: _duration > Duration.zero,
-                isLive: live,
+              child: ValueListenableBuilder<Duration>(
+                valueListenable: _positionForChrome,
+                builder: (context, position, _) => PlayerTimeLabel(
+                  position: _isDragging && _dragPosition != null
+                      ? _dragPosition!
+                      : position,
+                  duration: _duration,
+                  hasDuration: _duration > Duration.zero,
+                  isLive: live,
+                ),
               ),
             ),
           ),

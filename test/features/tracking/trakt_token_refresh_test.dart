@@ -3,9 +3,9 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/storage/secure_token_storage.dart';
-import 'package:skystream/features/tracking/data/trakt_service.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/storage/secure_token_storage.dart';
+import 'package:aether/features/tracking/data/trakt_service.dart';
 
 /// Trakt device tokens expire after ~90 days. Before this suite the service
 /// stored only `access_token`, so on day 91 every call 401'd, nothing could

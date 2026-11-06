@@ -4,7 +4,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/network/link_probe_service.dart';
+import 'package:aether/core/network/link_probe_service.dart';
 
 /// Answers each request from a table the test sets up, and records it.
 class _FakeAdapter implements HttpClientAdapter {

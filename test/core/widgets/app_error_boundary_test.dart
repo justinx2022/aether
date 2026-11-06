@@ -5,10 +5,10 @@ import 'dart:ui' show ErrorCallback, PlatformDispatcher;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/logger/app_logger.dart';
-import 'package:skystream/core/utils/app_utils.dart';
-import 'package:skystream/core/widgets/app_error_boundary.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/core/logger/app_logger.dart';
+import 'package:aether/core/utils/app_utils.dart';
+import 'package:aether/core/widgets/app_error_boundary.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
 /// Before this existed the app had no production error handling at all: no

@@ -1,12 +1,14 @@
 import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:open_file/open_file.dart';
+
 import '../utils/app_utils.dart';
 
-/// Represents an external video player that can be launched from Skystream.
+/// Represents an external video player that can be launched from Aether.
 class ExternalPlayer {
   final String id;
   final String displayName;
@@ -111,7 +113,7 @@ class ExternalPlayerService {
     ),
     // Web Video Cast — accepts ACTION_VIEW with video/* mime, routes to
     // Chromecast / DLNA / Roku / Fire TV / smart TV. Useful for casting
-    // a SkyStream-resolved stream URL to a TV without leaving the phone.
+    // a Aether-resolved stream URL to a TV without leaving the phone.
     ExternalPlayer(
       id: 'web_video_cast',
       displayName: 'Web Video Cast',
@@ -260,7 +262,7 @@ class ExternalPlayerService {
   /// Empty means the external player issues the same request the internal one
   /// does. Anything else means the origin will see a different request than
   /// the one the source was resolved with, which arrives as a 403 or a black
-  /// screen inside the other app rather than as an error SkyStream can report
+  /// screen inside the other app rather than as an error Aether can report
   /// — so callers check this *before* launching and say so instead.
   List<String> unsupportedHeaders(
     ExternalPlayer player,
@@ -370,7 +372,7 @@ class ExternalPlayerService {
   // -- Android: Native Intent via platform channel --
 
   static const _playerChannel = MethodChannel(
-    'dev.akash.skystream/external_player',
+    'com.justinx2022.aether/external_player',
   );
 
   Future<bool> _launchAndroid(
@@ -388,14 +390,16 @@ class ExternalPlayerService {
       // into `HTTP_HEADERS` and friends). They are best-effort: VLC, MX and
       // Just Player read them, other players ignore them, so the header
       // table above still counts Android as carrying nothing guaranteed.
-      final result = await _playerChannel
-          .invokeMethod<bool>('launchVideoInPlayer', {
-            'url': videoUrl,
-            'package': player.androidPackage,
-            'mimeType': 'video/*',
-            'title': ?title,
-            'headers': headers,
-          });
+      final result = await _playerChannel.invokeMethod<bool>(
+        'launchVideoInPlayer',
+        {
+          'url': videoUrl,
+          'package': player.androidPackage,
+          'mimeType': 'video/*',
+          'title': ?title,
+          'headers': headers,
+        },
+      );
       return result ?? false;
     } on PlatformException catch (e) {
       if (kDebugMode) debugPrint('Android external player error: ${e.message}');

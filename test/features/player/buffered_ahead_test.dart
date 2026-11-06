@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/player/domain/buffered_ahead.dart';
+import 'package:aether/features/player/domain/buffered_ahead.dart';
 
 /// The estimate behind the buffered segment of the seek bar.
 ///

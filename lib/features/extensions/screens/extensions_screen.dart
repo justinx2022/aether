@@ -15,7 +15,7 @@ import '../../../shared/widgets/text_input_dialog.dart';
 import '../../../core/router/app_router.dart';
 import '../../../shared/focus/app_focus.dart';
 
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 class ExtensionsScreen extends ConsumerStatefulWidget {
   final bool isEmbedded;
@@ -273,7 +273,7 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen>
             }
           },
         ),
-        title: const Text('SkyStream Providers'),
+        title: const Text('Aether Providers'),
         actions: [
           IconButton(
             tooltip: 'Refresh repositories and check updates',

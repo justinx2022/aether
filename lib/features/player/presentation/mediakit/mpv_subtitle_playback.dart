@@ -8,7 +8,7 @@ import '../../domain/subtitle_playback.dart';
 
 /// Reads the clock straight off the player's state, the way libVLC's adapter
 /// reads its controller, and keeps the viewer's delay - which media_kit does
-/// not hold for SkyStream's own files - beside it.
+/// not hold for Aether's own files - beside it.
 ///
 /// The screen ticks [tick] whenever the engine reports a new position or a
 /// state change, so the overlay wakes when the picture does.

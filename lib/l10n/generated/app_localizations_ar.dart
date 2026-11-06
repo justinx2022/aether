@@ -10,7 +10,7 @@ class AppLocalizationsAr extends AppLocalizations {
   AppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
-  String get appTitle => 'SkyStream';
+  String get appTitle => 'Aether';
 
   @override
   String get languageName => 'العربية';
@@ -1940,7 +1940,7 @@ class AppLocalizationsArApc extends AppLocalizationsAr {
   AppLocalizationsArApc() : super('ar_apc');
 
   @override
-  String get appTitle => 'SkyStream';
+  String get appTitle => 'Aether';
 
   @override
   String get languageName => 'العربية (الشامية)';

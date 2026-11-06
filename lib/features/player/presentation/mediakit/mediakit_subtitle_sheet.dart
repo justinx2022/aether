@@ -86,7 +86,7 @@ class MediaKitSubtitleSheet extends StatelessWidget {
     super.key,
   });
 
-  /// The files SkyStream draws itself: the source's and the viewer's.
+  /// The files Aether draws itself: the source's and the viewer's.
   final SideCarSubtitles sideCars;
 
   /// The delay the viewer set. Its own channel rather than the playback clock,

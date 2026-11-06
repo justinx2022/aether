@@ -1,4 +1,4 @@
-/// The subtitle files SkyStream reads and draws itself: the list that holds
+/// The subtitle files Aether reads and draws itself: the list that holds
 /// them ([SideCarSubtitles]), how a pick survives a reopen ([matchSideCar]),
 /// the Subtitles tab's rows for them, and the overlay that draws them
 /// ([SideCarSubtitleView]).
@@ -10,14 +10,14 @@ import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/player/domain/side_car_subtitles.dart';
-import 'package:skystream/features/player/domain/subtitle_cues.dart';
-import 'package:skystream/features/player/domain/subtitle_style.dart';
-import 'package:skystream/features/player/presentation/vlc/panel/player_panel_row.dart';
-import 'package:skystream/features/player/presentation/vlc/panel/player_tracks_tab.dart';
-import 'package:skystream/features/player/presentation/vlc/side_car_subtitle_view.dart';
-import 'package:skystream/features/settings/presentation/player_settings_provider.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/features/player/domain/side_car_subtitles.dart';
+import 'package:aether/features/player/domain/subtitle_cues.dart';
+import 'package:aether/features/player/domain/subtitle_style.dart';
+import 'package:aether/features/player/presentation/vlc/panel/player_panel_row.dart';
+import 'package:aether/features/player/presentation/vlc/panel/player_tracks_tab.dart';
+import 'package:aether/features/player/presentation/vlc/side_car_subtitle_view.dart';
+import 'package:aether/features/settings/presentation/player_settings_provider.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 import 'package:vlc_player/vlc_player.dart';
 
 import 'fake_vlc_engine.dart';
@@ -483,7 +483,7 @@ void main() {
       },
     );
 
-    testWidgets('a file from the device is drawn by SkyStream, not handed to '
+    testWidgets('a file from the device is drawn by Aether, not handed to '
         'libVLC', (tester) async {
       final previous = FilePickerPlatform.instance;
       FilePickerPlatform.instance = _FakeFilePicker(Uri.file('/subs/mine.srt'));

@@ -4,16 +4,16 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/shared/focus/app_focus.dart';
+import 'package:aether/shared/focus/app_focus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:skystream/features/extensions/screens/extensions_screen.dart';
-import 'package:skystream/features/extensions/providers/extensions_controller.dart';
-import 'package:skystream/core/extensions/extension_manager.dart';
-import 'package:skystream/core/extensions/models/extension_plugin.dart';
-import 'package:skystream/core/extensions/models/extension_repository.dart';
-import 'package:skystream/core/extensions/base_provider.dart';
-import 'package:skystream/shared/widgets/cards_wrapper.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/features/extensions/screens/extensions_screen.dart';
+import 'package:aether/features/extensions/providers/extensions_controller.dart';
+import 'package:aether/core/extensions/extension_manager.dart';
+import 'package:aether/core/extensions/models/extension_plugin.dart';
+import 'package:aether/core/extensions/models/extension_repository.dart';
+import 'package:aether/core/extensions/base_provider.dart';
+import 'package:aether/shared/widgets/cards_wrapper.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 class MockExtensionsController extends ExtensionsController {
   final ExtensionsState initialState;

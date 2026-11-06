@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/settings/presentation/ai_settings_provider.dart';
+import 'package:aether/features/settings/presentation/ai_settings_provider.dart';
 
 /// The AI features are opt-in: a fresh install must not run shaders, the
 /// audio filter, the scraper repair or the 403 header guesser before the

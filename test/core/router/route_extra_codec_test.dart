@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/router/app_router.dart';
-import 'package:skystream/features/explore/presentation/view_all_screen.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/router/app_router.dart';
+import 'package:aether/features/explore/presentation/view_all_screen.dart';
 
 void main() {
   group('RouteExtraCodec', () {

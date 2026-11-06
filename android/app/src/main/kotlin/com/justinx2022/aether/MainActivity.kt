@@ -1,4 +1,4 @@
-package dev.akash.skystream
+package com.justinx2022.aether
 
 import android.content.Intent
 import android.os.Bundle
@@ -15,9 +15,9 @@ import java.io.File
 import kotlin.math.roundToInt
 
 class MainActivity : FlutterActivity() {
-    private val CHANNEL = "dev.akash.skystream.player/pip"
-    private val TV_CHANNEL = "dev.akash.skystream/tv_channel"
-    private val PLAYER_CHANNEL = "dev.akash.skystream/external_player"
+    private val CHANNEL = "com.justinx2022.aether.player/pip"
+    private val TV_CHANNEL = "com.justinx2022.aether/tv_channel"
+    private val PLAYER_CHANNEL = "com.justinx2022.aether/external_player"
 
     private var isPlaying = false
 
@@ -189,7 +189,7 @@ class MainActivity : FlutterActivity() {
     // "media_control" string was registered as an exported receiver, so any
     // app on the device could broadcast it and pause, resume or seek whatever
     // the user was watching.
-    private val ACTION_MEDIA_CONTROL = "dev.akash.skystream.MEDIA_CONTROL"
+    private val ACTION_MEDIA_CONTROL = "com.justinx2022.aether.MEDIA_CONTROL"
     private val EXTRA_CONTROL_TYPE = "control_type"
     private val CONTROL_TYPE_PLAY = 1
     private val CONTROL_TYPE_PAUSE = 2

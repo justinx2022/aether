@@ -625,14 +625,14 @@ jobs:
             exit 1
           fi
           mkdir -p ci-artifacts
-          tar -czf "ci-artifacts/skystream-${{ matrix.name }}-debug.tar.gz" -C "$OUT" .
+          tar -czf "ci-artifacts/aether-${{ matrix.name }}-debug.tar.gz" -C "$OUT" .
           ls -lh ci-artifacts
 
       - name: Upload ${{ matrix.name }} Build
         uses: actions/upload-artifact@v7
         with:
-          name: skystream-${{ matrix.name }}-debug
-          path: ci-artifacts/skystream-${{ matrix.name }}-debug.tar.gz
+          name: aether-${{ matrix.name }}-debug
+          path: ci-artifacts/aether-${{ matrix.name }}-debug.tar.gz
           retention-days: 7
           if-no-files-found: error
 

@@ -1,9 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/addons/data/addon_client.dart';
-import 'package:skystream/core/addons/data/addon_stream_service.dart';
-import 'package:skystream/core/addons/models/addon_manifest.dart';
-import 'package:skystream/core/addons/models/addon_stream_source.dart';
+import 'package:aether/core/addons/data/addon_client.dart';
+import 'package:aether/core/addons/data/addon_stream_service.dart';
+import 'package:aether/core/addons/models/addon_manifest.dart';
+import 'package:aether/core/addons/models/addon_stream_source.dart';
 
 /// Scraper bridges search their sites by title and sometimes take the wrong
 /// page. Asked for The Vvaan (2026), CNCVerse answered with 81 links, 14 of

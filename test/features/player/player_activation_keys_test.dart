@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/player/presentation/widgets/player_activation.dart';
+import 'package:aether/features/player/presentation/widgets/player_activation.dart';
 
 /// Guards the rule that made Skip Intro, Play now, Cancel and Start Over dead
 /// controls on a game controller: **a player control that activates on Select

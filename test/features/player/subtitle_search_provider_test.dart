@@ -10,9 +10,9 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/player/domain/entity/subtitle_model.dart';
-import 'package:skystream/features/player/presentation/subtitle_search_provider.dart';
-import 'package:skystream/features/settings/presentation/player_settings_provider.dart';
+import 'package:aether/features/player/domain/entity/subtitle_model.dart';
+import 'package:aether/features/player/presentation/subtitle_search_provider.dart';
+import 'package:aether/features/settings/presentation/player_settings_provider.dart';
 
 typedef _Call = ({
   String query,

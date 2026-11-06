@@ -1271,7 +1271,7 @@
   },
   "nuvioPlugins": "Nuvio plugins",
   "@nuvioPlugins": {
-    "description": "Title of the Nuvio source card on a TMDB details screen. Sits beside the 'Available sources' card, which is the SkyStream plugin system; the two are peers. 'Nuvio' is the name of the third-party scraper project and is never translated."
+    "description": "Title of the Nuvio source card on a TMDB details screen. Sits beside the 'Available sources' card, which is the Aether plugin system; the two are peers. 'Nuvio' is the name of the third-party scraper project and is never translated."
   },
   "nuvioSearchForStreams": "Search for streams",
   "@nuvioSearchForStreams": {

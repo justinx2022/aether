@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/features/player/presentation/widgets/player_control_components.dart'
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/features/player/presentation/widgets/player_control_components.dart'
     show PlayerTopBar;
 
 import 'vlc_screen_harness.dart';

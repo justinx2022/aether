@@ -25,7 +25,7 @@ class OpenSubtitlesProvider extends SubtitleProvider {
   static const String buildTimeApiKey = String.fromEnvironment(
     'OPENSUBTITLES_API_KEY',
   );
-  static const String _userAgent = "SkyStream v2.2.1";
+  static const String _userAgent = "Aether v2.2.1";
 
   // Auth state
   final String? _username;

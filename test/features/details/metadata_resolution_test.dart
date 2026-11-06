@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/features/details/data/metadata_resolution_service.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/features/details/data/metadata_resolution_service.dart';
 
 void main() {
   MultimediaItem candidate(String title, {int? year, int? tmdbId}) {

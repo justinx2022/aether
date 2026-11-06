@@ -95,7 +95,7 @@ Future<VlcPlayerController> _playStalledStream(
   final controller = VlcPlayerController(
     options: <String>[
       ...headlessPlayerOptions(),
-      // What SkyStream runs with: see VlcNetworkConfig in the app.
+      // What Aether runs with: see VlcNetworkConfig in the app.
       '--network-caching=3000',
       '--stream-filter=prefetch',
       '--prefetch-buffer-size=65536',

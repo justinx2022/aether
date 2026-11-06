@@ -1,6 +1,6 @@
 {
-  "name": "SkyStream",
-  "short_name": "SkyStream",
+  "name": "Aether",
+  "short_name": "Aether",
   "description": "Free open-source media streaming app for Android, iOS, Windows, macOS and Linux.",
   "start_url": "/",
   "display": "browser",

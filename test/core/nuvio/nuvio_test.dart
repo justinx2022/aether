@@ -2,15 +2,15 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/nuvio/data/nuvio_code_store.dart';
-import 'package:skystream/core/nuvio/data/nuvio_engine.dart';
-import 'package:skystream/core/nuvio/data/nuvio_isolate_pool.dart';
-import 'package:skystream/core/nuvio/data/nuvio_crypto.dart';
-import 'package:skystream/core/nuvio/data/nuvio_dom.dart';
-import 'package:skystream/core/nuvio/data/nuvio_polyfill.dart';
-import 'package:skystream/core/nuvio/data/nuvio_runtime.dart';
-import 'package:skystream/core/nuvio/data/nuvio_stream_service.dart';
-import 'package:skystream/core/nuvio/models/nuvio_models.dart';
+import 'package:aether/core/nuvio/data/nuvio_code_store.dart';
+import 'package:aether/core/nuvio/data/nuvio_engine.dart';
+import 'package:aether/core/nuvio/data/nuvio_isolate_pool.dart';
+import 'package:aether/core/nuvio/data/nuvio_crypto.dart';
+import 'package:aether/core/nuvio/data/nuvio_dom.dart';
+import 'package:aether/core/nuvio/data/nuvio_polyfill.dart';
+import 'package:aether/core/nuvio/data/nuvio_runtime.dart';
+import 'package:aether/core/nuvio/data/nuvio_stream_service.dart';
+import 'package:aether/core/nuvio/models/nuvio_models.dart';
 
 /// Nuvio plugin support, checked against how real plugins behave: bundled
 /// scrapers require('cheerio-without-node-native'), call

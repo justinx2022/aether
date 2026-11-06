@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/addons/models/addon_manifest.dart';
+import 'package:aether/core/addons/models/addon_manifest.dart';
 
 void main() {
   test('matches display name, id, host and resource', () {

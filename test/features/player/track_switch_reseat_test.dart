@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/player/presentation/vlc/panel/player_tracks_tab.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/features/player/presentation/vlc/panel/player_tracks_tab.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 import 'package:vlc_player/vlc_player.dart';
 
 import 'fake_vlc_engine.dart';

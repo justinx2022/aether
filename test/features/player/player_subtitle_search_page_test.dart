@@ -20,15 +20,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:skystream/features/player/domain/entity/subtitle_model.dart';
-import 'package:skystream/features/player/domain/side_car_subtitles.dart';
-import 'package:skystream/features/player/domain/subtitle_search_target.dart';
-import 'package:skystream/features/player/presentation/subtitle_search_provider.dart';
-import 'package:skystream/features/player/presentation/vlc/panel/player_panel.dart';
-import 'package:skystream/features/player/presentation/vlc/panel/player_panel_row.dart';
-import 'package:skystream/features/player/presentation/vlc/panel/player_subtitle_search_page.dart';
-import 'package:skystream/features/settings/presentation/player_settings_provider.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/features/player/domain/entity/subtitle_model.dart';
+import 'package:aether/features/player/domain/side_car_subtitles.dart';
+import 'package:aether/features/player/domain/subtitle_search_target.dart';
+import 'package:aether/features/player/presentation/subtitle_search_provider.dart';
+import 'package:aether/features/player/presentation/vlc/panel/player_panel.dart';
+import 'package:aether/features/player/presentation/vlc/panel/player_panel_row.dart';
+import 'package:aether/features/player/presentation/vlc/panel/player_subtitle_search_page.dart';
+import 'package:aether/features/settings/presentation/player_settings_provider.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 import 'fake_vlc_engine.dart';
 
@@ -132,7 +132,7 @@ class _StubDownload extends SubtitleSearch {
   }
 }
 
-/// What SkyStream draws a downloaded file with: a fetch that reads every file
+/// What Aether draws a downloaded file with: a fetch that reads every file
 /// as the same one-cue SubRip.
 SideCarSubtitles _drawnBySkyStream() => SideCarSubtitles(
   fetch: (url, headers) async =>
@@ -638,7 +638,7 @@ void main() {
         .map((row) => row.label)
         .toList();
 
-    testWidgets('is downloaded and drawn by SkyStream, and the panel is back '
+    testWidgets('is downloaded and drawn by Aether, and the panel is back '
         'on the tab with it ticked', (tester) async {
       final page = await pumpSearch(
         tester,

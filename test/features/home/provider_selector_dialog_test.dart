@@ -2,15 +2,15 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/extensions/base_provider.dart';
-import 'package:skystream/core/extensions/extension_manager.dart';
-import 'package:skystream/core/providers/device_info_provider.dart';
-import 'package:skystream/features/extensions/providers/extensions_controller.dart';
-import 'package:skystream/features/home/presentation/home_provider.dart';
-import 'package:skystream/features/home/presentation/home_screen.dart';
-import 'package:skystream/features/home/presentation/home_state.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/extensions/base_provider.dart';
+import 'package:aether/core/extensions/extension_manager.dart';
+import 'package:aether/core/providers/device_info_provider.dart';
+import 'package:aether/features/extensions/providers/extensions_controller.dart';
+import 'package:aether/features/home/presentation/home_provider.dart';
+import 'package:aether/features/home/presentation/home_screen.dart';
+import 'package:aether/features/home/presentation/home_state.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 /// Enough rows to overflow the dialog so the list can actually fling.
 const int _providerCount = 40;

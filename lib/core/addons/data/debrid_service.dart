@@ -9,7 +9,7 @@ import '../../storage/secure_token_storage.dart';
 
 part 'debrid_service.g.dart';
 
-/// Debrid providers SkyStream can unrestrict torrents through.
+/// Debrid providers Aether can unrestrict torrents through.
 enum DebridProvider {
   none('None', ''),
   realDebrid('Real-Debrid', 'real-debrid'),
@@ -209,7 +209,7 @@ class DebridService {
       case DebridProvider.allDebrid:
         final response = await _dio.get<dynamic>(
           '$_adBase/user',
-          queryParameters: {'agent': 'skystream', 'apikey': apiKey},
+          queryParameters: {'agent': 'aether', 'apikey': apiKey},
           options: _options(),
         );
         final data = response.data;
@@ -440,7 +440,7 @@ class DebridService {
     void Function(String status)? onStatus,
     Duration wait = const Duration(seconds: 25),
   }) async {
-    final query = {'agent': 'skystream', 'apikey': apiKey};
+    final query = {'agent': 'aether', 'apikey': apiKey};
 
     onStatus?.call('Sending magnet to AllDebrid…');
     final upload = await _dio.get<dynamic>(

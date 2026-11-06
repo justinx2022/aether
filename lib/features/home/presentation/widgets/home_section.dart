@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
-import 'package:skystream/core/utils/responsive_breakpoints.dart';
-import 'package:skystream/core/router/app_router.dart';
-import 'package:skystream/core/utils/image_fallbacks.dart';
-import 'package:skystream/core/utils/layout_constants.dart';
+import 'package:aether/core/utils/responsive_breakpoints.dart';
+import 'package:aether/core/router/app_router.dart';
+import 'package:aether/core/utils/image_fallbacks.dart';
+import 'package:aether/core/utils/layout_constants.dart';
 
 import '../../../../core/domain/entity/multimedia_item.dart';
 import '../../../../shared/widgets/desktop_scroll_wrapper.dart';

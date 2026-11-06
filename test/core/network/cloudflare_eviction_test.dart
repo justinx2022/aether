@@ -22,7 +22,7 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/network/cloudflare_bypass.dart';
+import 'package:aether/core/network/cloudflare_bypass.dart';
 
 /// `(host, inUse)` in insertion order, which is age order.
 List<MapEntry<String, bool>> views(Map<String, bool> inUseByHost) =>

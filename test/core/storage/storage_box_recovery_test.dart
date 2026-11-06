@@ -6,8 +6,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:skystream/core/storage/storage_service.dart';
-import 'package:skystream/features/extensions/providers/extensions_controller.dart';
+import 'package:aether/core/storage/storage_service.dart';
+import 'package:aether/features/extensions/providers/extensions_controller.dart';
 
 /// The recovery contract of `StorageService._safeOpenBox`, exercised through
 /// the real method.

@@ -4,13 +4,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/logger/app_logger.dart';
-import 'package:skystream/core/router/app_router.dart';
-import 'package:skystream/core/services/download_service.dart';
-import 'package:skystream/core/services/notification_service.dart';
-import 'package:skystream/features/details/presentation/download_launcher.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/logger/app_logger.dart';
+import 'package:aether/core/router/app_router.dart';
+import 'package:aether/core/services/download_service.dart';
+import 'package:aether/core/services/notification_service.dart';
+import 'package:aether/features/details/presentation/download_launcher.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
 /// "Download Now" used to be able to do nothing at all.

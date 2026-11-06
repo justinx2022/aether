@@ -1,5 +1,5 @@
-name: skystream
-description: "A new Flutter project."
+name: aether
+description: "Aether cross-platform media player and streaming client."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 2.8.1
+version: 1.0.0
 
 environment:
   sdk: ^3.13.0
@@ -130,7 +130,7 @@ dependency_overrides:
   # again on every WM_DESTROY/WM_CLOSE, which — unlike its WM_SIZE and
   # WM_ACTIVATEAPP paths — is NOT gated by `is_auto_reset_`, so
   # `setAutoReset(false)` cannot switch it off. That close-time write is the
-  # "SkyStream resets my screen brightness on Windows" users reported. It also
+  # "Aether resets my screen brightness on Windows" users reported. It also
   # leaks a PHYSICAL_MONITOR handle per failed probe.
   #
   # Nothing is lost: the only caller of the brightness API returns early on

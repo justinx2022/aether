@@ -8,12 +8,12 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart'
     show ProviderListenable;
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/extensions/base_provider.dart';
-import 'package:skystream/core/extensions/extension_manager.dart';
-import 'package:skystream/features/library/presentation/history_provider.dart';
-import 'package:skystream/features/player/domain/stream_resolver.dart';
-import 'package:skystream/features/settings/presentation/player_settings_provider.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/extensions/base_provider.dart';
+import 'package:aether/core/extensions/extension_manager.dart';
+import 'package:aether/features/library/presentation/history_provider.dart';
+import 'package:aether/features/player/domain/stream_resolver.dart';
+import 'package:aether/features/settings/presentation/player_settings_provider.dart';
 
 /// A provider reader backed by a fixed table, so the resolver can be exercised
 /// without a container. Reading anything not listed is a failure rather than a

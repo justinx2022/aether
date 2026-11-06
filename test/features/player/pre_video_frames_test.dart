@@ -7,16 +7,16 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/extensions/base_provider.dart';
-import 'package:skystream/core/extensions/extension_manager.dart';
-import 'package:skystream/core/storage/history_repository.dart';
-import 'package:skystream/features/player/domain/playback_recovery.dart'
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/extensions/base_provider.dart';
+import 'package:aether/core/extensions/extension_manager.dart';
+import 'package:aether/core/storage/history_repository.dart';
+import 'package:aether/features/player/domain/playback_recovery.dart'
     show kFirstFrameDeadline;
-import 'package:skystream/features/player/presentation/vlc/player_startup_view.dart';
-import 'package:skystream/features/player/presentation/vlc/vlc_player_screen.dart';
-import 'package:skystream/features/player/presentation/widgets/player_control_components.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/features/player/presentation/vlc/player_startup_view.dart';
+import 'package:aether/features/player/presentation/vlc/vlc_player_screen.dart';
+import 'package:aether/features/player/presentation/widgets/player_control_components.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 import 'package:vlc_player/vlc_player.dart';
 
 import 'fake_vlc_engine.dart';

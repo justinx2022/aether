@@ -1,10 +1,7 @@
-# SkyStream Plugin Development Guide
+# Aether Extension Compatibility
 
-The official documentation for SkyStream Plugin development has moved to a dedicated repository for better maintenance and up-to-date guides.
+Aether currently accepts JavaScript extensions using the SkyStream-compatible `.sky` and `.js` formats. Existing compatible repositories can be added in **Settings → Extensions → Add Repository**.
 
-👉 **[View the latest Plugin Development Guide here](https://github.com/akashdh11/skystream-tools/blob/main/DEVELOPER.md)**
+Aether keeps the `SkyStreamProvider` API and legacy `skystream://` repository-link scheme so existing extensions and saved links continue to work. These names are compatibility interfaces; Aether's app identity and release services are separate. New extension work should be checked against the provider bridge in `lib/core/extensions/base_provider.dart` and the examples in `lib/core/extensions/providers/`.
 
-### Key Links:
-- **[SkyStream CLI](https://github.com/akashdh11/skystream-tools/tree/main/cli)**: Tool for managing repositories and plugins.
-- **[Extractor Library](https://github.com/akashdh11/skystream-tools/tree/main/extractors)**: Common scrapers for video hosting sites.
-- **[Community Support](https://discord.gg/73XGA8Mxn9)**: Join our Discord for help and discussion.
+Extensions are user installed and run through Aether's JavaScript extension engine. Review an extension before installing it and use only sources you are authorized to access.

@@ -10,7 +10,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/shared/widgets/custom_widgets.dart';
+import 'package:aether/shared/widgets/custom_widgets.dart';
 
 void main() {
   /// A dialog's shape: a field with a button above it and one below.

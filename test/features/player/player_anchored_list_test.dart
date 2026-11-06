@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/features/player/presentation/vlc/panel/player_anchored_list.dart';
-import 'package:skystream/features/player/presentation/vlc/panel/player_episodes_tab.dart';
-import 'package:skystream/features/player/presentation/vlc/panel/player_panel_data.dart';
-import 'package:skystream/features/player/presentation/vlc/panel/player_panel_metrics.dart';
-import 'package:skystream/features/player/presentation/vlc/panel/player_files_tab.dart';
-import 'package:skystream/features/player/presentation/vlc/panel/player_panel_row.dart';
-import 'package:skystream/features/player/presentation/vlc/panel/player_sources_tab.dart';
-import 'package:skystream/features/player/presentation/vlc/torrent_file_sheet.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/features/player/presentation/vlc/panel/player_anchored_list.dart';
+import 'package:aether/features/player/presentation/vlc/panel/player_episodes_tab.dart';
+import 'package:aether/features/player/presentation/vlc/panel/player_panel_data.dart';
+import 'package:aether/features/player/presentation/vlc/panel/player_panel_metrics.dart';
+import 'package:aether/features/player/presentation/vlc/panel/player_files_tab.dart';
+import 'package:aether/features/player/presentation/vlc/panel/player_panel_row.dart';
+import 'package:aether/features/player/presentation/vlc/panel/player_sources_tab.dart';
+import 'package:aether/features/player/presentation/vlc/torrent_file_sheet.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 /// What is pinned here is where a panel list *opens*: on the row that matters,
 /// mid-viewport, on every form factor, with the focused row (when there is one)

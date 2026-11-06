@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/logger/app_logger.dart';
+import 'package:aether/core/logger/app_logger.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
 /// The log buffer is the app's only shipped diagnostic: `/logs` renders

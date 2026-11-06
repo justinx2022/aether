@@ -1,13 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart'
     show ProviderListenable;
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/features/player/domain/playback_progress.dart';
-import 'package:skystream/features/player/domain/playback_tracker.dart';
-import 'package:skystream/core/storage/episode_watch_repository.dart';
-import 'package:skystream/core/storage/history_repository.dart';
-import 'package:skystream/features/library/presentation/history_provider.dart';
-import 'package:skystream/features/tracking/data/sync_manager.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/features/player/domain/playback_progress.dart';
+import 'package:aether/features/player/domain/playback_tracker.dart';
+import 'package:aether/core/storage/episode_watch_repository.dart';
+import 'package:aether/core/storage/history_repository.dart';
+import 'package:aether/features/library/presentation/history_provider.dart';
+import 'package:aether/features/tracking/data/sync_manager.dart';
 
 /// Records dispatches instead of writing to anyone's account.
 class _RecordingSync extends SyncManager {

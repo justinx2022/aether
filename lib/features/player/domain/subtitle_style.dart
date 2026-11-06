@@ -3,7 +3,7 @@
 /// Two renderers read these. libVLC draws the tracks inside a video, and only
 /// takes these settings when the player is created - otherwise it applies its
 /// own default of `--freetype-rel-fontsize=16`, which is very large on a
-/// full-screen video. SkyStream draws subtitle files itself, from the same
+/// full-screen video. Aether draws subtitle files itself, from the same
 /// numbers, so a file and an embedded track look alike.
 library;
 
@@ -58,7 +58,7 @@ double subtitleFrameHeight(Size window) =>
     math.min(window.width, window.height);
 
 /// The font size [style] is drawn at in a player [area] big: libVLC's rule -
-/// the frame height over the relative size - which SkyStream's own subtitles
+/// the frame height over the relative size - which Aether's own subtitles
 /// follow too.
 double subtitleFontSize(VlcSubtitleStyle style, Size area) =>
     subtitleFrameHeight(area) / (style.relativeFontSize ?? 16);

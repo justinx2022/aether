@@ -19,7 +19,7 @@ import '../../../shared/widgets/loading_dialog.dart';
 import '../../../core/utils/app_utils.dart';
 import '../../../core/services/stream_prewarmer.dart';
 
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 import '../../../core/services/notification_service.dart';
 

@@ -3,9 +3,9 @@ AppId={{DA3F45DE-00B2-4EFC-81B0-BA101DCA73E8}
 AppName=Aether
 AppVersion={#AppVersion}
 AppPublisher=Aether
-AppPublisherURL=https://github.com/justinx2022/skystream
-AppSupportURL=https://github.com/justinx2022/skystream
-AppUpdatesURL=https://github.com/justinx2022/skystream
+AppPublisherURL=https://github.com/justinx2022/aether
+AppSupportURL=https://github.com/justinx2022/aether
+AppUpdatesURL=https://github.com/justinx2022/aether
 DefaultDirName={autopf}\Aether
 DefaultGroupName=Aether
 DisableProgramGroupPage=yes
@@ -32,8 +32,8 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Source: "{#AppDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\Aether"; Filename: "{app}\skystream.exe"
-Name: "{autodesktop}\Aether"; Filename: "{app}\skystream.exe"; Tasks: desktopicon
+Name: "{group}\Aether"; Filename: "{app}\aether.exe"
+Name: "{autodesktop}\Aether"; Filename: "{app}\aether.exe"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\skystream.exe"; Description: "{cm:LaunchProgram,Aether}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\aether.exe"; Description: "{cm:LaunchProgram,Aether}"; Flags: nowait postinstall skipifsilent

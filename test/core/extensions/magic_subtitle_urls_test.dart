@@ -14,13 +14,13 @@ import 'dart:isolate';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/extensions/engine/js_bytecode_compiler.dart';
-import 'package:skystream/core/extensions/engine/js_engine.dart';
-import 'package:skystream/core/extensions/engine/js_engine_worker.dart';
-import 'package:skystream/core/extensions/providers/js_based_provider.dart';
-import 'package:skystream/core/services/local_proxy_service.dart';
-import 'package:skystream/core/storage/extension_repository.dart';
-import 'package:skystream/core/storage/storage_service.dart';
+import 'package:aether/core/extensions/engine/js_bytecode_compiler.dart';
+import 'package:aether/core/extensions/engine/js_engine.dart';
+import 'package:aether/core/extensions/engine/js_engine_worker.dart';
+import 'package:aether/core/extensions/providers/js_based_provider.dart';
+import 'package:aether/core/services/local_proxy_service.dart';
+import 'package:aether/core/storage/extension_repository.dart';
+import 'package:aether/core/storage/storage_service.dart';
 
 class _MemoryExtensionRepository extends ExtensionRepository {
   _MemoryExtensionRepository() : super(StorageService());

@@ -8,7 +8,7 @@ import '../storage/storage_service.dart';
 
 /// Seamless Cross-Device Watch Progress Synchronization over Local Area Network (Wi-Fi).
 ///
-/// Automatically discovers other SkyStream instances running on the same local
+/// Automatically discovers other Aether instances running on the same local
 /// network (e.g. PC, Android TV, tablet, phone) and synchronizes watch history,
 /// continue-watching states, and playback positions with zero cloud configuration.
 class LanSyncService {
@@ -108,7 +108,7 @@ class LanSyncService {
     if (!enabled || _udpSocket == null) return;
     try {
       final payload = jsonEncode({
-        'app': 'skystream',
+        'app': 'aether',
         'type': 'lan_sync_ping',
         'deviceId': _deviceId,
         'os': Platform.operatingSystem,
@@ -229,14 +229,16 @@ class LanSyncService {
     try {
       final raw = utf8.decode(datagram.data);
       final dynamic json = jsonDecode(raw);
-      if (json is Map && json['app'] == 'skystream' && json['type'] == 'lan_sync_ping') {
+      if (json is Map &&
+          (json['app'] == 'aether' || json['app'] == 'skystream') &&
+          json['type'] == 'lan_sync_ping') {
         // The ping names the address to send our history to, so it is only
         // trusted from this network.
         if (!_isPrivateAddress(datagram.address)) return;
         final peerDeviceId = json['deviceId']?.toString();
         final peerPort = json['httpPort'] as int? ?? _httpPort;
         if (peerDeviceId != null && peerDeviceId != _deviceId) {
-          // Discovered another SkyStream peer on the network!
+          // Discovered another Aether peer on the network!
           final peerIp = datagram.address.address;
           unawaited(_syncWithPeer(peerIp, peerPort));
         }

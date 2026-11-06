@@ -54,13 +54,13 @@ Color get playerBackdropColor =>
 /// Every switch here is off unless its variable is set, so a normal launch
 /// behaves exactly as it did.
 ///
-///   SKYSTREAM_VLC_VERBOSE=1
+///   AETHER_VLC_VERBOSE=1
 ///       Raises libVLC from `--quiet` to `--verbose=2`. libVLC writes its own
 ///       log to stderr - no log callback is installed anywhere in the plugin -
 ///       so this turns a silent run into a transcript of demux, decoder and
 ///       video-output negotiation.
 ///
-///   SKYSTREAM_NO_VIDEO=1
+///   AETHER_NO_VIDEO=1
 ///       Keeps the whole engine - creation, media, audio, controls, position -
 ///       and stops only the video surface being painted. The player widget
 ///       stays mounted, because it is what attaches the native player on the
@@ -89,7 +89,7 @@ abstract final class PlayerDiagnostics {
       };
 
   /// Whether libVLC should log at `--verbose=2` instead of `--quiet`.
-  static bool get verboseVlcLog => _isOn('SKYSTREAM_VLC_VERBOSE');
+  static bool get verboseVlcLog => _isOn('AETHER_VLC_VERBOSE');
 
-  static bool get suppressVideoSurface => _isOn('SKYSTREAM_NO_VIDEO');
+  static bool get suppressVideoSurface => _isOn('AETHER_NO_VIDEO');
 }

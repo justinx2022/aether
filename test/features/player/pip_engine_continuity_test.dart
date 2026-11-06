@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/services/local_proxy_service.dart';
-import 'package:skystream/core/providers/device_info_provider.dart';
-import 'package:skystream/core/storage/history_repository.dart';
-import 'package:skystream/core/storage/storage_service.dart';
-import 'package:skystream/features/player/presentation/vlc/vlc_player_controls.dart';
-import 'package:skystream/features/player/presentation/vlc/vlc_player_screen.dart';
-import 'package:skystream/features/settings/presentation/player_settings_provider.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/services/local_proxy_service.dart';
+import 'package:aether/core/providers/device_info_provider.dart';
+import 'package:aether/core/storage/history_repository.dart';
+import 'package:aether/core/storage/storage_service.dart';
+import 'package:aether/features/player/presentation/vlc/vlc_player_controls.dart';
+import 'package:aether/features/player/presentation/vlc/vlc_player_screen.dart';
+import 'package:aether/features/settings/presentation/player_settings_provider.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 import 'package:vlc_player/vlc_player.dart';
 
 /// Entering picture-in-picture must not restart the film.
@@ -34,7 +34,7 @@ import 'package:vlc_player/vlc_player.dart';
 /// the id - so the test knows which event channel to speak on. The
 /// platform-view path takes its id from Flutter's process-global registry and
 /// publishes it nowhere.
-const MethodChannel _pip = MethodChannel('dev.akash.skystream.player/pip');
+const MethodChannel _pip = MethodChannel('com.justinx2022.aether.player/pip');
 const MethodChannel _vlc = MethodChannel('vlc_player');
 
 const int _viewId = 1;

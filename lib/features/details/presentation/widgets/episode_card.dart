@@ -7,11 +7,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:background_downloader/background_downloader.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/storage/history_repository.dart';
-import 'package:skystream/core/storage/episode_watch_repository.dart';
-import 'package:skystream/core/services/download_service.dart';
-import 'package:skystream/core/utils/layout_constants.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/storage/history_repository.dart';
+import 'package:aether/core/storage/episode_watch_repository.dart';
+import 'package:aether/core/services/download_service.dart';
+import 'package:aether/core/utils/layout_constants.dart';
 
 import '../../../../shared/widgets/thumbnail_error_placeholder.dart';
 import '../../../library/presentation/history_provider.dart';

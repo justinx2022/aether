@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/player/presentation/vlc/chrome_visibility_controller.dart';
+import 'package:aether/features/player/presentation/vlc/chrome_visibility_controller.dart';
 
 /// Driven under the widget-test binding purely for its fake clock: the
 /// controller is plain Dart with a Timer, and `tester.pump(duration)` is the

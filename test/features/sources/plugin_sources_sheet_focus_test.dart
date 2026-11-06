@@ -4,12 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/network/link_probe_service.dart';
-import 'package:skystream/core/nuvio/data/nuvio_stream_service.dart';
-import 'package:skystream/core/nuvio/models/nuvio_models.dart';
-import 'package:skystream/features/sources/presentation/plugin_sources_sheet.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/network/link_probe_service.dart';
+import 'package:aether/core/nuvio/data/nuvio_stream_service.dart';
+import 'package:aether/core/nuvio/models/nuvio_models.dart';
+import 'package:aether/features/sources/presentation/plugin_sources_sheet.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 /// The sheet's TV model, asserted against the real widget rather than a
 /// stand-in: UP/DOWN steps between source cards, LEFT/RIGHT moves inside the

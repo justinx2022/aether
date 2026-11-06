@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/player/presentation/vlc/vlc_player_controls.dart';
-import 'package:skystream/features/tracking/data/sync_manager.dart';
-import 'package:skystream/features/tracking/data/tracking_service.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/features/player/presentation/vlc/vlc_player_controls.dart';
+import 'package:aether/features/tracking/data/sync_manager.dart';
+import 'package:aether/features/tracking/data/tracking_service.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 import 'vlc_screen_harness.dart';
 

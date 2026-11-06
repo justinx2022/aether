@@ -3,12 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/nuvio/data/nuvio_repository.dart';
 
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 import 'source_section_card.dart';
 
 /// The Nuvio half of a details screen's source discovery, drawn as a peer of
-/// the SkyStream [ProviderSearchSection] rather than as a call-to-action
+/// the Aether [ProviderSearchSection] rather than as a call-to-action
 /// button.
 ///
 /// **Why it is a card and not a button.** Both plugin systems answer the same

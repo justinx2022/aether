@@ -2,7 +2,7 @@ import '../../l10n/generated/app_localizations.dart';
 
 /// What the launch-time extension pass changed, and the toasts that say so.
 ///
-/// Each extension system reports on its own - SkyStream plugins, Nuvio
+/// Each extension system reports on its own - Aether plugins, Nuvio
 /// scrapers, Stremio add-ons - and the launch merges the reports. However
 /// much happened, that is at most three toasts: the toast stack holds four,
 /// and a fifth pushes the oldest off before anyone has read it.

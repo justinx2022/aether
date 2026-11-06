@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/services/download_service.dart';
-import 'package:skystream/core/storage/history_repository.dart';
-import 'package:skystream/features/player/presentation/vlc/ended_card.dart';
-import 'package:skystream/features/player/presentation/vlc/next_episode_countdown.dart';
-import 'package:skystream/features/player/presentation/vlc/panel/player_panel.dart'
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/services/download_service.dart';
+import 'package:aether/core/storage/history_repository.dart';
+import 'package:aether/features/player/presentation/vlc/ended_card.dart';
+import 'package:aether/features/player/presentation/vlc/next_episode_countdown.dart';
+import 'package:aether/features/player/presentation/vlc/panel/player_panel.dart'
     show PlayerPanel;
-import 'package:skystream/features/player/presentation/vlc/resume_hint.dart';
-import 'package:skystream/features/player/presentation/vlc/vlc_player_controls.dart';
-import 'package:skystream/features/player/presentation/widgets/player_control_components.dart'
+import 'package:aether/features/player/presentation/vlc/resume_hint.dart';
+import 'package:aether/features/player/presentation/vlc/vlc_player_controls.dart';
+import 'package:aether/features/player/presentation/widgets/player_control_components.dart'
     show PlayerActionButton;
-import 'package:skystream/features/player/presentation/vlc/vlc_player_screen.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/features/player/presentation/vlc/vlc_player_screen.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 import 'vlc_screen_harness.dart';
 

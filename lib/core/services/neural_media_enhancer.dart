@@ -1,7 +1,7 @@
 import '../../../features/settings/presentation/ai_settings_provider.dart';
 
 /// Generates neural MPV / libmpv property overrides, audio filter graphs,
-/// and video shader chains based on SkyStream's active AI settings.
+/// and video shader chains based on Aether's active AI settings.
 class NeuralMediaEnhancer {
   NeuralMediaEnhancer._();
 

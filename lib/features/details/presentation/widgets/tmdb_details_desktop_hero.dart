@@ -15,7 +15,7 @@ import 'provider_search_section.dart';
 /// sections below the hero.
 ///
 /// One number, because three hand-picked ones is how the page came to have 32
-/// above the SkyStream card, 36 above the Nuvio card and 24 below it while
+/// above the Aether card, 36 above the Nuvio card and 24 below it while
 /// looking like it meant all three to match. Where a group already carries
 /// space of its own at its foot, the caller takes that off this rather than
 /// picking a smaller number and leaving the reason unwritten.
@@ -38,7 +38,7 @@ class TmdbDetailsDesktopHero extends ConsumerWidget {
   final Widget child;
   final String? source;
 
-  /// The Nuvio source card, rendered directly under the SkyStream one.
+  /// The Nuvio source card, rendered directly under the Aether one.
   ///
   /// It is injected rather than built here because opening it needs the
   /// details screen's own `_openPluginSources`. The two cards are peers, so

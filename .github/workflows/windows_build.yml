@@ -2,7 +2,7 @@ name: Windows Release Installer
 
 on:
   push:
-    branches: [master, main]
+    branches: [master, main, 'codex/**']
   workflow_dispatch:
 
 permissions:
@@ -82,12 +82,14 @@ jobs:
         shell: pwsh
         run: |
           $AppDir = "..\..\..\build\windows\x64\runner\Release"
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppVersion=custom /DAppArch=x64 /DAppDir=$AppDir windows\packaging\exe\setup.iss
+          $Version = (Select-String -Path pubspec.yaml -Pattern '^version:').Line.Split(':')[1].Trim().Split('+')[0]
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppVersion=$Version /DAppArch=x64 /DAppDir=$AppDir windows\packaging\exe\setup.iss
 
       - name: Compress Release ZIP
         shell: pwsh
         run: |
-          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath "aether-windows-x64-custom.zip"
+          $Version = (Select-String -Path pubspec.yaml -Pattern '^version:').Line.Split(':')[1].Trim().Split('+')[0]
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath "aether-windows-x64-v$Version.zip"
 
       # sha256sum-style lines (lowercase hex, two spaces, bare file name) for
       # both published artifacts. Get-FileHash rather than sha256sum: the
@@ -100,7 +102,8 @@ jobs:
             Write-Host "::error::no installer found in windows\packaging\exe\Output"
             exit 1
           }
-          $files = $exes + @(Get-Item aether-windows-x64-custom.zip)
+          $zip = Get-ChildItem aether-windows-x64-v*.zip | Select-Object -First 1
+          $files = $exes + @($zip)
           $lines = foreach ($f in $files) {
             $hash = (Get-FileHash -Algorithm SHA256 -Path $f.FullName).Hash.ToLower()
             "$hash  $($f.Name)"
@@ -109,7 +112,19 @@ jobs:
           [IO.File]::WriteAllText("$PWD\SHA256SUMS", ($lines -join "`n") + "`n")
           Get-Content SHA256SUMS
 
+      - name: Upload Aether Windows build artifact
+        if: startsWith(github.ref, 'refs/heads/codex/')
+        uses: actions/upload-artifact@v4
+        with:
+          name: aether-windows-v1.0.0
+          path: |
+            windows/packaging/exe/Output/*.exe
+            aether-windows-x64-v*.zip
+            SHA256SUMS
+          retention-days: 14
+
       - name: Publish to GitHub Releases
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         uses: ncipollo/release-action@v1
         with:
           tag: "windows-latest"
@@ -119,6 +134,6 @@ jobs:
           replacesArtifacts: true
           artifacts: |
             windows/packaging/exe/Output/*.exe
-            aether-windows-x64-custom.zip
+            aether-windows-x64-v*.zip
             SHA256SUMS
           token: ${{ secrets.GITHUB_TOKEN }}

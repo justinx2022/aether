@@ -8,14 +8,14 @@ import '../../../../shared/focus/app_focus.dart';
 /// The chrome shared by the two source-discovery blocks on a details screen.
 ///
 /// A details screen offers streams from two independent plugin systems -
-/// SkyStream providers and Nuvio scrapers - and neither is subordinate to the
-/// other. They used to be drawn as different *kinds* of thing: the SkyStream
+/// Aether providers and Nuvio scrapers - and neither is subordinate to the
+/// other. They used to be drawn as different *kinds* of thing: the Aether
 /// results sat in a quiet tonal card while Nuvio was a saturated primary
 /// button, which read as one feature and one call to action rather than two
 /// peers. Giving both the same container is what makes the ranking between
 /// them a matter of order alone.
 ///
-/// The two are peers in billing, not in behaviour. SkyStream results are
+/// The two are peers in billing, not in behaviour. Aether results are
 /// searched as the page builds and shown inline; Nuvio resolves behind a tap,
 /// because running every scraper on page load is expensive.
 class SourceSectionCard extends StatelessWidget {

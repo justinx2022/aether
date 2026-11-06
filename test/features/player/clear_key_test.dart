@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/l10n/generated/app_localizations_en.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/features/player/domain/clear_key.dart';
+import 'package:aether/l10n/generated/app_localizations_en.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/features/player/domain/clear_key.dart';
 
 void main() {
   StreamResult s({String? key, String? kid, String? licenseUrl}) => StreamResult(

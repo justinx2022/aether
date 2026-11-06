@@ -20,17 +20,17 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:skystream/core/extensions/base_provider.dart';
-import 'package:skystream/core/extensions/extension_manager.dart';
-import 'package:skystream/core/extensions/models/extension_plugin.dart';
-import 'package:skystream/core/extensions/models/extension_repository.dart';
-import 'package:skystream/core/extensions/providers.dart';
-import 'package:skystream/core/extensions/services/plugin_storage_service.dart';
-import 'package:skystream/core/extensions/services/repository_service.dart';
-import 'package:skystream/core/models/extension_update_report.dart';
-import 'package:skystream/core/storage/settings_repository.dart';
-import 'package:skystream/core/storage/storage_service.dart';
-import 'package:skystream/features/extensions/providers/extensions_controller.dart';
+import 'package:aether/core/extensions/base_provider.dart';
+import 'package:aether/core/extensions/extension_manager.dart';
+import 'package:aether/core/extensions/models/extension_plugin.dart';
+import 'package:aether/core/extensions/models/extension_repository.dart';
+import 'package:aether/core/extensions/providers.dart';
+import 'package:aether/core/extensions/services/plugin_storage_service.dart';
+import 'package:aether/core/extensions/services/repository_service.dart';
+import 'package:aether/core/models/extension_update_report.dart';
+import 'package:aether/core/storage/settings_repository.dart';
+import 'package:aether/core/storage/storage_service.dart';
+import 'package:aether/features/extensions/providers/extensions_controller.dart';
 
 /// What the user typed to add the collection. Shortcodes resolve inside
 /// `fetchRepository`, so this is also the key the collection is stored under.

@@ -2,7 +2,7 @@ name: Android Release APK
 
 on:
   push:
-    branches: [master, main]
+    branches: [master, main, 'codex/**']
   workflow_dispatch:
 
 permissions:
@@ -83,17 +83,8 @@ jobs:
           storeFile=key.jks
           PROPERTIES
             chmod 600 android/key.properties android/app/key.jks
-          elif [ -f "android/app/skystream-release.jks" ]; then
-            echo "Using permanent SkyStream release keystore"
-            cat > android/key.properties << PROPERTIES
-          storePassword=skystream2026
-          keyPassword=skystream2026
-          keyAlias=skystream
-          storeFile=skystream-release.jks
-          PROPERTIES
-            chmod 600 android/key.properties
           else
-            echo "::warning::No keystore found. Gradle will debug-sign this build."
+            echo "::warning::No Aether signing secrets configured; build will use the debug key."
           fi
 
       - name: Build Split APKs
@@ -127,6 +118,7 @@ jobs:
         run: rm -f android/app/key.jks android/key.properties
 
       - name: Publish to GitHub Releases
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         uses: ncipollo/release-action@v1
         with:
           tag: "android-latest"
@@ -144,3 +136,13 @@ jobs:
             release-apks/*.apk
             release-apks/SHA256SUMS
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Aether Android build artifact
+        if: startsWith(github.ref, 'refs/heads/codex/')
+        uses: actions/upload-artifact@v4
+        with:
+          name: aether-android-v1.0.0
+          path: |
+            release-apks/*.apk
+            release-apks/SHA256SUMS
+          retention-days: 14

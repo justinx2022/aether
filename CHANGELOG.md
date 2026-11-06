@@ -1,4 +1,13 @@
-# Changelogs - v2.8.1
+# Aether Changelog
+
+## v1.0.0 — 2026-11-06
+
+- Established Aether's independent package, platform IDs, updater, and release artifact names.
+- Reduced playback UI work by updating only the seek bar and clock on position ticks; throttled repeated mouse-hover timer resets.
+- Escape now keeps windowed playback open and toggles player controls; in full screen it returns to windowed playback.
+- Added the upstream GPL-3.0-only license and fork provenance notes.
+
+## Upstream baseline: SkyStream v2.8.1
 
 ### ✨ *New Features & Enhancements*
 
@@ -18,7 +27,7 @@
 
 #### 💬 Subtitles
 - **Subtitle search in the player panel** – Online subtitle search opens as a page inside the player's side panel.
-- **Subtitle files drawn by SkyStream** – SRT, WebVTT (including HLS subtitle playlists) and SSA/ASS files are drawn over the video by the app, so Zoom and Stretch no longer push lines off screen, and files that need the source's headers now load.
+- **Subtitle files drawn by Aether** – SRT, WebVTT (including HLS subtitle playlists) and SSA/ASS files are drawn over the video by the app, so Zoom and Stretch no longer push lines off screen, and files that need the source's headers now load.
 - **The right file from season packs** – When a provider sends a whole season as one archive, the episode being watched, in the language asked for, is picked instead of the first file in it.
 - **Automatic subtitle language** – Auto picks a subtitle in your preferred language from the video's own tracks, however the source names the language.
 - **Embedded subtitles with Zoom and Stretch** – Subtitles inside the video stay on screen whichever fit is chosen.
@@ -30,7 +39,7 @@
 - **Clear of the bottom bar** – Lists on every screen, settings pages and bookmarks included, scroll clear of the floating bottom navigation.
 
 #### ⚙️ Settings & Extensions
-- **Extensions update on launch** – SkyStream plugins, Nuvio scrapers and Stremio add-ons are checked on every launch; followed collections add the repositories they newly list, and what changed is summed up in at most three toasts.
+- **Extensions update on launch** – Aether plugins, Nuvio scrapers and Stremio add-ons are checked on every launch; followed collections add the repositories they newly list, and what changed is summed up in at most three toasts.
 - **TMDB API key check** – A pasted key is cleaned of spaces and invisible characters, pasting TMDB's v4 read token instead of the key is explained, and a network problem is no longer reported as a wrong key.
 - **External player** – The chosen default player is honoured end to end, including request headers on Android.
 

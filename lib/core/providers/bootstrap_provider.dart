@@ -24,7 +24,7 @@ void debugResetDesktopBrightnessQuieted() => _desktopBrightnessQuieted = false;
 /// registration, and it then installs a window-proc delegate that re-probes on
 /// `WM_SIZE` and `WM_ACTIVATEAPP` and *writes* on `WM_DESTROY`, `WM_CLOSE` and
 /// deactivate, because the native `is_auto_reset_` defaults to true. Users have
-/// reported SkyStream resetting their screen brightness on Windows; that is
+/// reported Aether resetting their screen brightness on Windows; that is
 /// this write, observed from the outside.
 ///
 /// None of it buys anything on a desktop. The only caller of the brightness API

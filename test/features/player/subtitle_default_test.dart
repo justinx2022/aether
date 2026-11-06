@@ -2,7 +2,7 @@
 /// fake, because the setting is not a field - it is a claim about what is on
 /// screen once media has finished opening.
 ///
-/// Two things draw subtitles: SkyStream, which reads the source's subtitle
+/// Two things draw subtitles: Aether, which reads the source's subtitle
 /// files and draws them over the video, and libVLC, which draws the tracks
 /// inside the video. What turns one on without anybody asking, each tested
 /// here:
@@ -29,12 +29,12 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/features/player/presentation/vlc/panel/player_panel.dart'
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/features/player/presentation/vlc/panel/player_panel.dart'
     show PlayerPanel;
-import 'package:skystream/features/player/presentation/vlc/panel/player_panel_row.dart';
-import 'package:skystream/features/settings/presentation/player_settings_provider.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/features/player/presentation/vlc/panel/player_panel_row.dart';
+import 'package:aether/features/settings/presentation/player_settings_provider.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 import 'fake_vlc_engine.dart';
 import 'vlc_screen_harness.dart';
@@ -83,7 +83,7 @@ void main() {
         subtitles: subtitles,
       );
 
-  /// Whether SkyStream is drawing the file [name].srt.
+  /// Whether Aether is drawing the file [name].srt.
   bool drawing(String name) => find.text('$name.srt').evaluate().isNotEmpty;
 
   /// The tracks inside the video, as the engine lists them - which it does
@@ -132,7 +132,7 @@ void main() {
       expect(
         engine.methods,
         isNot(contains('addSubtitle')),
-        reason: 'the files are SkyStream\'s to draw, not libVLC\'s',
+        reason: 'the files are Aether\'s to draw, not libVLC\'s',
       );
 
       await openSubtitles(tester);

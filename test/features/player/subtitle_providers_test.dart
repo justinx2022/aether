@@ -11,7 +11,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/player/data/subtitle_providers.dart';
+import 'package:aether/features/player/data/subtitle_providers.dart';
 
 /// The provider no longer carries a baked-in key (it was a literal in a public
 /// repo), so a test that wants to see the wire format has to supply one.

@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/providers/device_info_provider.dart';
-import 'package:skystream/features/player/presentation/player_platform_service.dart';
+import 'package:aether/core/providers/device_info_provider.dart';
+import 'package:aether/features/player/presentation/player_platform_service.dart';
 
-const _pipChannel = 'dev.akash.skystream.player/pip';
+const _pipChannel = 'com.justinx2022.aether.player/pip';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

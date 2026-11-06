@@ -4,16 +4,16 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/extensions/base_provider.dart';
-import 'package:skystream/core/extensions/extension_manager.dart';
-import 'package:skystream/core/providers/device_info_provider.dart';
-import 'package:skystream/core/storage/history_repository.dart';
-import 'package:skystream/core/storage/storage_service.dart';
-import 'package:skystream/features/details/presentation/details_controller.dart';
-import 'package:skystream/features/details/presentation/downloaded_file_provider.dart';
-import 'package:skystream/features/details/presentation/widgets/details_layout_widgets.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/extensions/base_provider.dart';
+import 'package:aether/core/extensions/extension_manager.dart';
+import 'package:aether/core/providers/device_info_provider.dart';
+import 'package:aether/core/storage/history_repository.dart';
+import 'package:aether/core/storage/storage_service.dart';
+import 'package:aether/features/details/presentation/details_controller.dart';
+import 'package:aether/features/details/presentation/downloaded_file_provider.dart';
+import 'package:aether/features/details/presentation/widgets/details_layout_widgets.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 /// Every history getter goes through Hive-backed [StorageService]; the action
 /// row only asks for the resume position, so answer "never watched" and skip

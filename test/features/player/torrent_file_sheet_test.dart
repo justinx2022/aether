@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/models/torrent_status.dart';
-import 'package:skystream/features/player/presentation/vlc/torrent_file_sheet.dart';
+import 'package:aether/core/models/torrent_status.dart';
+import 'package:aether/features/player/presentation/vlc/torrent_file_sheet.dart';
 
 void main() {
   TorrentStatus statusWith(Object? fileStats) =>

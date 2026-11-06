@@ -1,6 +1,6 @@
 /// Cleanup for the free-text a plugin attaches to a link.
 ///
-/// SkyStream plugins return whatever the source site printed
+/// Aether plugins return whatever the source site printed
 /// (`1080p WEB-DL x264 [SERVER 3]`), Nuvio scrapers return emoji-laden,
 /// multi-line titles, and several pad them with zero-width characters to force
 /// their own sort order. Sending all of that straight to the list is why the

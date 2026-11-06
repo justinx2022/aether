@@ -5,9 +5,9 @@ import 'dart:convert';
 import 'dart:isolate';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/extensions/engine/js_engine.dart'
+import 'package:aether/core/extensions/engine/js_engine.dart'
     show buildBridgeResponse;
-import 'package:skystream/core/extensions/engine/js_engine_worker.dart';
+import 'package:aether/core/extensions/engine/js_engine_worker.dart';
 
 /// Drives the real [JsWorkerRunner] — real QuickJS, real eval queue, real
 /// pump timers — on the test isolate, with a [ReceivePort] standing in for

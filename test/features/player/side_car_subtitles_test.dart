@@ -2,7 +2,7 @@
 /// viewer adds one by hand with no screen behind the panel to draw it -
 /// observed through the one fake every app-side player test drives, so the
 /// argument shapes stay honest and the id growth on `addSubtitle` (100, 101,
-/// ...) is the fake's own. The files SkyStream draws itself are
+/// ...) is the fake's own. The files Aether draws itself are
 /// side_car_tracks_test.dart's.
 ///
 /// The thing being pinned is libVLC 3's add-slave: it is *queued* to the
@@ -13,11 +13,11 @@ library;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/player/domain/side_car_subtitles.dart';
-import 'package:skystream/features/player/presentation/vlc/panel/player_panel.dart';
-import 'package:skystream/features/player/presentation/vlc/panel/player_panel_row.dart';
-import 'package:skystream/features/player/presentation/vlc/panel/player_tracks_tab.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/features/player/domain/side_car_subtitles.dart';
+import 'package:aether/features/player/presentation/vlc/panel/player_panel.dart';
+import 'package:aether/features/player/presentation/vlc/panel/player_panel_row.dart';
+import 'package:aether/features/player/presentation/vlc/panel/player_tracks_tab.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 import 'package:vlc_player/vlc_player.dart';
 
 import 'fake_vlc_engine.dart';

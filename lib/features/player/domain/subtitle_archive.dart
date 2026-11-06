@@ -15,7 +15,7 @@ library;
 /// A file in an archive: its path inside it and its size in bytes.
 typedef ArchiveEntry = ({String name, int size});
 
-/// The extensions worth taking out of an archive: the formats SkyStream reads,
+/// The extensions worth taking out of an archive: the formats Aether reads,
 /// SubStation Alpha's older one included.
 const Set<String> _kSubtitleExtensions = {'srt', 'vtt', 'ass', 'ssa'};
 

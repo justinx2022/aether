@@ -5,24 +5,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/extensions/base_provider.dart';
-import 'package:skystream/core/extensions/extension_manager.dart';
-import 'package:skystream/core/extensions/providers.dart';
-import 'package:skystream/core/models/torrent_status.dart';
-import 'package:skystream/core/services/torrent_service.dart';
-import 'package:skystream/core/services/download_service.dart';
-import 'package:skystream/core/storage/episode_watch_repository.dart';
-import 'package:skystream/core/storage/history_repository.dart';
-import 'package:skystream/features/player/presentation/vlc/panel/player_episodes_tab.dart';
-import 'package:skystream/features/player/presentation/vlc/panel/player_panel.dart'
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/extensions/base_provider.dart';
+import 'package:aether/core/extensions/extension_manager.dart';
+import 'package:aether/core/extensions/providers.dart';
+import 'package:aether/core/models/torrent_status.dart';
+import 'package:aether/core/services/torrent_service.dart';
+import 'package:aether/core/services/download_service.dart';
+import 'package:aether/core/storage/episode_watch_repository.dart';
+import 'package:aether/core/storage/history_repository.dart';
+import 'package:aether/features/player/presentation/vlc/panel/player_episodes_tab.dart';
+import 'package:aether/features/player/presentation/vlc/panel/player_panel.dart'
     show PlayerPanel;
-import 'package:skystream/features/player/presentation/vlc/panel/player_panel_row.dart';
-import 'package:skystream/features/player/presentation/vlc/panel/player_sources_tab.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/features/player/presentation/vlc/panel/player_panel_row.dart';
+import 'package:aether/features/player/presentation/vlc/panel/player_sources_tab.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 import 'fake_vlc_engine.dart';
-import 'package:skystream/features/settings/presentation/player_settings_provider.dart';
+import 'package:aether/features/settings/presentation/player_settings_provider.dart';
 
 import 'vlc_screen_harness.dart';
 

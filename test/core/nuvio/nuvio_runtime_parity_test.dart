@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/nuvio/data/nuvio_dom.dart';
-import 'package:skystream/core/nuvio/data/nuvio_engine.dart';
+import 'package:aether/core/nuvio/data/nuvio_dom.dart';
+import 'package:aether/core/nuvio/data/nuvio_engine.dart';
 
 /// The Nuvio app's plugin runtime is the environment its scrapers are written
-/// and tested against. Where SkyStream's runtime answered differently, a
+/// and tested against. Where Aether's runtime answered differently, a
 /// scraper that works there quietly returned nothing here - or worse, the
 /// wrong episode. Each group below is one such difference, measured by running
 /// the same repository through both.

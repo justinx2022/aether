@@ -2,10 +2,10 @@ import 'dart:async' show unawaited;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:skystream/core/logger/app_logger.dart';
-import 'package:skystream/core/utils/app_utils.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
-import 'package:skystream/l10n/generated/app_localizations_en.dart';
+import 'package:aether/core/logger/app_logger.dart';
+import 'package:aether/core/utils/app_utils.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
+import 'package:aether/l10n/generated/app_localizations_en.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
 /// The app's global error boundary.

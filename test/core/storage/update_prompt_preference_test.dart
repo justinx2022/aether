@@ -14,7 +14,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:skystream/core/storage/storage_service.dart';
+import 'package:aether/core/storage/storage_service.dart';
 
 void main() {
   final binding = TestWidgetsFlutterBinding.ensureInitialized();

@@ -22,11 +22,11 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/extensions/base_provider.dart';
-import 'package:skystream/core/extensions/extension_manager.dart';
-import 'package:skystream/features/home/presentation/home_provider.dart';
-import 'package:skystream/features/home/presentation/home_state.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/extensions/base_provider.dart';
+import 'package:aether/core/extensions/extension_manager.dart';
+import 'package:aether/features/home/presentation/home_provider.dart';
+import 'package:aether/features/home/presentation/home_state.dart';
 
 typedef _Sections = Map<String, List<MultimediaItem>>;
 

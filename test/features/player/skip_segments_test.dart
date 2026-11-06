@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/player/domain/skip_segments.dart';
-import 'package:skystream/features/skip/data/skip_service.dart';
+import 'package:aether/features/player/domain/skip_segments.dart';
+import 'package:aether/features/skip/data/skip_service.dart';
 
 void main() {
   SkipSegment seg(double start, double end, [SkipType type = SkipType.intro]) =>

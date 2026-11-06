@@ -208,7 +208,7 @@ class EpisodePickerSheet extends ConsumerWidget {
 }
 
 /// Episode Card with smooth mouse hover expansion and D-Pad focus highlight,
-/// matching the CardsWrapper interaction in SkyStream's details screen.
+/// matching the CardsWrapper interaction in Aether's details screen.
 class _EpisodeItemCard extends StatefulWidget {
   final int number;
   final String title;

@@ -11,10 +11,14 @@
     ╚═╝  ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝
 ```
 
+**Aether is an independently maintained fork of SkyStream.**
+
+Aether keeps compatible extension formats while using its own package identity, updater, releases, and playback improvements. See [FORK.md](FORK.md) for provenance and compatibility details.
+
 **Next-Generation Universal Media Experience. Limitless. Unmetered. Celestial.**
 
 [![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Windows%20%7C%20Linux%20%7C%20macOS-6366F1?style=for-the-badge)](#)
-[![Flutter](https://img.shields.io/badge/Built%20With-Flutter%203.29-02569B?style=for-the-badge&logo=flutter)](#)
+[![Flutter](https://img.shields.io/badge/Built%20With-Flutter%203.47.5-02569B?style=for-the-badge&logo=flutter)](#)
 [![License](https://img.shields.io/badge/License-GPLv3-10B981?style=for-the-badge)](#)
 [![Stream Engine](https://img.shields.io/badge/Player-MediaKit%20%2F%20Direct3D%2011-EC4899?style=for-the-badge)](#)
 
@@ -60,7 +64,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/aether-streaming/aether.git
+git clone https://github.com/justinx2022/aether.git
 cd aether
 
 # Get dependencies

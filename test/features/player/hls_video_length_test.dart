@@ -7,7 +7,7 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/player/domain/hls_video_length.dart';
+import 'package:aether/features/player/domain/hls_video_length.dart';
 
 final Uri _master = Uri.parse(
   'https://cdn.test/newtv/hls/pv/episode.m3u8?in=token',

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/player/domain/track_memory.dart';
+import 'package:aether/features/player/domain/track_memory.dart';
 import 'package:vlc_player/vlc_player.dart';
 
 VlcTrackDescription _t(int id, {String? language, String name = ''}) =>

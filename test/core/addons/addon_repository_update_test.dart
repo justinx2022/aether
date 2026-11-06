@@ -12,9 +12,9 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:skystream/core/addons/data/addon_client.dart';
-import 'package:skystream/core/addons/data/addon_repository.dart';
-import 'package:skystream/core/addons/models/addon_manifest.dart';
+import 'package:aether/core/addons/data/addon_client.dart';
+import 'package:aether/core/addons/data/addon_repository.dart';
+import 'package:aether/core/addons/models/addon_manifest.dart';
 
 AddonManifest _manifest(String id, String name, String version) =>
     AddonManifest(

@@ -38,7 +38,7 @@ import UserNotifications
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
 
     let channel = FlutterMethodChannel(
-      name: "dev.akash.skystream/download_continued_processing",
+      name: "com.justinx2022.aether/download_continued_processing",
       binaryMessenger: engineBridge.applicationRegistrar.messenger()
     )
 

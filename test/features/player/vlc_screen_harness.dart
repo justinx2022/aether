@@ -28,28 +28,28 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart' show Override;
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/extensions/extension_manager.dart';
-import 'package:skystream/core/services/download_service.dart';
-import 'package:skystream/core/storage/episode_watch_repository.dart';
-import 'package:skystream/core/storage/history_repository.dart';
-import 'package:skystream/core/storage/settings_repository.dart';
-import 'package:skystream/core/storage/storage_service.dart';
-import 'package:skystream/core/providers/device_info_provider.dart';
-import 'package:skystream/core/services/local_proxy_service.dart';
-import 'package:skystream/features/library/presentation/history_provider.dart';
-import 'package:skystream/features/player/presentation/vlc/side_car_fetch.dart';
-import 'package:skystream/features/player/presentation/vlc/vlc_player_screen.dart';
-import 'package:skystream/features/settings/presentation/player_settings_provider.dart';
-import 'package:skystream/features/tracking/data/sync_manager.dart';
-import 'package:skystream/features/tracking/data/tracking_service.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/extensions/extension_manager.dart';
+import 'package:aether/core/services/download_service.dart';
+import 'package:aether/core/storage/episode_watch_repository.dart';
+import 'package:aether/core/storage/history_repository.dart';
+import 'package:aether/core/storage/settings_repository.dart';
+import 'package:aether/core/storage/storage_service.dart';
+import 'package:aether/core/providers/device_info_provider.dart';
+import 'package:aether/core/services/local_proxy_service.dart';
+import 'package:aether/features/library/presentation/history_provider.dart';
+import 'package:aether/features/player/presentation/vlc/side_car_fetch.dart';
+import 'package:aether/features/player/presentation/vlc/vlc_player_screen.dart';
+import 'package:aether/features/settings/presentation/player_settings_provider.dart';
+import 'package:aether/features/tracking/data/sync_manager.dart';
+import 'package:aether/features/tracking/data/tracking_service.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 import 'fake_vlc_engine.dart';
 
 const MethodChannel vlcChannel = MethodChannel('vlc_player');
 const MethodChannel pipChannel = MethodChannel(
-  'dev.akash.skystream.player/pip',
+  'com.justinx2022.aether.player/pip',
 );
 
 /// The texture path names its own view: `create` answers with the id, so a

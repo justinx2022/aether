@@ -2,7 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/player/presentation/widgets/player_stream_widgets.dart';
+import 'package:aether/features/player/presentation/widgets/player_stream_widgets.dart';
 
 /// Says a remote is driving, which is the only time focus is drawn at all -
 /// see `shared/focus/app_focus.dart`. Without it the test platform's default

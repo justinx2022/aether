@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/extensions/engine/aes_decrypt.dart';
+import 'package:aether/core/extensions/engine/aes_decrypt.dart';
 
 /// These ciphertexts were produced by package:encrypt 5.0.3 - the
 /// implementation this code replaced - so they pin the replacement to the

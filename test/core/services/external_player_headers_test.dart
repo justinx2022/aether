@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/services/external_player_service.dart';
+import 'package:aether/core/services/external_player_service.dart';
 
 /// What a hand-off to another app can still say about the request.
 ///
