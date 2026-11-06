@@ -3520,7 +3520,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     await _native?.setProperty('sub-delay', (next / 1000).toString());
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Subtitle offset ${next} ms')),
+      SnackBar(content: Text('Subtitle offset $next ms')),
     );
   }
 
@@ -3537,13 +3537,13 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
       unawaited(native.setProperty('ab-loop-b', '${_position.inMilliseconds / 1000}'));
     }
     if (!mounted) return;
-    final start = _loopA;
-    final end = _loopB;
-    final label = start == null
+    final loopStart = _loopA;
+    final loopEnd = _loopB;
+    final label = loopStart == null
         ? 'Loop start marked'
-        : end == null
-        ? 'Loop from ${start.inSeconds}s'
-        : 'Loop ${start.inSeconds}s to ${end.inSeconds}s';
+        : loopEnd == null
+        ? 'Loop from ${loopStart.inSeconds}s'
+        : 'Loop ${loopStart.inSeconds}s to ${loopEnd.inSeconds}s';
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(label)));
   }
 
