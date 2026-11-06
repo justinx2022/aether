@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import '../domain/entity/multimedia_item.dart';
 import '../storage/storage_service.dart';
+import 'remote_commands.dart';
 
 /// Seamless Cross-Device Watch Progress Synchronization over Local Area Network (Wi-Fi).
 ///
@@ -188,6 +189,34 @@ class LanSyncService {
           ..statusCode = HttpStatus.ok
           ..headers.contentType = ContentType.json
           ..write(jsonEncode({'status': 'merged', 'count': merged}));
+        await request.response.close();
+        return;
+      }
+
+      if (path == '/api/remote' && request.method == 'POST') {
+        final body = await _readBounded(request);
+        if (body == null) {
+          request.response.statusCode = HttpStatus.requestEntityTooLarge;
+          await request.response.close();
+          return;
+        }
+        final dynamic decoded = jsonDecode(utf8.decode(body));
+        if (decoded is Map) {
+          final action = decoded['action']?.toString() ?? '';
+          final position = decoded['positionMs'];
+          if (action.isNotEmpty) {
+            remoteCommands.add(
+              RemoteCommand(
+                action,
+                positionMs: position is int ? position : null,
+              ),
+            );
+          }
+        }
+        request.response
+          ..statusCode = HttpStatus.ok
+          ..headers.contentType = ContentType.json
+          ..write(jsonEncode({'status': 'ok'}));
         await request.response.close();
         return;
       }

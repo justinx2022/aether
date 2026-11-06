@@ -4,6 +4,7 @@ import '../../../../core/storage/history_repository.dart';
 import '../../../../core/domain/entity/multimedia_item.dart';
 import '../../../../core/profile/profile_history.dart';
 import '../../../../core/profile/profile_service.dart';
+import '../../playback/playback_prefs.dart';
 import '../../settings/presentation/general_settings_provider.dart';
 
 export '../../../../core/storage/history_repository.dart' show HistoryItem;
@@ -71,7 +72,7 @@ class WatchHistory extends _$WatchHistory {
     String? episodePosterUrl,
   }) async {
     final enabled = ref.read(generalSettingsProvider).watchHistoryEnabled;
-    if (!enabled) return;
+    if (!enabled || ref.read(incognitoSessionProvider)) return;
 
     // For livestreams, we don't save progress but we still want it in history
     final isLivestream = item.contentType == MultimediaContentType.livestream;

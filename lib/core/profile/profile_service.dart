@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../storage/storage_service.dart';
+import 'pin_hash.dart';
 import 'user_profile.dart';
 
 /// The two profiles a fresh install used to write for you.
@@ -121,11 +122,12 @@ class ProfileController extends Notifier<ProfileState> {
     List<String> preferredGenres = const [],
     String feedMode = 'all',
   }) async {
+    final id = 'profile_${DateTime.now().millisecondsSinceEpoch}';
     final newProfile = UserProfile(
-      id: 'profile_${DateTime.now().millisecondsSinceEpoch}',
+      id: id,
       name: name.trim().isEmpty ? 'Comrade' : name.trim(),
       avatarId: avatarId,
-      pin: pin?.isNotEmpty == true ? pin : null,
+      pin: _storedPin(pin, id),
       isKids: isKids,
       preferredGenres: preferredGenres,
       feedMode: feedMode,
@@ -139,16 +141,25 @@ class ProfileController extends Notifier<ProfileState> {
   }
 
   Future<void> updateProfile(UserProfile profile) async {
-    final updated = state.profiles.map((p) => p.id == profile.id ? profile : p).toList();
+    final stored = profile.copyWith(pin: _storedPin(profile.pin, profile.id));
+    final updated = state.profiles
+        .map((p) => p.id == profile.id ? stored : p)
+        .toList();
     await _saveProfiles(updated);
 
     final currentActive = state.activeProfile;
-    final newActive = currentActive?.id == profile.id ? profile : currentActive;
+    final newActive = currentActive?.id == profile.id ? stored : currentActive;
 
     state = state.copyWith(
       profiles: updated,
       activeProfile: newActive,
     );
+  }
+
+  String? _storedPin(String? pin, String profileId) {
+    if (pin == null || pin.isEmpty) return null;
+    if (pinIsHashed(pin)) return pin;
+    return hashPin(pin, profileId);
   }
 
   Future<void> deleteProfile(String profileId) async {

@@ -1060,12 +1060,14 @@ class StorageService {
     String taskId,
     MultimediaItem item, {
     Episode? episode,
+    String? profileId,
   }) async {
     final box = await Hive.openBox<dynamic>(kDownloadMetadataBox);
     await box.put(taskId, {
       'item': item.toJson(),
       'episode': episode?.toJson(),
       'timestamp': DateTime.now().millisecondsSinceEpoch,
+      'profileId': profileId,
     });
   }
 

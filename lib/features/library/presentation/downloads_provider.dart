@@ -3,6 +3,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:skystream/core/storage/storage_service.dart';
 
 import '../../../core/domain/entity/multimedia_item.dart';
+import '../../../core/profile/profile_service.dart';
+import '../../../core/profile/user_profile.dart';
 import '../../../core/services/download_service.dart';
 
 part 'downloads_provider.g.dart';
@@ -61,6 +63,14 @@ class DownloadsNotifier extends _$DownloadsNotifier {
 
       final metadata = await storage.getDownloadMetadata(record.task.taskId);
       if (metadata == null) continue;
+      final profiles = ref.read(profileControllerProvider);
+      final activeId = profiles.activeProfile?.id;
+      final storedId = metadata['profileId'] as String?;
+      final legacyId = legacyProfileOwnerId(profiles.profiles);
+      final visible = storedId == null
+          ? activeId != null && activeId == legacyId
+          : storedId == activeId;
+      if (!visible) continue;
 
       items.add(
         DownloadItem(

@@ -14,6 +14,7 @@ import 'package:file_picker/file_picker.dart';
 
 import '../domain/entity/multimedia_item.dart';
 import '../logger/app_logger.dart';
+import '../profile/profile_service.dart';
 import '../router/app_router.dart';
 import '../storage/storage_service.dart';
 import '../network/dio_client_provider.dart';
@@ -754,7 +755,12 @@ class DownloadService {
         // Save metadata for offline support
         await _ref
             .read(storageServiceProvider)
-            .saveDownloadMetadata(task.taskId, item, episode: episode);
+            .saveDownloadMetadata(
+              task.taskId,
+              item,
+              episode: episode,
+              profileId: _ref.read(profileControllerProvider).activeProfile?.id,
+            );
         await _continuedProcessing.start(
           taskId: task.taskId,
           displayName: filename,

@@ -11,6 +11,7 @@ import '../../../core/utils/stream_quality_sorter.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
 
 import 'player_settings_provider.dart';
+import '../../playback/playback_prefs.dart';
 import 'widgets/settings_dialogs.dart';
 import 'widgets/settings_widgets.dart';
 import 'widgets/subtitle_appearance_settings.dart';
@@ -144,27 +145,61 @@ class PlayerSettingsScreen extends ConsumerWidget {
                   if (Platform.isWindows || Platform.isAndroid)
                     SettingsTile(
                       icon: Icons.speed_rounded,
-                      title: Platform.isWindows
-                          ? 'Windows GPU Engine (libmpv)'
-                          : 'High-Performance Engine (media_kit)',
-                      subtitle: playerSettings.useMediaKitOnWindows
-                          ? (Platform.isWindows
-                              ? 'Zero-copy Direct3D 11 hardware rendering (media_kit)'
-                              : 'Hardware accelerated MediaCodec engine with high-speed caching')
-                          : 'Standard libVLC engine',
-                      isLast: true,
-                      trailing: Switch(
-                        value: playerSettings.useMediaKitOnWindows,
-                        onChanged: (val) => ref
-                            .read(playerSettingsProvider.notifier)
-                            .setUseMediaKitOnWindows(val),
-                      ),
-                      onTap: () => ref
-                          .read(playerSettingsProvider.notifier)
-                          .setUseMediaKitOnWindows(
-                            !playerSettings.useMediaKitOnWindows,
-                          ),
+                      title: 'Playback engine',
+                      subtitle: Platform.isWindows
+                          ? 'MediaKit with Direct3D 11. This is the only built-in player.'
+                          : 'MediaKit is the built-in player.',
+                      isLast: false,
                     ),
+                  SettingsTile(
+                    icon: Icons.skip_next_rounded,
+                    title: 'Autoplay next episode',
+                    subtitle: ref.watch(playbackPrefsProvider).autoplay
+                        ? 'Continues, and asks if you are still watching after a few episodes'
+                        : 'Stops at the end of the episode',
+                    trailing: Switch(
+                      value: ref.watch(playbackPrefsProvider).autoplay,
+                      onChanged: (value) {
+                        final prefs = ref.read(playbackPrefsProvider);
+                        ref
+                            .read(playbackPrefsProvider.notifier)
+                            .update(prefs.copyWith(autoplay: value));
+                      },
+                    ),
+                  ),
+                  SettingsTile(
+                    icon: Icons.data_saver_on_rounded,
+                    title: 'Data saver',
+                    subtitle: ref.watch(playbackPrefsProvider).dataSaver
+                        ? 'Prefers 480p and hides heavier sources'
+                        : 'Uses your normal quality',
+                    isLast: true,
+                    trailing: Switch(
+                      value: ref.watch(playbackPrefsProvider).dataSaver,
+                      onChanged: (value) {
+                        final prefs = ref.read(playbackPrefsProvider);
+                        ref
+                            .read(playbackPrefsProvider.notifier)
+                            .update(prefs.copyWith(dataSaver: value));
+                        final mode = value
+                            ? QualityFilterMode.atOrBelow
+                            : QualityFilterMode.any;
+                        ref
+                            .read(playerSettingsProvider.notifier)
+                            .setQualityFilterMode(mode);
+                        ref.read(playerSettingsProvider.notifier).setWifiQuality(
+                          value
+                              ? QualityPreference.q480
+                              : kDefaultWifiQuality,
+                        );
+                        ref.read(playerSettingsProvider.notifier).setMobileQuality(
+                          value
+                              ? QualityPreference.q480
+                              : QualityPreference.q720,
+                        );
+                      },
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: LayoutConstants.spacingLg),

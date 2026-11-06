@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/profile/pin_hash.dart';
 import '../../../core/profile/user_profile.dart';
 import '../../../core/profile/profile_service.dart';
 import '../../../core/theme/app_backdrop_layer.dart';
@@ -87,7 +88,16 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
               ),
             ),
             onPressed: () {
-              if (controller.text == profile.pin) {
+              final stored = profile.pin;
+              if (stored != null &&
+                  pinMatches(stored, controller.text, profile.id)) {
+                if (!pinIsHashed(stored)) {
+                  ref.read(profileControllerProvider.notifier).updateProfile(
+                    profile.copyWith(
+                      pin: hashPin(controller.text, profile.id),
+                    ),
+                  );
+                }
                 Navigator.pop(ctx);
                 ref
                     .read(profileControllerProvider.notifier)

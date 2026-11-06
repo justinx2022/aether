@@ -11,6 +11,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart'
     show ProviderListenable;
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -26,6 +27,8 @@ import '../../../../core/services/provider_health_service.dart';
 import '../../../../core/services/stream_prewarmer.dart';
 import '../../../../core/services/neural_media_enhancer.dart';
 import '../widgets/sleep_timer_sheet.dart';
+import '../../../playback/playback_prefs.dart';
+import '../../../../core/services/remote_commands.dart';
 import '../../../settings/presentation/ai_settings_provider.dart';
 import '../../../../core/utils/app_utils.dart';
 import '../../../../core/utils/stream_quality_sorter.dart';
@@ -250,6 +253,12 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
 
   Timer? _sleepTimer;
   int? _sleepTimerMinutes;
+  int _autoplayStreak = 0;
+  List<Episode> _queue = const [];
+  Duration? _loopA;
+  Duration? _loopB;
+  StreamSubscription<RemoteCommand>? _remoteSub;
+  final PlayerPlatformService _platform = PlayerPlatformService();
 
   List<SkipSegment> _skipSegments = const [];
 
@@ -280,6 +289,12 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     final native = _native;
     if (native == null) return;
     setState(() => _isDialogueBoostEnabled = !_isDialogueBoostEnabled);
+    final prefs = ref.read(playbackPrefsProvider);
+    unawaited(
+      ref.read(playbackPrefsProvider.notifier).update(
+        prefs.copyWith(dialogueBoost: _isDialogueBoostEnabled),
+      ),
+    );
     if (_isDialogueBoostEnabled) {
       await native.setProperty('af', 'lavfi=[dynaudnorm=f=75:g=25:p=0.55]');
       if (mounted) {
@@ -381,6 +396,13 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     }
 
     _item = widget.item;
+    final prefs = _read(playbackPrefsProvider);
+    _isDialogueBoostEnabled = prefs.dialogueBoost;
+    final subtitleLanguage = prefs.subtitleLanguage;
+    if (subtitleLanguage != null && subtitleLanguage.isNotEmpty) {
+      _read(subtitleLanguageProvider.notifier).set(subtitleLanguage);
+    }
+    _remoteSub = remoteCommands.stream.listen(_handleRemote);
     if ((_item.episodes == null || _item.episodes!.isEmpty) &&
         widget.item.url.isNotEmpty) {
       try {
@@ -648,6 +670,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   }
 
   Episode? get _nextEpisode {
+    if (_queue.isNotEmpty) return _queue.first;
     final cur = _effectiveCurrentEpisode;
     final lookup = nextEpisodeFor(
       item: _item,
@@ -679,6 +702,9 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     if (_advancing) return;
     final next = _nextEpisode;
     if (next == null) return;
+    if (_queue.isNotEmpty && _queue.first.url == next.url) {
+      _queue = _queue.sublist(1);
+    }
     _advancing = true;
     try {
       _tracker?.finish();
@@ -873,13 +899,39 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
             _sideCars.active == null &&
             !_subtitlesOffPending &&
             list.isNotEmpty) {
-          final prefCode = _read(subtitleLanguageProvider);
+          final prefCode = _read(playbackPrefsProvider).subtitleLanguage ??
+              _read(subtitleLanguageProvider);
           final preferred = preferredSubtitleIndex([
             for (final t in list) t.language ?? t.title ?? '',
           ], prefCode);
           if (preferred != null && preferred < list.length) {
             unawaited(_player.setSubtitleTrack(list[preferred]));
           }
+        }
+        final audioPref = _read(playbackPrefsProvider).audioLanguage;
+        if (audioPref != null && audioPref.isNotEmpty) {
+          for (final track in tracks.audio) {
+            final label = '${track.language ?? ''} ${track.title ?? ''}'
+                .toLowerCase();
+            if (label.contains(audioPref.toLowerCase())) {
+              unawaited(_player.setAudioTrack(track));
+              break;
+            }
+          }
+        }
+        final offset = _read(playbackPrefsProvider).subtitleOffsetMs;
+        if (offset != 0) {
+          unawaited(
+            _native?.setProperty('sub-delay', (offset / 1000).toString()),
+          );
+        }
+        if (_isDialogueBoostEnabled) {
+          unawaited(
+            _native?.setProperty(
+              'af',
+              'lavfi=[dynaudnorm=f=75:g=25:p=0.55]',
+            ),
+          );
         }
       }),
     );
@@ -948,8 +1000,11 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
           }
           return;
         }
-        if (_hasNextEpisode && !_nextEpisodeDeclined) {
-          _advance();
+        final autoplay = ref.read(playbackPrefsProvider).autoplay;
+        if (_hasNextEpisode &&
+            !_nextEpisodeDeclined &&
+            (autoplay || _queue.isNotEmpty)) {
+          unawaited(_autoplayOrAsk());
         }
       }),
     );
@@ -1959,6 +2014,17 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                                 if (track.id != current.id) {
                                   _holdThroughTrackChange();
                                   unawaited(_player.setAudioTrack(track));
+                                  final language = track.language ?? track.title;
+                                  if (language != null && language.isNotEmpty) {
+                                    final prefs = ref.read(playbackPrefsProvider);
+                                    unawaited(
+                                      ref
+                                          .read(playbackPrefsProvider.notifier)
+                                          .update(
+                                            prefs.copyWith(audioLanguage: language),
+                                          ),
+                                    );
+                                  }
                                 }
                               },
                             ),
@@ -2445,6 +2511,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   @override
   void dispose() {
     _disposed = true;
+    _remoteSub?.cancel();
     try {
       WidgetsBinding.instance.removeObserver(this);
     } catch (_) {}
@@ -2537,6 +2604,28 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
       return KeyEventResult.handled;
     } else if (event.logicalKey == LogicalKeyboardKey.keyF) {
       _toggleFullscreen();
+      return KeyEventResult.handled;
+    } else if (event.logicalKey == LogicalKeyboardKey.keyH ||
+        event.logicalKey == LogicalKeyboardKey.slash) {
+      unawaited(_showCheatSheet());
+      return KeyEventResult.handled;
+    } else if (event.logicalKey == LogicalKeyboardKey.period) {
+      unawaited(_frameStep(forward: true));
+      return KeyEventResult.handled;
+    } else if (event.logicalKey == LogicalKeyboardKey.comma) {
+      unawaited(_frameStep(forward: false));
+      return KeyEventResult.handled;
+    } else if (event.logicalKey == LogicalKeyboardKey.bracketRight) {
+      unawaited(_nudgeSubtitles(250));
+      return KeyEventResult.handled;
+    } else if (event.logicalKey == LogicalKeyboardKey.bracketLeft) {
+      unawaited(_nudgeSubtitles(-250));
+      return KeyEventResult.handled;
+    } else if (event.logicalKey == LogicalKeyboardKey.keyA) {
+      _markLoop(start: true);
+      return KeyEventResult.handled;
+    } else if (event.logicalKey == LogicalKeyboardKey.keyB) {
+      _markLoop(start: false);
       return KeyEventResult.handled;
     } else if (event.logicalKey == LogicalKeyboardKey.escape) {
       if (_isFullscreen) {
@@ -3291,6 +3380,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   /// how the film is played rather than what is playing.
   Future<void> _showMoreSheet() async {
     _onUserActivity();
+    final incognito = ref.read(incognitoSessionProvider);
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -3305,6 +3395,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
         quality: _currentQualityLabel,
         isTv: _isTv,
         isLive: isLiveSource(_item, _currentVideoUrl),
+        incognito: incognito,
         onSpeed: _setPlaybackSpeed,
         onFit: _setFit,
         onFullscreen: _toggleFullscreen,
@@ -3312,6 +3403,182 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
           Navigator.of(sheetContext).maybePop();
           _showSourcesDialog();
         },
+        onPictureInPicture: () {
+          Navigator.of(sheetContext).maybePop();
+          unawaited(_enterPip());
+        },
+        onFrameStep: () => unawaited(_frameStep(forward: true)),
+        onScreenshot: () => unawaited(_saveScreenshot()),
+        onSubtitleEarlier: () => unawaited(_nudgeSubtitles(-250)),
+        onSubtitleLater: () => unawaited(_nudgeSubtitles(250)),
+        onLoop: _markLoop,
+        onQueueSeason: _queueRestOfSeason,
+        onIncognito: () {
+          final next = !ref.read(incognitoSessionProvider);
+          ref.read(incognitoSessionProvider.notifier).setEnabled(next);
+        },
+        onCheatSheet: () {
+          Navigator.of(sheetContext).maybePop();
+          unawaited(_showCheatSheet());
+        },
+      ),
+    );
+  }
+
+  Future<void> _autoplayOrAsk() async {
+    _autoplayStreak++;
+    if (_autoplayStreak >= 3) {
+      final keep = await _askStillWatching();
+      if (keep != true || _disposed || !mounted) {
+        _autoplayStreak = 0;
+        await _player.pause();
+        return;
+      }
+      _autoplayStreak = 0;
+    }
+    await _advance();
+  }
+
+  Future<bool?> _askStillWatching() {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Still watching?'),
+        content: const Text(
+          'Playback has continued through a few episodes. Keep going?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Stop'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Keep watching'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleRemote(RemoteCommand command) {
+    if (_disposed) return;
+    switch (command.action) {
+      case 'play':
+        unawaited(_player.play());
+      case 'pause':
+        unawaited(_player.pause());
+      case 'seek':
+        final ms = command.positionMs;
+        if (ms != null) unawaited(_player.seek(Duration(milliseconds: ms)));
+      case 'subtitle-later':
+        unawaited(_nudgeSubtitles(250));
+      case 'subtitle-earlier':
+        unawaited(_nudgeSubtitles(-250));
+    }
+  }
+
+  Future<void> _enterPip() async {
+    await _platform.enterPip(
+      _player.state.playing,
+      videoSize: _player.state.videoParams.dw == null
+          ? null
+          : Size(
+              (_player.state.videoParams.dw ?? 0).toDouble(),
+              (_player.state.videoParams.dh ?? 0).toDouble(),
+            ),
+    );
+  }
+
+  Future<void> _frameStep({required bool forward}) async {
+    final native = _native;
+    if (native == null) return;
+    await _player.pause();
+    await native.command([forward ? 'frame-step' : 'frame-back-step']);
+  }
+
+  Future<void> _saveScreenshot() async {
+    final bytes = await _player.screenshot();
+    if (bytes == null || bytes.isEmpty) return;
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File(
+      '${dir.path}${Platform.pathSeparator}aether-${DateTime.now().millisecondsSinceEpoch}.jpg',
+    );
+    await file.writeAsBytes(bytes, flush: true);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Saved ${file.path}')),
+    );
+  }
+
+  Future<void> _nudgeSubtitles(int deltaMs) async {
+    final prefs = ref.read(playbackPrefsProvider);
+    final next = prefs.subtitleOffsetMs + deltaMs;
+    await ref
+        .read(playbackPrefsProvider.notifier)
+        .update(prefs.copyWith(subtitleOffsetMs: next));
+    await _native?.setProperty('sub-delay', (next / 1000).toString());
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Subtitle offset ${next} ms')),
+    );
+  }
+
+  void _markLoop({required bool start}) {
+    final native = _native;
+    if (native == null) return;
+    if (start) {
+      _loopA = _position;
+      _loopB = null;
+      unawaited(native.setProperty('ab-loop-a', '${_position.inMilliseconds / 1000}'));
+      unawaited(native.setProperty('ab-loop-b', 'no'));
+    } else {
+      _loopB = _position;
+      unawaited(native.setProperty('ab-loop-b', '${_position.inMilliseconds / 1000}'));
+    }
+    if (!mounted) return;
+    final start = _loopA;
+    final end = _loopB;
+    final label = start == null
+        ? 'Loop start marked'
+        : end == null
+        ? 'Loop from ${start.inSeconds}s'
+        : 'Loop ${start.inSeconds}s to ${end.inSeconds}s';
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(label)));
+  }
+
+  void _queueRestOfSeason() {
+    final episodes = _item.episodes ?? const <Episode>[];
+    final current = _effectiveCurrentEpisode;
+    if (current == null) return;
+    final index = episodes.indexWhere(
+      (episode) =>
+          episode.url == current.url ||
+          (episode.season == current.season && episode.episode == current.episode),
+    );
+    if (index < 0 || index + 1 >= episodes.length) return;
+    setState(() => _queue = episodes.sublist(index + 1));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Queued ${_queue.length} episodes')),
+    );
+  }
+
+  Future<void> _showCheatSheet() {
+    return showDialog<void>(
+      context: context,
+      builder: (context) => const AlertDialog(
+        title: Text('Player controls'),
+        content: Text(
+          'Space play or pause\n'
+          'Left and right seek\n'
+          'F fullscreen\n'
+          'Esc back\n'
+          ', and . step a frame\n'
+          '[ and ] nudge subtitles\n'
+          'A and B mark a loop\n'
+          'H this list\n'
+          'Another device on the Wi-Fi can POST /api/remote with play, pause, or seek.',
+        ),
       ),
     );
   }

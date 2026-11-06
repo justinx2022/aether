@@ -44,6 +44,16 @@ class MediaKitMoreSheet extends StatefulWidget {
     required this.onFit,
     required this.onFullscreen,
     required this.onSources,
+    this.onPictureInPicture,
+    this.onFrameStep,
+    this.onScreenshot,
+    this.onSubtitleEarlier,
+    this.onSubtitleLater,
+    this.onLoop,
+    this.onQueueSeason,
+    this.onIncognito,
+    this.onCheatSheet,
+    this.incognito = false,
     super.key,
   });
 
@@ -67,6 +77,16 @@ class MediaKitMoreSheet extends StatefulWidget {
   final ValueChanged<BoxFit> onFit;
   final VoidCallback onFullscreen;
   final VoidCallback onSources;
+  final VoidCallback? onPictureInPicture;
+  final VoidCallback? onFrameStep;
+  final VoidCallback? onScreenshot;
+  final VoidCallback? onSubtitleEarlier;
+  final VoidCallback? onSubtitleLater;
+  final void Function({required bool start})? onLoop;
+  final VoidCallback? onQueueSeason;
+  final VoidCallback? onIncognito;
+  final VoidCallback? onCheatSheet;
+  final bool incognito;
 
   @override
   State<MediaKitMoreSheet> createState() => _MediaKitMoreSheetState();
@@ -143,6 +163,69 @@ class _MediaKitMoreSheetState extends State<MediaKitMoreSheet> {
                         widget.onFullscreen();
                       },
                     ),
+                    if (widget.onPictureInPicture != null)
+                      PanelRow(
+                        label: 'Picture in picture',
+                        icon: Icons.picture_in_picture_alt_rounded,
+                        onTap: widget.onPictureInPicture!,
+                      ),
+                    if (widget.onFrameStep != null)
+                      PanelRow(
+                        label: 'Step one frame',
+                        icon: Icons.skip_next_rounded,
+                        onTap: widget.onFrameStep!,
+                      ),
+                    if (widget.onScreenshot != null)
+                      PanelRow(
+                        label: 'Save a still',
+                        icon: Icons.photo_camera_outlined,
+                        onTap: widget.onScreenshot!,
+                      ),
+                    if (widget.onSubtitleEarlier != null)
+                      PanelRow(
+                        label: 'Subtitles earlier',
+                        icon: Icons.subtitles_outlined,
+                        onTap: widget.onSubtitleEarlier!,
+                      ),
+                    if (widget.onSubtitleLater != null)
+                      PanelRow(
+                        label: 'Subtitles later',
+                        icon: Icons.subtitles_rounded,
+                        onTap: widget.onSubtitleLater!,
+                      ),
+                    if (widget.onLoop != null) ...[
+                      PanelRow(
+                        label: 'Loop from here',
+                        icon: Icons.repeat_rounded,
+                        onTap: () => widget.onLoop!(start: true),
+                      ),
+                      PanelRow(
+                        label: 'Loop until here',
+                        icon: Icons.repeat_one_rounded,
+                        onTap: () => widget.onLoop!(start: false),
+                      ),
+                    ],
+                    if (widget.onQueueSeason != null)
+                      PanelRow(
+                        label: 'Play the rest of this season',
+                        icon: Icons.queue_rounded,
+                        onTap: widget.onQueueSeason!,
+                      ),
+                    if (widget.onIncognito != null)
+                      PanelRow(
+                        label: widget.incognito
+                            ? 'Incognito is on'
+                            : 'Watch without saving history',
+                        icon: Icons.visibility_off_outlined,
+                        selected: widget.incognito,
+                        onTap: widget.onIncognito!,
+                      ),
+                    if (widget.onCheatSheet != null)
+                      PanelRow(
+                        label: 'Keyboard and remote',
+                        icon: Icons.keyboard_rounded,
+                        onTap: widget.onCheatSheet!,
+                      ),
                   ],
                 ),
               ),

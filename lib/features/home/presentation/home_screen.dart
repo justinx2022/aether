@@ -34,6 +34,10 @@ import 'package:skystream/core/extensions/extension_manager.dart';
 import 'package:skystream/core/extensions/base_provider.dart';
 import 'package:skystream/core/router/app_router.dart';
 
+import '../domain/coming_up.dart';
+import '../../../core/services/provider_health_service.dart';
+import '../../../core/addons/data/addon_repository.dart';
+import '../../../core/addons/data/builtin_addons.dart';
 import 'delegates/home_search_delegate.dart';
 import '../../../shared/widgets/cards_wrapper.dart';
 import '../../../shared/widgets/custom_widgets.dart';
@@ -359,11 +363,45 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final showAccountSync = profiles.activeProfile != null &&
         profiles.activeProfile!.id ==
             legacyProfileOwnerId(profiles.profiles);
+    final coming = comingThisWeek(data);
+    final health = ref.watch(providerHealthServiceProvider);
     return RefreshIndicator(
           onRefresh: () async => ref.read(homeDataProvider.notifier).fetch(),
           child: CustomScrollView(
             controller: _scrollController,
             slivers: [
+              SliverToBoxAdapter(
+                child: ListenableBuilder(
+                  listenable: health.revision,
+                  builder: (context, _) {
+                    final dead = health.quarantinedIds();
+                    if (dead.isEmpty) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+                      child: Text(
+                        'A source is failing: ${dead.join(', ')}',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              if (coming.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: MediaHorizontalList(
+                    title: 'Coming this week',
+                    mediaList: coming,
+                    category: ViewAllCategory.providerContent,
+                    showViewAll: false,
+                    heroTagPrefix: 'home-airing',
+                    onTap: (item) {
+                      DetailsRoute($extra: DetailsRouteExtra(item: item))
+                          .push<void>(context);
+                    },
+                  ),
+                ),
               if (data.containsKey('Trending'))
                 SliverToBoxAdapter(
                   child: ExploreCarousel(
@@ -554,7 +592,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       title: l10n.selectProviderToStart,
       message: l10n.tapExtensionIcon,
       actionLabel: l10n.selectProvider,
-      onAction: () => _showProviderSelector(context, ref),
+      onAction: () async {
+        final addons = ref.read(addonRepositoryProvider);
+        if (addons.addons.isEmpty) {
+          try {
+            await ref
+                .read(addonRepositoryProvider.notifier)
+                .install(BuiltInAddons.cinemetaUrl);
+          } catch (_) {}
+        }
+        if (context.mounted) _showProviderSelector(context, ref);
+      },
     );
   }
 
