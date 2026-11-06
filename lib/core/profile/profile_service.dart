@@ -4,6 +4,29 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../storage/storage_service.dart';
 import 'user_profile.dart';
 
+/// The two profiles a fresh install used to write for you.
+///
+/// Left in place only so an install that never edited them can be cleared
+/// and sent through setup. A renamed or otherwise changed profile is kept.
+bool _isUntouchedDemoSeed(List<UserProfile> profiles) {
+  if (profiles.length != 2) return false;
+  final byId = {for (final profile in profiles) profile.id: profile};
+  final justin = byId['profile_default'];
+  final roommate = byId['profile_roomie'];
+  if (justin == null || roommate == null) return false;
+  return _isUntouched(justin, 'Justin', 'avatar_cinema') &&
+      _isUntouched(roommate, 'Roommate', 'avatar_popcorn');
+}
+
+bool _isUntouched(UserProfile profile, String name, String avatarId) {
+  return profile.name == name &&
+      profile.avatarId == avatarId &&
+      (profile.pin == null || profile.pin!.isEmpty) &&
+      !profile.isKids &&
+      profile.preferredGenres.isEmpty &&
+      profile.feedMode == 'all';
+}
+
 class ProfileState {
   final List<UserProfile> profiles;
   final UserProfile? activeProfile;
@@ -57,21 +80,14 @@ class ProfileController extends Notifier<ProfileState> {
       }
     }
 
+    if (_isUntouchedDemoSeed(loaded)) {
+      loaded = [];
+      _storage.setString(_kProfilesListKey, null);
+      _storage.setString(_kActiveProfileIdKey, null);
+    }
+
     if (loaded.isEmpty) {
-      final defaultProfile = UserProfile(
-        id: 'profile_default',
-        name: 'Justin',
-        avatarId: 'avatar_cinema',
-        createdAt: DateTime.now(),
-      );
-      final guestProfile = UserProfile(
-        id: 'profile_roomie',
-        name: 'Roommate',
-        avatarId: 'avatar_popcorn',
-        createdAt: DateTime.now(),
-      );
-      loaded = [defaultProfile, guestProfile];
-      _saveProfiles(loaded);
+      return const ProfileState();
     }
 
     final activeId = _storage.getString(_kActiveProfileIdKey) ?? loaded.first.id;
@@ -97,7 +113,7 @@ class ProfileController extends Notifier<ProfileState> {
     state = state.copyWith(activeProfile: profile);
   }
 
-  Future<void> addProfile({
+  Future<UserProfile> addProfile({
     required String name,
     required String avatarId,
     String? pin,
@@ -119,6 +135,7 @@ class ProfileController extends Notifier<ProfileState> {
     final updated = [...state.profiles, newProfile];
     await _saveProfiles(updated);
     state = state.copyWith(profiles: updated);
+    return newProfile;
   }
 
   Future<void> updateProfile(UserProfile profile) async {

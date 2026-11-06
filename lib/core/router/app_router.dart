@@ -26,7 +26,7 @@ import 'package:skystream/shared/widgets/app_scaffold.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 import 'package:flutter/foundation.dart';
 import '../logger/app_logger.dart';
-import '../../features/profile/presentation/profiles_screen.dart';
+import '../../features/profile/presentation/profile_entry.dart';
 
 part 'app_router.g.dart';
 
@@ -518,7 +518,7 @@ GoRouter appRouter(Ref ref) {
       ...$appRoutes,
       GoRoute(
         path: '/profiles',
-        builder: (context, state) => const ProfilesScreen(),
+        builder: (context, state) => const ProfileEntry(),
       ),
     ],
     extraCodec: const RouteExtraCodec(),

@@ -11,6 +11,8 @@ import '../../../core/storage/settings_repository.dart';
 import '../../../core/domain/entity/multimedia_item.dart';
 import '../../../core/providers/device_info_provider.dart';
 import '../../../core/router/app_router.dart';
+import 'general_settings_provider.dart';
+import 'widgets/settings_dialogs.dart';
 import 'widgets/settings_widgets.dart';
 
 import 'package:skystream/l10n/generated/app_localizations.dart';
@@ -44,6 +46,7 @@ class _DeveloperOptionsScreenState
     final deviceAsync = ref.watch(deviceProfileProvider);
 
     final l10n = AppLocalizations.of(context)!;
+    final generalSettings = ref.watch(generalSettingsProvider);
     final content = Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 800),
@@ -57,6 +60,82 @@ class _DeveloperOptionsScreenState
               bottom: LayoutConstants.shellBottomContentPadding(context),
             ),
             children: [
+              SettingsGroup(
+                title: l10n.player,
+                children: [
+                  SettingsTile(
+                    icon: Icons.play_circle_outline_rounded,
+                    title: l10n.player,
+                    subtitle: 'Default player, gestures, decoding and quality',
+                    onTap: () => const PlayerSettingsRoute().go(context),
+                  ),
+                  SettingsTile(
+                    icon: Icons.psychology_rounded,
+                    title: 'AI Neural Engine',
+                    subtitle: 'Dialogue, shaders and stream acceleration',
+                    isLast: true,
+                    onTap: () => const AiSettingsRoute().go(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: LayoutConstants.spacingLg),
+              SettingsGroup(
+                title: l10n.general,
+                children: [
+                  SettingsTile(
+                    icon: Icons.home_rounded,
+                    title: l10n.defaultHomeScreen,
+                    subtitle: getHomeScreenLabel(
+                      generalSettings.defaultHomeScreen,
+                      l10n,
+                    ),
+                    onTap: () => showDefaultHomeScreenDialog(
+                      context,
+                      ref,
+                      generalSettings.defaultHomeScreen,
+                    ),
+                  ),
+                  SettingsTile(
+                    icon: Icons.title_rounded,
+                    title: l10n.titlePosition,
+                    subtitle: getTitlePositionLabel(
+                      generalSettings.titlePosition,
+                      l10n,
+                    ),
+                    onTap: () => showTitlePositionDialog(
+                      context,
+                      ref,
+                      generalSettings.titlePosition,
+                    ),
+                  ),
+                  SettingsTile(
+                    icon: Icons.hub_rounded,
+                    title: 'Nuvio plugins',
+                    subtitle: 'Manage and configure Nuvio scrapers',
+                    onTap: () => const NuvioPluginsRoute().go(context),
+                  ),
+                  SettingsTile(
+                    icon: Icons.dashboard_customize_rounded,
+                    title: 'Stremio add-ons',
+                    subtitle: 'Manage and discover installed add-ons',
+                    onTap: () => const AddonsRoute().go(context),
+                  ),
+                  SettingsTile(
+                    icon: Icons.restore_rounded,
+                    title: l10n.resetDataKeepExtensions,
+                    subtitle: l10n.resetDataSubtitle,
+                    onTap: () => showResetDataDialog(context, ref),
+                  ),
+                  SettingsTile(
+                    icon: Icons.delete_forever_rounded,
+                    title: l10n.factoryReset,
+                    subtitle: l10n.factoryResetSubtitle,
+                    isLast: true,
+                    onTap: () => showFactoryResetDialog(context, ref),
+                  ),
+                ],
+              ),
+              const SizedBox(height: LayoutConstants.spacingLg),
               SettingsGroup(
                 title: l10n.debugTools,
                 children: [

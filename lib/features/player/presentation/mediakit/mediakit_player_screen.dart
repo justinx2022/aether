@@ -25,6 +25,7 @@ import '../../../../core/services/local_proxy_service.dart';
 import '../../../../core/services/provider_health_service.dart';
 import '../../../../core/services/stream_prewarmer.dart';
 import '../../../../core/services/neural_media_enhancer.dart';
+import '../widgets/sleep_timer_sheet.dart';
 import '../../../settings/presentation/ai_settings_provider.dart';
 import '../../../../core/utils/app_utils.dart';
 import '../../../../core/utils/stream_quality_sorter.dart';
@@ -302,60 +303,14 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     }
   }
 
-  void _showSleepTimerDialog() {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: const Color(0xFF0D0F18),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Padding(
-                padding: EdgeInsets.only(bottom: 12),
-                child: Text(
-                  'Sleep Timer',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 17,
-                  ),
-                ),
-              ),
-              _buildSleepOption(ctx, 'Off', null),
-              _buildSleepOption(ctx, '15 Minutes', 15),
-              _buildSleepOption(ctx, '30 Minutes', 30),
-              _buildSleepOption(ctx, '45 Minutes', 45),
-              _buildSleepOption(ctx, '60 Minutes', 60),
-              _buildSleepOption(ctx, 'End of Current Episode', -1),
-            ],
-          ),
-        ),
-      ),
+  Future<void> _showSleepTimerDialog() async {
+    final pick = await showSleepTimerSheet(
+      context,
+      selected: _sleepTimerMinutes,
+      allowEndOfEpisode: true,
     );
-  }
-
-  Widget _buildSleepOption(BuildContext ctx, String label, int? minutes) {
-    final isSelected = _sleepTimerMinutes == minutes;
-    return ListTile(
-      title: Text(
-        label,
-        style: TextStyle(
-          color: isSelected ? const Color(0xFF818CF8) : Colors.white,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-        ),
-      ),
-      trailing:
-          isSelected ? const Icon(Icons.check, color: Color(0xFF818CF8)) : null,
-      onTap: () {
-        Navigator.pop(ctx);
-        _setSleepTimer(minutes);
-      },
-    );
+    if (pick == null || _disposed || !mounted) return;
+    _setSleepTimer(pick.minutes);
   }
 
   void _setSleepTimer(int? minutes) {
@@ -366,16 +321,19 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Sleep timer turned off')),
       );
-    } else if (minutes == -1) {
+    } else if (minutes < 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Playback will pause at end of episode'),
+          content: Text('Playback will stop at the end of this episode'),
         ),
       );
     } else {
       _sleepTimer = Timer(Duration(minutes: minutes), () {
+        _sleepTimer = null;
+        _sleepTimerMinutes = null;
         if (!_disposed && mounted) {
           _player.pause();
+          setState(() {});
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Sleep timer paused playback')),
           );
@@ -819,7 +777,8 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
         // Offering it earlier left the card counting down from fifteen while
         // twenty seconds of the episode were still to play, so the advance it
         // took was a skip.
-        if (_hasNextEpisode &&
+        if (_sleepTimerMinutes != -1 &&
+            _hasNextEpisode &&
             !_nextEpisodeDeclined &&
             (_settings?.showEpisodes ?? true) &&
             _duration > const Duration(minutes: 5)) {
@@ -976,6 +935,19 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
         // stream we are leaving, not the one we are on.
         if (_isLoading || _isSwitching || _isSettlingTrackChange) return;
         _recordFinalProgress();
+        if (_sleepTimerMinutes == -1) {
+          _sleepTimerMinutes = null;
+          unawaited(_player.pause());
+          if (mounted) {
+            setState(() {});
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Sleep timer stopped at the end of this episode'),
+              ),
+            );
+          }
+          return;
+        }
         if (_hasNextEpisode && !_nextEpisodeDeclined) {
           _advance();
         }
@@ -3214,9 +3186,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
             icon: _sleepTimerMinutes != null
                 ? Icons.alarm_on_rounded
                 : Icons.bedtime_outlined,
-            tooltip: _sleepTimerMinutes != null
-                ? 'Sleep Timer: $_sleepTimerMinutes m'
-                : 'Sleep Timer',
+            tooltip: sleepTimerLabel(_sleepTimerMinutes),
             highlight: _sleepTimerMinutes != null,
             isTv: _isTv,
             onPressed: _showSleepTimerDialog,

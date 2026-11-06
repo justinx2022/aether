@@ -2,12 +2,31 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/storage/history_repository.dart';
 import '../../../../core/domain/entity/multimedia_item.dart';
+import '../../../../core/profile/profile_feed.dart';
 import '../../../../core/profile/profile_service.dart';
+import '../../../../core/profile/user_profile.dart';
 import '../../settings/presentation/general_settings_provider.dart';
 
 export '../../../../core/storage/history_repository.dart' show HistoryItem;
 
 part 'history_provider.g.dart';
+
+/// History rows the active profile is allowed to see.
+///
+/// A row with no profile id is still shown: older installs wrote history
+/// before profiles existed. Feed mode and the kids gate apply on top.
+List<HistoryItem> _visibleHistory(
+  List<HistoryItem> all,
+  UserProfile? profile,
+) {
+  if (profile == null) return all;
+  return all.where((entry) {
+    if (entry.profileId != null && entry.profileId != profile.id) {
+      return false;
+    }
+    return itemFitsProfile(entry.item, profile);
+  }).toList();
+}
 
 @Riverpod(keepAlive: true)
 class WatchHistory extends _$WatchHistory {
@@ -18,24 +37,7 @@ class WatchHistory extends _$WatchHistory {
     final all = repository.getWatchHistory();
     if (activeProfile == null) return all;
 
-    return all.where((h) {
-      // 1. Profile isolation: match activeProfile id or legacy unassigned entries
-      if (h.profileId != null && h.profileId != activeProfile.id) {
-        return false;
-      }
-      // 2. Kids Shield: filter adult content
-      if (activeProfile.isKids) {
-        final title = h.item.title.toLowerCase();
-        final desc = (h.item.description ?? '').toLowerCase();
-        if (title.contains('18+') ||
-            desc.contains('erotic') ||
-            desc.contains('nudity') ||
-            desc.contains('violence')) {
-          return false;
-        }
-      }
-      return true;
-    }).toList();
+    return _visibleHistory(all, activeProfile);
   }
 
   void refresh() {
@@ -46,22 +48,7 @@ class WatchHistory extends _$WatchHistory {
       state = all;
       return;
     }
-    state = all.where((h) {
-      if (h.profileId != null && h.profileId != activeProfile.id) {
-        return false;
-      }
-      if (activeProfile.isKids) {
-        final title = h.item.title.toLowerCase();
-        final desc = (h.item.description ?? '').toLowerCase();
-        if (title.contains('18+') ||
-            desc.contains('erotic') ||
-            desc.contains('nudity') ||
-            desc.contains('violence')) {
-          return false;
-        }
-      }
-      return true;
-    }).toList();
+    state = _visibleHistory(all, activeProfile);
   }
 
   Future<void> clearAllHistory() async {

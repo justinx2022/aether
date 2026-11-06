@@ -26,6 +26,8 @@ import '../../../core/domain/entity/multimedia_item.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../shared/widgets/profile_app_bar_button.dart';
+import '../../../core/profile/profile_feed.dart';
+import '../../../core/profile/profile_service.dart';
 
 import 'package:skystream/core/extensions/extension_manager.dart';
 import 'package:skystream/core/extensions/base_provider.dart';
@@ -291,6 +293,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     bool isWidescreen = false,
   }) {
     final l10n = AppLocalizations.of(context)!;
+    final profile = ref.watch(profileControllerProvider).activeProfile;
     final isResolving = ref.watch(providerResolutionLoadingProvider);
     final activeProvider = ref.watch(activeProviderProvider);
 
@@ -326,7 +329,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       HomeOffline() => _buildErrorState(context, l10n.noInternetError, ref),
       HomeError(:final message) => _buildErrorState(context, message, ref),
       HomeSuccess(:final data) => _withGradientEdgeHint(
-        RefreshIndicator(
+        _loadedHome(
+          context,
+          l10n,
+          shapeHomeForProfile(data, profile),
+          history,
+          watchHistoryEnabled,
+          syncedProgressAsync,
+          activeProvider,
+          isWidescreen,
+        ),
+      ),
+    };
+  }
+
+  Widget _loadedHome(
+    BuildContext context,
+    AppLocalizations l10n,
+    ShapedHome home,
+    List<dynamic> history,
+    bool watchHistoryEnabled,
+    AsyncValue<List<SyncProgressItem>> syncedProgressAsync,
+    SkyStreamProvider activeProvider,
+    bool isWidescreen,
+  ) {
+    final data = home.sections;
+    return RefreshIndicator(
           onRefresh: () async => ref.read(homeDataProvider.notifier).fetch(),
           child: CustomScrollView(
             controller: _scrollController,
@@ -399,6 +427,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   ),
               ],
 
+              if (home.forYou.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: MediaHorizontalList(
+                    title: l10n.recommended,
+                    mediaList: home.forYou,
+                    category: ViewAllCategory.providerContent,
+                    showViewAll: false,
+                    heroTagPrefix: 'home-for-you',
+                    onTap: (item) {
+                      DetailsRoute($extra: DetailsRouteExtra(item: item))
+                          .push<void>(context);
+                    },
+                  ),
+                ),
+
               if (syncedProgressAsync.asData?.value.isNotEmpty == true)
                 SliverToBoxAdapter(
                   child: SyncedProgressSection(
@@ -447,9 +490,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ),
             ],
           ),
-        ),
-      ),
-    };
+        );
   }
 
   Widget _withGradientEdgeHint(Widget scrollView) {

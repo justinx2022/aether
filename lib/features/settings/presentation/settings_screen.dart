@@ -60,27 +60,46 @@ class SettingsScreen extends ConsumerWidget {
                   children: [
                     SettingsTile(
                       icon: Icons.extension_rounded,
-                      title: 'SkyStream Providers',
+                      title: l10n.extensions,
                       subtitle: l10n.installRemoveProviders,
-                      onTap: () => const ExtensionsRoute().go(context),
-                    ),
-                    SettingsTile(
-                      icon: Icons.hub_rounded,
-                      title: 'Nuvio Plugins',
-                      subtitle: 'Manage and configure Nuvio scrapers',
-                      onTap: () => const NuvioPluginsRoute().go(context),
-                    ),
-                    SettingsTile(
-                      icon: Icons.dashboard_customize_rounded,
-                      title: 'Stremio Add-ons',
-                      subtitle: 'Manage and discover installed add-ons',
                       isLast: true,
-                      onTap: () => const AddonsRoute().go(context),
+                      onTap: () => const ExtensionsRoute().go(context),
                     ),
                   ],
                 ),
                 const SizedBox(height: LayoutConstants.spacingLg),
-                _buildAppDataSettingsGroup(context, ref, l10n),
+                SettingsGroup(
+                  title: l10n.appData,
+                  children: [
+                    if (!kIsWeb)
+                      SettingsTile(
+                        icon: Icons.cleaning_services_rounded,
+                        title: l10n.clearCache,
+                        subtitle: ref
+                            .watch(cacheSizeProvider)
+                            .when(
+                              data: (bytes) =>
+                                  '${l10n.clearCacheSubtitle} • ${_formatBytes(bytes)}',
+                              loading: () => l10n.calculating,
+                              error: (_, _) => l10n.clearCacheSubtitle,
+                            ),
+                        onTap: () => showClearCacheDialog(context, ref),
+                      ),
+                    SettingsTile(
+                      icon: Icons.manage_accounts_rounded,
+                      title: l10n.accounts,
+                      subtitle: '${l10n.network} & ${l10n.downloads}',
+                      onTap: () => const AccountSettingsRoute().go(context),
+                    ),
+                    SettingsTile(
+                      icon: Icons.developer_mode_rounded,
+                      title: l10n.developerOptions,
+                      subtitle: '${l10n.player}, ${l10n.developerOptionsSubtitle}',
+                      isLast: true,
+                      onTap: () => const DeveloperOptionsRoute().go(context),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: LayoutConstants.spacingLg),
                 _buildAboutSettingsGroup(context, l10n, versionAsync),
               ],
@@ -130,16 +149,6 @@ class SettingsScreen extends ConsumerWidget {
               showLanguageDialog(context, ref, ref.read(localeProvider)),
         ),
         SettingsTile(
-          icon: Icons.home_rounded,
-          title: l10n.defaultHomeScreen,
-          subtitle: getHomeScreenLabel(generalSettings.defaultHomeScreen, l10n),
-          onTap: () => showDefaultHomeScreenDialog(
-            context,
-            ref,
-            generalSettings.defaultHomeScreen,
-          ),
-        ),
-        SettingsTile(
           icon: Icons.history_rounded,
           title: l10n.recordWatchHistory,
           subtitle: generalSettings.watchHistoryEnabled
@@ -154,16 +163,7 @@ class SettingsScreen extends ConsumerWidget {
           onTap: () => ref
               .read(generalSettingsProvider.notifier)
               .setWatchHistoryEnabled(!generalSettings.watchHistoryEnabled),
-        ),
-        SettingsTile(
-          icon: Icons.title_rounded,
-          title: l10n.titlePosition,
-          subtitle: getTitlePositionLabel(generalSettings.titlePosition, l10n),
-          onTap: () => showTitlePositionDialog(
-            context,
-            ref,
-            generalSettings.titlePosition,
-          ),
+          isLast: !_supportsFullScreenMode(context),
         ),
         // Only shown where it means something. A phone, a tablet and a
         // television are already the size they are going to be; only a
@@ -181,71 +181,8 @@ class SettingsScreen extends ConsumerWidget {
             onTap: () => ref
                 .read(fullScreenModeProvider.notifier)
                 .setEnabled(!fullScreenModeEnabled),
+            isLast: true,
           ),
-        SettingsTile(
-          icon: Icons.play_circle_outline_rounded,
-          title: l10n.player,
-          subtitle: 'Default player, gestures, decoding & quality',
-          onTap: () => const PlayerSettingsRoute().go(context),
-        ),
-        SettingsTile(
-          icon: Icons.psychology_rounded,
-          title: 'AI Neural Engine',
-          subtitle: 'Dahl autonomous healing, shaders & stream acceleration',
-          onTap: () => const AiSettingsRoute().go(context),
-        ),
-        SettingsTile(
-          icon: Icons.manage_accounts_rounded,
-          title: '${l10n.accounts}, ${l10n.network} & ${l10n.downloads}',
-          subtitle: 'Subtitles, tracking, network, DNS & downloads',
-          isLast: true,
-          onTap: () => const AccountSettingsRoute().go(context),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAppDataSettingsGroup(
-    BuildContext context,
-    WidgetRef ref,
-    AppLocalizations l10n,
-  ) {
-    return SettingsGroup(
-      title: '${l10n.appData} & ${l10n.developer}',
-      children: [
-        if (!kIsWeb)
-          SettingsTile(
-            icon: Icons.cleaning_services_rounded,
-            title: l10n.clearCache,
-            subtitle: ref
-                .watch(cacheSizeProvider)
-                .when(
-                  data: (bytes) =>
-                      '${l10n.clearCacheSubtitle} • ${_formatBytes(bytes)}',
-                  loading: () => l10n.calculating,
-                  error: (_, _) => l10n.clearCacheSubtitle,
-                ),
-            onTap: () => showClearCacheDialog(context, ref),
-          ),
-        SettingsTile(
-          icon: Icons.restore_rounded,
-          title: l10n.resetDataKeepExtensions,
-          subtitle: l10n.resetDataSubtitle,
-          onTap: () => showResetDataDialog(context, ref),
-        ),
-        SettingsTile(
-          icon: Icons.delete_forever_rounded,
-          title: l10n.factoryReset,
-          subtitle: l10n.factoryResetSubtitle,
-          onTap: () => showFactoryResetDialog(context, ref),
-        ),
-        SettingsTile(
-          icon: Icons.developer_mode_rounded,
-          title: l10n.developerOptions,
-          subtitle: l10n.developerOptionsSubtitle,
-          isLast: true,
-          onTap: () => const DeveloperOptionsRoute().go(context),
-        ),
       ],
     );
   }

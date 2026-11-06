@@ -28,6 +28,7 @@ import '../../../../core/storage/history_repository.dart';
 import '../../../../core/utils/app_utils.dart';
 import '../../../../core/utils/stream_quality_sorter.dart';
 import '../../../../l10n/generated/app_localizations.dart';
+import '../widgets/sleep_timer_sheet.dart';
 import '../../domain/episode_navigator.dart';
 import '../../../skip/data/skip_service.dart';
 import '../../domain/clear_key.dart';
@@ -212,6 +213,11 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
   /// padlock on a television or a desktop. Never written from here except to
   /// clear it; only the padlock sets it.
   final ValueNotifier<bool> _locked = ValueNotifier<bool>(false);
+
+  /// Null while the sleep timer is off. A positive count is minutes from the
+  /// moment it was set. `-1` stops this episode from auto-advancing.
+  Timer? _sleepTimer;
+  int? _sleepTimerMinutes;
 
   /// How far ahead of the playhead the stream has been fetched, as a fraction
   /// of the media, for the seek bar's buffered band.
@@ -2490,6 +2496,20 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
       );
       return;
     }
+    // End-of-episode sleep stops here: the title is finished, and the next
+    // one must not start on its own.
+    if (_sleepTimerMinutes == -1) {
+      _clearSleepTimer();
+      _showEnded(EndedKind.finished);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Sleep timer stopped at the end of this episode'),
+          ),
+        );
+      }
+      return;
+    }
     // The only place the card can be raised from. Everything above is a
     // failure dressed as an ending and lands on the startup view with a
     // named reason instead.
@@ -3020,6 +3040,57 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
     }
   }
 
+  Future<void> _pickSleepTimer() async {
+    final pick = await showSleepTimerSheet(
+      context,
+      selected: _sleepTimerMinutes,
+      allowEndOfEpisode: !_isLive,
+    );
+    if (pick == null || _disposed || !mounted) return;
+    _applySleepTimer(pick.minutes);
+  }
+
+  void _applySleepTimer(int? minutes) {
+    _sleepTimer?.cancel();
+    _sleepTimer = null;
+    setState(() => _sleepTimerMinutes = minutes);
+    if (minutes == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sleep timer turned off')),
+      );
+      return;
+    }
+    if (minutes < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Playback will stop at the end of this episode'),
+        ),
+      );
+      return;
+    }
+    _sleepTimer = Timer(Duration(minutes: minutes), () {
+      if (_disposed || !mounted) return;
+      unawaited(_controller.pause());
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sleep timer paused playback')),
+      );
+      _clearSleepTimer();
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Sleep timer set for $minutes minutes')),
+    );
+  }
+
+  void _clearSleepTimer() {
+    _sleepTimer?.cancel();
+    _sleepTimer = null;
+    if (!mounted) {
+      _sleepTimerMinutes = null;
+      return;
+    }
+    setState(() => _sleepTimerMinutes = null);
+  }
+
   /// Raises the ended card, once.
   void _showEnded(EndedKind kind) {
     if (_disposed || !mounted || _ended == kind) return;
@@ -3422,7 +3493,8 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
     if (_nextEpisodeDeclined ||
         _nextEpisodeOffer != null ||
         _advancing ||
-        _isLive) {
+        _isLive ||
+        _sleepTimerMinutes == -1) {
       return;
     }
     if (sample.duration - sample.position > _kNextEpisodeLeadIn) return;
@@ -3851,6 +3923,7 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
     _pickCooldown?.cancel();
     _abandonPendingResolve();
     _backEcho?.cancel();
+    _sleepTimer?.cancel();
     _lockEscape?.cancel();
     _watchdog?.cancel();
     _firstFrameDeadline?.cancel();
@@ -4038,6 +4111,9 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
                   // render and no locked branch to reach. A remote has no
                   // accidental surface and a mouse has no pocket.
                   locked: _form.isTouch ? _locked : null,
+                  sleepTimerActive: _sleepTimerMinutes != null,
+                  sleepTimerTooltip: sleepTimerLabel(_sleepTimerMinutes),
+                  onSleepTimer: _pickSleepTimer,
                   torrentStatus: _torrentStatus,
                 ),
               ),
