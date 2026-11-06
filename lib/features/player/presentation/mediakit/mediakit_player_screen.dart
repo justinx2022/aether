@@ -3017,8 +3017,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     );
   }
 
-  /// The top zone: Back, what is playing, and the one press worth having while
-  /// an episode is queued.
+  /// The top zone: Back, what is playing, and episode navigation.
   ///
   /// No engine badge. What decodes the picture is a fact about this device,
   /// not a control, and it sat where a viewer looks for a title.
@@ -3045,20 +3044,41 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
         subtitle: epText,
         onBack: _exitPlayer,
         isTv: _isTv,
-        trailing: next == null
+        trailing: !_hasPreviousEpisode && next == null
             ? null
             : Padding(
-                padding: const EdgeInsets.only(left: 12),
-                child: PlayerActionButton(
-                  icon: Icons.skip_next_rounded,
-                  label: next.episode > 0
-                      ? '${l10n?.next ?? 'Next'} E${next.episode}'
-                      : (l10n?.next ?? 'Next'),
-                  isTv: _isTv,
-                  onTap: () {
-                    _onUserActivity();
-                    unawaited(_advance());
-                  },
+                padding: const EdgeInsets.only(left: 8),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_hasPreviousEpisode)
+                      PlayerIconButton(
+                        icon: Icons.skip_previous_rounded,
+                        tooltip: l10n?.previous ?? 'Previous',
+                        isTv: _isTv,
+                        onPressed: () {
+                          _onUserActivity();
+                          final previous = _previousEpisode;
+                          if (previous != null) {
+                            unawaited(_startEpisode(previous));
+                          }
+                        },
+                      ),
+                    if (_hasPreviousEpisode && next != null)
+                      const SizedBox(width: 4),
+                    if (next != null)
+                      PlayerIconButton(
+                        icon: Icons.skip_next_rounded,
+                        tooltip: next.episode > 0
+                            ? '${l10n?.next ?? 'Next'} E${next.episode}'
+                            : (l10n?.next ?? 'Next'),
+                        isTv: _isTv,
+                        onPressed: () {
+                          _onUserActivity();
+                          unawaited(_advance());
+                        },
+                      ),
+                  ],
                 ),
               ),
       ),

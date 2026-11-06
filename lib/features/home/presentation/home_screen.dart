@@ -293,6 +293,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final l10n = AppLocalizations.of(context)!;
     final isResolving = ref.watch(providerResolutionLoadingProvider);
     final activeProvider = ref.watch(activeProviderProvider);
+    final sectionEntries = state is HomeSuccess
+        ? state.data.entries.where((entry) => entry.key != 'Trending').toList()
+        : const <MapEntry<String, List<MultimediaItem>>>[];
 
     if (isResolving) {
       return Center(
@@ -415,11 +418,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
-                    final filteredEntries = data.entries
-                        .where((e) => e.key != 'Trending')
-                        .toList();
-                    if (index >= filteredEntries.length) return null;
-                    final entry = filteredEntries[index];
+                    if (index >= sectionEntries.length) return null;
+                    final entry = sectionEntries[index];
                     return MediaHorizontalList(
                       title: entry.key,
                       mediaList: entry.value,
@@ -434,9 +434,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       heroTagPrefix: 'home',
                     );
                   },
-                  childCount: data.entries
-                      .where((e) => e.key != 'Trending')
-                      .length,
+                  childCount: sectionEntries.length,
                 ),
               ),
 

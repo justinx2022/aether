@@ -1,6 +1,8 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../core/providers/device_info_provider.dart';
 
 class DesktopScrollWrapper extends ConsumerStatefulWidget {
@@ -121,20 +123,16 @@ class _DesktopScrollWrapperState extends ConsumerState<DesktopScrollWrapper> {
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) => _updateArrows());
-
-    final childWithListener = NotificationListener<ScrollNotification>(
+    // The controller listener handles offset changes. Only metrics need a
+    // notification here; listening to both delivered duplicate work on every
+    // scroll frame and scheduling a post-frame callback from build kept adding
+    // redundant checks while the list was moving.
+    final childWithListener = NotificationListener<ScrollMetricsNotification>(
       onNotification: (notification) {
         _updateArrows();
         return false;
       },
-      child: NotificationListener<ScrollMetricsNotification>(
-        onNotification: (notification) {
-          _updateArrows();
-          return false;
-        },
-        child: widget.child,
-      ),
+      child: widget.child,
     );
 
     // Only show buttons if enabled
