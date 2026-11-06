@@ -18,6 +18,10 @@ import 'package:riverpod_annotation/riverpod_annotation.dart'
     show ProviderListenable;
 import 'package:http/http.dart' as http;
 
+import '../../../core/addons/data/addon_playback_launcher.dart';
+import '../../../core/addons/data/addon_repository.dart';
+import '../../../core/addons/data/addon_stream_service.dart';
+import '../../../core/addons/models/addon_stream_source.dart';
 import '../../../core/domain/entity/multimedia_item.dart';
 import '../../../core/extensions/base_provider.dart';
 import '../../../core/extensions/extension_manager.dart';
@@ -317,8 +321,14 @@ Future<ResolvedPlayback> resolvePlayback({
   final preloaded = (preloadedStreams ?? const <StreamResult>[])
       .where((s) => !isTorrentSource(s))
       .toList(growable: false);
-  final provider = _resolveProvider(read, item);
-  if (provider == null && preloaded.isEmpty) {
+  // A Cinemeta / IMDb id is not a plugin page. Stream add-ons answer it with
+  // HLS and other direct links. Torrents are never opened.
+  final catalog = catalogPlaybackRequest(item, videoUrl);
+  final provider = catalog == null ? _resolveProvider(read, item) : null;
+  // A list handed in is a choice the viewer already made: the sheets put the
+  // tapped source first and have ranked the rest themselves.
+  final handPicked = preloaded.isNotEmpty;
+  if (!handPicked && catalog == null && provider == null) {
     throw const StreamResolutionException(StreamResolutionFailure.noProvider);
   }
   if (videoUrl.isEmpty && preloaded.isEmpty) {
@@ -327,13 +337,11 @@ Future<ResolvedPlayback> resolvePlayback({
     );
   }
 
-  // A list handed in is a choice the viewer already made: the sheets put the
-  // tapped source first and have ranked the rest themselves.
-  final handPicked = preloaded.isNotEmpty;
-
   List<StreamResult> raw = const <StreamResult>[];
   if (handPicked) {
     raw = preloaded;
+  } else if (catalog != null) {
+    raw = await _directAddonStreams(read, catalog);
   } else {
     final sw = Stopwatch()..start();
     try {
@@ -368,7 +376,11 @@ Future<ResolvedPlayback> resolvePlayback({
   }
   trace.lap(
     'links',
-    'count=${raw.length} source=${handPicked ? 'hand-picked' : provider?.packageName}',
+    'count=${raw.length} source=${handPicked
+        ? 'hand-picked'
+        : catalog != null
+        ? 'addons'
+        : provider?.packageName}',
   );
 
   // Ranking that list again opens a source nobody picked, and a filter can
@@ -465,6 +477,141 @@ StreamResult? _directStream(MultimediaItem item, String videoUrl) {
   );
 }
 
+final RegExp _imdbEpisodeId = RegExp(r'^(tt\d+):(\d+):(\d+)$');
+final RegExp _tmdbEpisodeId = RegExp(r'^tmdb:(\d+):(\d+):(\d+)$');
+
+/// A catalog id the stream add-ons can answer, or null when [videoUrl] is
+/// already a plugin token or a real link.
+///
+/// `tt31510819:2:8` and `cinemeta:tt31510819` are not pages and not streams.
+/// Asking a plugin for them returns nothing, which is the "No streams found"
+/// screen on a Cinemeta episode.
+AddonStreamRequest? catalogPlaybackRequest(
+  MultimediaItem item,
+  String videoUrl,
+) {
+  var id = videoUrl.trim();
+  if (id.isEmpty) return null;
+  final lower = id.toLowerCase();
+  if (lower.startsWith('http://') ||
+      lower.startsWith('https://') ||
+      lower.startsWith('file:') ||
+      lower.startsWith('magnet:') ||
+      lower.startsWith('/') ||
+      lower.startsWith('[') ||
+      lower.startsWith('{')) {
+    return null;
+  }
+  if (lower.startsWith('cinemeta:')) {
+    id = id.substring('cinemeta:'.length);
+  }
+
+  final episode = _imdbEpisodeId.firstMatch(id);
+  final tmdbEpisode = _tmdbEpisodeId.firstMatch(id);
+  final imdb =
+      item.imdbId ?? (id.startsWith('tt') ? id.split(':').first : null);
+  final looksCatalog =
+      episode != null ||
+      tmdbEpisode != null ||
+      (imdb != null && RegExp(r'^tt\d+$').hasMatch(imdb)) ||
+      id.startsWith('tmdb:') ||
+      id.startsWith('kitsu:') ||
+      id.startsWith('tvdb:') ||
+      id.startsWith('mal:') ||
+      item.provider == 'cinemeta' ||
+      item.url.startsWith('cinemeta:');
+  if (!looksCatalog) return null;
+
+  final series =
+      item.contentType == MultimediaContentType.series ||
+      item.contentType == MultimediaContentType.anime ||
+      episode != null ||
+      tmdbEpisode != null;
+  final season = episode != null
+      ? int.tryParse(episode.group(2)!)
+      : (tmdbEpisode != null ? int.tryParse(tmdbEpisode.group(2)!) : null);
+  final number = episode != null
+      ? int.tryParse(episode.group(3)!)
+      : (tmdbEpisode != null ? int.tryParse(tmdbEpisode.group(3)!) : null);
+  final contentId =
+      episode?.group(1) ??
+      imdb ??
+      (tmdbEpisode != null ? 'tmdb:${tmdbEpisode.group(1)}' : id);
+  if (contentId.isEmpty) return null;
+
+  return AddonStreamRequest(
+    type: series ? 'series' : 'movie',
+    contentId: contentId,
+    videoId: (episode != null || tmdbEpisode != null) ? id : null,
+    season: season,
+    episode: number,
+    imdbId: imdb,
+    tmdbId: item.tmdbId,
+    title: item.title,
+    year: item.year,
+  );
+}
+
+/// Direct http(s) only. Magnets and info-hash rows stay out of the player.
+bool _isDirectHttp(AddonStreamSource source) {
+  if (!source.isDirect) return false;
+  final url = source.url?.trim() ?? '';
+  if (url.isEmpty || isTorrentUrl(url)) return false;
+  final lower = url.toLowerCase();
+  return lower.startsWith('https://') || lower.startsWith('http://');
+}
+
+int _directRank(AddonStreamSource source) {
+  final url = (source.url ?? '').toLowerCase();
+  if (url.contains('.m3u8')) return 0;
+  if (url.contains('.mpd')) return 1;
+  return 2;
+}
+
+/// Asks installed stream add-ons for HLS/HTTP links and drops everything else.
+Future<List<StreamResult>> _directAddonStreams(
+  ProviderReader read,
+  AddonStreamRequest request,
+) async {
+  try {
+    var state = read(addonRepositoryProvider);
+    if (state.isLoading) {
+      await read(addonRepositoryProvider.notifier).load();
+      state = read(addonRepositoryProvider);
+    }
+    if (AddonStreamService.streamProvidersOf(state.enabled).isEmpty) {
+      return const [];
+    }
+
+    final found = <AddonStreamSource>[];
+    final updates = read(addonStreamServiceProvider)
+        .resolve(addons: state.enabled, request: request)
+        .timeout(
+          const Duration(seconds: 30),
+          onTimeout: (sink) => sink.close(),
+        );
+    await for (final progress in updates) {
+      final direct = progress.streams
+          .where(_isDirectHttp)
+          .toList(growable: false);
+      if (direct.isEmpty) {
+        if (!progress.isLoading) break;
+        continue;
+      }
+      found
+        ..clear()
+        ..addAll(direct);
+      break;
+    }
+    if (found.isEmpty) return const [];
+    found.sort((a, b) => _directRank(a).compareTo(_directRank(b)));
+    return read(addonStreamConverterProvider).toStreamResults(found);
+  } catch (error) {
+    if (kDebugMode) debugPrint('addon HLS lookup failed: $error');
+    return const [];
+  }
+}
+
 /// The plugin [resolvePlayback] would ask for [item]'s streams, or null when
 /// it would ask none: a local file or direct link plays as it is, and a
 /// torrent has nothing left to play.
@@ -479,6 +626,7 @@ SkyStreamProvider? pluginFor(
 ) {
   if (isTorrentUrl(videoUrl)) return null;
   if (_directStream(item, videoUrl) != null) return null;
+  if (catalogPlaybackRequest(item, videoUrl) != null) return null;
   return _resolveProvider(read, item);
 }
 

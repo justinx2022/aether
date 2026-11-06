@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart'
     show ProviderListenable;
+import 'package:skystream/core/addons/data/addon_repository.dart';
 import 'package:skystream/core/domain/entity/multimedia_item.dart';
 import 'package:skystream/core/extensions/base_provider.dart';
 import 'package:skystream/core/extensions/extension_manager.dart';
@@ -73,6 +74,12 @@ class FakePlugin implements SkyStreamProvider {
   @override
   Future<Map<String, List<MultimediaItem>>> getHome() async => const {};
   @override
+  Future<List<MultimediaItem>?> getCategoryPage(
+    String category,
+    int page,
+    int offset,
+  ) async => null;
+  @override
   Future<MultimediaItem> getDetails(String url) async =>
       throw UnimplementedError();
 }
@@ -82,9 +89,10 @@ void main() {
 
   final defaults = <(Object, Object?)>[
     (activeProviderProvider, null),
-    (playerSettingsProvider, const AsyncValue<PlayerSettings>.data(
-      PlayerSettings(),
-    )),
+    (
+      playerSettingsProvider,
+      const AsyncValue<PlayerSettings>.data(PlayerSettings()),
+    ),
     (watchHistoryProvider, const <HistoryItem>[]),
   ];
 
@@ -175,6 +183,57 @@ void main() {
       expect(resolved.selected.url, 'https://cdn.example/720.mp4');
     });
 
+    test('a cinemeta episode id names the season and episode', () {
+      final request = catalogPlaybackRequest(
+        MultimediaItem(
+          title: 'MobLand',
+          url: 'cinemeta:tt31510819',
+          posterUrl: '',
+          provider: 'cinemeta',
+          contentType: MultimediaContentType.series,
+          imdbId: 'tt31510819',
+        ),
+        'tt31510819:2:8',
+      );
+
+      expect(request?.type, 'series');
+      expect(request?.contentId, 'tt31510819');
+      expect(request?.videoId, 'tt31510819:2:8');
+      expect(request?.season, 2);
+      expect(request?.episode, 8);
+      expect(
+        catalogPlaybackRequest(itemWith(), 'https://cdn.example/a.m3u8'),
+        isNull,
+      );
+    });
+
+    test('a cinemeta episode id is not sent to a plugin', () async {
+      expect(
+        () => resolvePlayback(
+          read: readerOf([
+            (addonRepositoryProvider, const AddonsState(isLoading: false)),
+          ]),
+          item: MultimediaItem(
+            title: 'MobLand',
+            url: 'cinemeta:tt31510819',
+            posterUrl: '',
+            provider: 'cinemeta',
+            contentType: MultimediaContentType.series,
+            imdbId: 'tt31510819',
+          ),
+          videoUrl: 'tt31510819:2:8',
+          probeCandidates: 0,
+        ),
+        throwsA(
+          isA<StreamResolutionException>().having(
+            (e) => e.failure,
+            'failure',
+            StreamResolutionFailure.noStreams,
+          ),
+        ),
+      );
+    });
+
     test('no provider and nothing preloaded fails with a message', () async {
       expect(
         () => resolvePlayback(
@@ -203,7 +262,8 @@ void main() {
       streamAt('https://cdn.example/1080.mp4', '1080p · 2.4 GB · 12 seeds'),
     ];
 
-    ProviderReader readerWith(PlayerSettings settings, {
+    ProviderReader readerWith(
+      PlayerSettings settings, {
       List<HistoryItem> history = const [],
     }) => readerOf([
       (playerSettingsProvider, AsyncValue<PlayerSettings>.data(settings)),
@@ -277,35 +337,38 @@ void main() {
     // budget. A tap is a choice, so it opens now and the check follows behind.
     test('opens before its check has answered', () async {
       final held = Completer<void>();
-      await http.runWithClient(() async {
-        final resolving = resolvePlayback(
-          read: readerWith(const PlayerSettings()),
-          item: itemWith(),
-          videoUrl: 'https://example.com/episode/1',
-          preloadedStreams: tapped720Beneath1080(),
-        );
-        var opened = false;
-        unawaited(resolving.then((_) => opened = true));
-        await pumpEventQueue();
-        expect(
-          opened,
-          isTrue,
-          reason: 'nothing was waiting on a link that has not answered',
-        );
+      await http.runWithClient(
+        () async {
+          final resolving = resolvePlayback(
+            read: readerWith(const PlayerSettings()),
+            item: itemWith(),
+            videoUrl: 'https://example.com/episode/1',
+            preloadedStreams: tapped720Beneath1080(),
+          );
+          var opened = false;
+          unawaited(resolving.then((_) => opened = true));
+          await pumpEventQueue();
+          expect(
+            opened,
+            isTrue,
+            reason: 'nothing was waiting on a link that has not answered',
+          );
 
-        held.complete();
-        await pumpEventQueue();
-        final resolved = await resolving;
-        expect(resolved.index, 0);
-        expect(resolved.selected.url, 'https://cdn.example/720.mp4');
-      }, () => MockClient((request) async {
-        await held.future;
-        return http.Response(
-          '',
-          206,
-          headers: {'content-range': 'bytes 0-0/9'},
-        );
-      }));
+          held.complete();
+          await pumpEventQueue();
+          final resolved = await resolving;
+          expect(resolved.index, 0);
+          expect(resolved.selected.url, 'https://cdn.example/720.mp4');
+        },
+        () => MockClient((request) async {
+          await held.future;
+          return http.Response(
+            '',
+            206,
+            headers: {'content-range': 'bytes 0-0/9'},
+          );
+        }),
+      );
     });
 
     // The check carries on behind the open, so a dead mirror is found - and a
@@ -372,12 +435,15 @@ void main() {
               streamAt('https://cdn.example/480.mp4', '480p'),
             ]),
           ),
-          (playerSettingsProvider, const AsyncValue<PlayerSettings>.data(
-            PlayerSettings(
-              wifiQuality: QualityPreference.q480,
-              mobileQuality: QualityPreference.q1080,
+          (
+            playerSettingsProvider,
+            const AsyncValue<PlayerSettings>.data(
+              PlayerSettings(
+                wifiQuality: QualityPreference.q480,
+                mobileQuality: QualityPreference.q1080,
+              ),
             ),
-          )),
+          ),
           (watchHistoryProvider, const <HistoryItem>[]),
         ]),
         item: itemWith(),
@@ -550,7 +616,8 @@ void main() {
         expect(
           resolved.index,
           2,
-          reason: 'c answered while b was still waiting: the quicker '
+          reason:
+              'c answered while b was still waiting: the quicker '
               'mirror wins, whatever its place in the list',
         );
       }, () => answering(dead: {'a'}, held: {'b': b}));
@@ -584,46 +651,56 @@ void main() {
 
     // The check is wrong about slow hosts, so all of them failing it is not
     // proof that none will play.
-    test('when every candidate is dead, the preferred one opens anyway', () async {
-      final resolved = await http.runWithClient(
-        () => resolvePlayback(
-          read: pluginReader([at('a'), at('b'), at('c'), at('d')]),
-          item: itemWith(),
-          videoUrl: 'https://example.com/episode/1',
-        ),
-        () => answering(dead: {'a', 'b', 'c', 'd'}),
-      );
+    test(
+      'when every candidate is dead, the preferred one opens anyway',
+      () async {
+        final resolved = await http.runWithClient(
+          () => resolvePlayback(
+            read: pluginReader([at('a'), at('b'), at('c'), at('d')]),
+            item: itemWith(),
+            videoUrl: 'https://example.com/episode/1',
+          ),
+          () => answering(dead: {'a', 'b', 'c', 'd'}),
+        );
 
-      expect(resolved.index, 0);
-    });
+        expect(resolved.index, 0);
+      },
+    );
 
     // The check ends as soon as the best link is known, and links still being
     // checked answer after it. One of those found dead used to leave its slot
     // empty, so the list showed three verdicts and then nothing.
-    test('a link found dead after the check settled is still replaced', () async {
-      final b = Completer<void>();
-      final dispatched = <int>[];
-      await http.runWithClient(() async {
-        final resolved = await resolvePlayback(
-          read: pluginReader([at('a'), at('b'), at('c'), at('d')]),
-          item: itemWith(),
-          videoUrl: 'https://example.com/episode/1',
-          onProbe: (index, outcome) {
-            if (outcome == ProbeOutcome.trying) dispatched.add(index);
-          },
-        );
-        expect(
-          resolved.index,
-          lessThan(3),
-          reason: 'the check settled on one of the first three that answered',
-        );
-        expect(dispatched, isNot(contains(3)));
+    test(
+      'a link found dead after the check settled is still replaced',
+      () async {
+        final b = Completer<void>();
+        final dispatched = <int>[];
+        await http.runWithClient(() async {
+          final resolved = await resolvePlayback(
+            read: pluginReader([at('a'), at('b'), at('c'), at('d')]),
+            item: itemWith(),
+            videoUrl: 'https://example.com/episode/1',
+            onProbe: (index, outcome) {
+              if (outcome == ProbeOutcome.trying) dispatched.add(index);
+            },
+          );
+          expect(
+            resolved.index,
+            lessThan(3),
+            reason: 'the check settled on one of the first three that answered',
+          );
+          expect(dispatched, isNot(contains(3)));
 
-        b.complete();
-        await drain();
-        expect(dispatched, contains(3), reason: 'b died, so d takes its place');
-      }, () => answering(dead: {'b'}, held: {'b': b}));
-    });
+          b.complete();
+          await drain();
+          expect(
+            dispatched,
+            contains(3),
+            reason: 'b died, so d takes its place',
+          );
+        }, () => answering(dead: {'b'}, held: {'b': b}));
+      },
+    );
 
     test('and nothing more is checked once the caller abandons it', () async {
       final b = Completer<void>();
@@ -864,10 +941,7 @@ void main() {
         pluginFor(reader, itemWith(provider: 'Local'), '/movies/a.mkv'),
         isNull,
       );
-      expect(
-        pluginFor(reader, itemWith(), 'magnet:?xt=urn:btih:abc'),
-        isNull,
-      );
+      expect(pluginFor(reader, itemWith(), 'magnet:?xt=urn:btih:abc'), isNull);
     });
   });
 
@@ -897,8 +971,11 @@ void main() {
         'udp://a/b',
         'rtp://a/b',
       ]) {
-        expect(isLiveSource(itemOf(MultimediaContentType.movie), url), isTrue,
-            reason: url);
+        expect(
+          isLiveSource(itemOf(MultimediaContentType.movie), url),
+          isTrue,
+          reason: url,
+        );
       }
     });
 
@@ -918,7 +995,10 @@ void main() {
     });
 
     test('an empty url falls back to the content type', () {
-      expect(isLiveSource(itemOf(MultimediaContentType.livestream), ''), isTrue);
+      expect(
+        isLiveSource(itemOf(MultimediaContentType.livestream), ''),
+        isTrue,
+      );
       expect(isLiveSource(itemOf(MultimediaContentType.movie), ''), isFalse);
     });
 

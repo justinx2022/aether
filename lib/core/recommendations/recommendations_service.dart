@@ -11,10 +11,13 @@ final recommendationsServiceProvider = Provider<RecommendationsService>((ref) {
 });
 
 final similarItemsProvider =
-    FutureProvider.family<List<MultimediaItem>, MultimediaItem>((ref, item) async {
-  final service = ref.watch(recommendationsServiceProvider);
-  return service.getSimilarItems(item);
-});
+    FutureProvider.family<List<MultimediaItem>, MultimediaItem>((
+      ref,
+      item,
+    ) async {
+      final service = ref.watch(recommendationsServiceProvider);
+      return service.getSimilarItems(item);
+    });
 
 class RecommendationsService {
   final Dio _dio;
@@ -50,7 +53,8 @@ class RecommendationsService {
         if (searchResp.data is Map && searchResp.data['metas'] is List) {
           final metas = searchResp.data['metas'] as List;
           if (metas.isNotEmpty && metas.first is Map) {
-            targetImdb = (metas.first['imdb_id'] ?? metas.first['id']) as String?;
+            targetImdb =
+                (metas.first['imdb_id'] ?? metas.first['id']) as String?;
           }
         }
       }
@@ -86,8 +90,9 @@ class RecommendationsService {
         for (final entry in list) {
           if (entry is! Map) continue;
           final name = entry['name'] as String? ?? '';
-          final id = (entry['imdb_id'] ?? entry['id']) as String? ?? '';
-          if (name.isEmpty) continue;
+          final rawId = entry['imdb_id'] ?? entry['id'];
+          final id = rawId?.toString() ?? '';
+          if (name.isEmpty || id.isEmpty) continue;
 
           // Exclude the source item itself
           if (name.toLowerCase() == item.title.toLowerCase() ||
@@ -98,23 +103,24 @@ class RecommendationsService {
           final poster = entry['poster'] as String? ?? '';
           final banner = entry['background'] as String?;
           final desc = entry['description'] as String?;
-          final year = entry['year'] as String? ?? entry['releaseInfo'] as String?;
+          final yearRaw = entry['year'] ?? entry['releaseInfo'];
+          final year = yearRaw?.toString();
 
-            results.add(
-              MultimediaItem(
-                title: name,
-                url: 'cinemeta:$id',
-                posterUrl: poster,
-                bannerUrl: banner,
-                description: desc,
-                year: int.tryParse(year?.split('-').first ?? ''),
-                contentType: isSeries
-                    ? MultimediaContentType.series
-                    : MultimediaContentType.movie,
-                imdbId: id.startsWith('tt') ? id : null,
-                provider: 'cinemeta',
-              ),
-            );
+          results.add(
+            MultimediaItem(
+              title: name,
+              url: 'cinemeta:$id',
+              posterUrl: poster,
+              bannerUrl: banner,
+              description: desc,
+              year: int.tryParse(year?.split('-').first ?? ''),
+              contentType: isSeries
+                  ? MultimediaContentType.series
+                  : MultimediaContentType.movie,
+              imdbId: id.startsWith('tt') ? id : null,
+              provider: 'cinemeta',
+            ),
+          );
 
           if (results.length >= 20) break;
         }
