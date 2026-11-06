@@ -17,6 +17,7 @@ import '../../../../core/domain/entity/multimedia_item.dart';
 import '../../../../core/network/dio_client_provider.dart';
 import '../../../../core/network/http_defaults.dart';
 import '../../../../core/providers/device_info_provider.dart';
+import '../../../../core/profile/profile_service.dart';
 import '../../../settings/presentation/player_settings_provider.dart';
 import '../../../../core/extensions/providers.dart';
 import '../../../../core/models/torrent_status.dart';
@@ -531,6 +532,8 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
 
   /// Set by [_openAttempt], cleared once the picks have been put back.
   bool _restorePending = false;
+  bool _preferredAudioApplied = false;
+  int? _preferredAudioTrackRevision;
 
   /// The subtitle files of what is playing - the source's and any the viewer
   /// added - which Aether draws itself rather than handing to libVLC. See
@@ -1166,6 +1169,8 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
     // new media has published its tracks. A reopen restores the position; it
     // has no business also changing the language.
     _restorePending = _rememberedAudio != null || _rememberedSubtitle != null;
+    _preferredAudioApplied = false;
+    _preferredAudioTrackRevision = null;
     // Every way back into playback goes through here - Start Over, a failover,
     // a hand-picked source - and none of them may leave the ended card up over
     // media that is opening.
@@ -1469,6 +1474,7 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
   /// input thread, so the list arrives some ticks after the open completes.
   /// A non-null active id is the proof that it has.
   void _rememberTracks(VlcPlayerValue value) {
+    _maybePickPreferredAudio(value);
     final audioId = value.activeAudioTrackId;
     final subtitleId = value.activeSubtitleTrackId;
 
@@ -1491,6 +1497,46 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
       _rememberedSubtitle = null;
       if (subtitleId != null) unawaited(_snapshotSubtitle(subtitleId));
     }
+  }
+
+  void _maybePickPreferredAudio(VlcPlayerValue value) {
+    final preferred = _read(profileControllerProvider)
+        .activeProfile
+        ?.preferredAudioLanguage;
+    if (_preferredAudioApplied ||
+        _rememberedAudio != null ||
+        preferred == null ||
+        preferred == 'auto' ||
+        _preferredAudioTrackRevision == value.trackRevision) {
+      return;
+    }
+    _preferredAudioTrackRevision = value.trackRevision;
+    final generation = _generation;
+    unawaited(() async {
+      try {
+        final tracks = (await _controller.getAudioTracks())
+            .where((track) => track.id >= 0)
+            .toList();
+        if (_disposed || generation != _generation) return;
+        List<VlcMediaTrackInfo> info = const [];
+        try {
+          info = (await _controller.getMediaInfo()).audioTracks;
+        } on Object {
+          // The description often carries the language itself.
+        }
+        if (_disposed || generation != _generation) return;
+        for (final (index, track) in tracks.indexed) {
+          final language =
+              (index < info.length ? info[index].language : null) ?? track.name;
+          if (languageCodeOf(language) != preferred) continue;
+          await _controller.setAudioTrack(track.id);
+          _preferredAudioApplied = true;
+          return;
+        }
+      } on Object {
+        // Keep the engine's default if a backend refuses the preference.
+      }
+    }());
   }
 
   Future<void> _snapshotAudio(int id) async {

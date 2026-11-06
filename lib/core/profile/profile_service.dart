@@ -1,6 +1,8 @@
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../storage/storage_service.dart';
 import 'user_profile.dart';
 
@@ -53,7 +55,8 @@ class ProfileController extends Notifier<ProfileState> {
             .map((item) => UserProfile.fromMap(item as Map<String, dynamic>))
             .toList();
       } catch (e) {
-        if (kDebugMode) debugPrint('[ProfileController] Failed to parse profiles: $e');
+        if (kDebugMode)
+          debugPrint('[ProfileController] Failed to parse profiles: $e');
       }
     }
 
@@ -74,7 +77,8 @@ class ProfileController extends Notifier<ProfileState> {
       _saveProfiles(loaded);
     }
 
-    final activeId = _storage.getString(_kActiveProfileIdKey) ?? loaded.first.id;
+    final activeId =
+        _storage.getString(_kActiveProfileIdKey) ?? loaded.first.id;
     final active = loaded.firstWhere(
       (p) => p.id == activeId,
       orElse: () => loaded.first,
@@ -104,6 +108,8 @@ class ProfileController extends Notifier<ProfileState> {
     bool isKids = false,
     List<String> preferredGenres = const [],
     String feedMode = 'all',
+    String preferredSubtitleLanguage = 'en',
+    String preferredAudioLanguage = 'auto',
   }) async {
     final newProfile = UserProfile(
       id: 'profile_${DateTime.now().millisecondsSinceEpoch}',
@@ -113,6 +119,8 @@ class ProfileController extends Notifier<ProfileState> {
       isKids: isKids,
       preferredGenres: preferredGenres,
       feedMode: feedMode,
+      preferredSubtitleLanguage: preferredSubtitleLanguage,
+      preferredAudioLanguage: preferredAudioLanguage,
       createdAt: DateTime.now(),
     );
 
@@ -122,16 +130,15 @@ class ProfileController extends Notifier<ProfileState> {
   }
 
   Future<void> updateProfile(UserProfile profile) async {
-    final updated = state.profiles.map((p) => p.id == profile.id ? profile : p).toList();
+    final updated = state.profiles
+        .map((p) => p.id == profile.id ? profile : p)
+        .toList();
     await _saveProfiles(updated);
 
     final currentActive = state.activeProfile;
     final newActive = currentActive?.id == profile.id ? profile : currentActive;
 
-    state = state.copyWith(
-      profiles: updated,
-      activeProfile: newActive,
-    );
+    state = state.copyWith(profiles: updated, activeProfile: newActive);
   }
 
   Future<void> deleteProfile(String profileId) async {
@@ -146,9 +153,6 @@ class ProfileController extends Notifier<ProfileState> {
       await _storage.setString(_kActiveProfileIdKey, nextActive.id);
     }
 
-    state = state.copyWith(
-      profiles: updated,
-      activeProfile: nextActive,
-    );
+    state = state.copyWith(profiles: updated, activeProfile: nextActive);
   }
 }

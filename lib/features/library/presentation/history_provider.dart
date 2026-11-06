@@ -17,10 +17,15 @@ class WatchHistory extends _$WatchHistory {
     final activeProfile = ref.watch(profileControllerProvider).activeProfile;
     final all = repository.getWatchHistory();
     if (activeProfile == null) return all;
+    final profiles = ref.read(profileControllerProvider).profiles;
+    final legacyOwnerId = profiles.isEmpty ? null : profiles.first.id;
 
     return all.where((h) {
-      // 1. Profile isolation: match activeProfile id or legacy unassigned entries
-      if (h.profileId != null && h.profileId != activeProfile.id) {
+      // Keep legacy unassigned history with the original profile only. Sharing
+      // those entries with every profile leaks viewing activity and pollutes
+      // each profile's recommendations.
+      if (h.profileId != activeProfile.id &&
+          !(h.profileId == null && activeProfile.id == legacyOwnerId)) {
         return false;
       }
       // 2. Kids Shield: filter adult content
@@ -46,8 +51,11 @@ class WatchHistory extends _$WatchHistory {
       state = all;
       return;
     }
+    final profiles = ref.read(profileControllerProvider).profiles;
+    final legacyOwnerId = profiles.isEmpty ? null : profiles.first.id;
     state = all.where((h) {
-      if (h.profileId != null && h.profileId != activeProfile.id) {
+      if (h.profileId != activeProfile.id &&
+          !(h.profileId == null && activeProfile.id == legacyOwnerId)) {
         return false;
       }
       if (activeProfile.isKids) {
@@ -109,8 +117,10 @@ class WatchHistory extends _$WatchHistory {
     final finalPosition = isLivestream ? 0 : position;
     final finalDuration = isLivestream ? 0 : duration;
 
-    final activeProfileId =
-        ref.read(profileControllerProvider).activeProfile?.id;
+    final activeProfileId = ref
+        .read(profileControllerProvider)
+        .activeProfile
+        ?.id;
     final repository = ref.read(historyRepositoryProvider);
     await repository.saveProgress(
       item,

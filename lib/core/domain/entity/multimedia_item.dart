@@ -360,7 +360,10 @@ class MultimediaItem {
   }
 
   String get tmdbMediaType =>
-      contentType == MultimediaContentType.series ? 'tv' : 'movie';
+      contentType == MultimediaContentType.series ||
+          contentType == MultimediaContentType.anime
+      ? 'tv'
+      : 'movie';
 
   String get backdropImageUrl => bannerUrl ?? posterUrl;
   String get posterImageUrl => posterUrl;

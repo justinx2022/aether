@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../core/profile/user_profile.dart';
 import '../../../core/profile/profile_service.dart';
 import '../../../core/theme/app_backdrop_layer.dart';
@@ -76,7 +77,10 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white60)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.white60),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -114,6 +118,8 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
     String selectedAvatarId = ProfileAvatars.all.first.id;
     String selectedCategory = ProfileAvatars.categories.first;
     bool isKids = false;
+    String subtitleLanguage = 'en';
+    String audioLanguage = 'auto';
     final List<String> selectedGenres = [];
     String feedMode = 'all';
 
@@ -297,11 +303,13 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                     children: availableGenres.map((genre) {
                       final isChosen = selectedGenres.contains(genre);
                       return FilterChip(
-                        label: Text(genre, style: const TextStyle(fontSize: 11)),
+                        label: Text(
+                          genre,
+                          style: const TextStyle(fontSize: 11),
+                        ),
                         selected: isChosen,
-                        selectedColor: const Color(
-                          0xFF6366F1,
-                        ).withValues(alpha: 0.35),
+                        selectedColor: const Color(0xFF6366F1)
+                            .withValues(alpha: 0.35),
                         checkmarkColor: const Color(0xFF818CF8),
                         backgroundColor: const Color(0xFF141824),
                         labelStyle: TextStyle(
@@ -388,6 +396,21 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                     activeTrackColor: const Color(0xFF6366F1),
                     onChanged: (val) => setModalState(() => isKids = val),
                   ),
+                  const SizedBox(height: 8),
+                  _ProfileLanguageDropdown(
+                    label: 'Subtitle language',
+                    value: subtitleLanguage,
+                    onChanged: (value) =>
+                        setModalState(() => subtitleLanguage = value),
+                  ),
+                  const SizedBox(height: 10),
+                  _ProfileLanguageDropdown(
+                    label: 'Audio language',
+                    value: audioLanguage,
+                    includeAuto: true,
+                    onChanged: (value) =>
+                        setModalState(() => audioLanguage = value),
+                  ),
                 ],
               ),
             ),
@@ -421,6 +444,8 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                         isKids: isKids,
                         preferredGenres: selectedGenres,
                         feedMode: feedMode,
+                        preferredSubtitleLanguage: subtitleLanguage,
+                        preferredAudioLanguage: audioLanguage,
                       );
                   Navigator.pop(ctx);
                 }
@@ -447,6 +472,8 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
     final List<String> selectedGenres = List.from(profile.preferredGenres);
     String feedMode = profile.feedMode;
     bool isKids = profile.isKids;
+    String subtitleLanguage = profile.preferredSubtitleLanguage;
+    String audioLanguage = profile.preferredAudioLanguage;
 
     final availableGenres = [
       'Action',
@@ -622,11 +649,13 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                     children: availableGenres.map((genre) {
                       final isChosen = selectedGenres.contains(genre);
                       return FilterChip(
-                        label: Text(genre, style: const TextStyle(fontSize: 11)),
+                        label: Text(
+                          genre,
+                          style: const TextStyle(fontSize: 11),
+                        ),
                         selected: isChosen,
-                        selectedColor: const Color(
-                          0xFF6366F1,
-                        ).withValues(alpha: 0.35),
+                        selectedColor: const Color(0xFF6366F1)
+                            .withValues(alpha: 0.35),
                         checkmarkColor: const Color(0xFF818CF8),
                         backgroundColor: const Color(0xFF141824),
                         labelStyle: TextStyle(
@@ -712,6 +741,21 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                     activeTrackColor: const Color(0xFF6366F1),
                     onChanged: (val) => setModalState(() => isKids = val),
                   ),
+                  const SizedBox(height: 8),
+                  _ProfileLanguageDropdown(
+                    label: 'Subtitle language',
+                    value: subtitleLanguage,
+                    onChanged: (value) =>
+                        setModalState(() => subtitleLanguage = value),
+                  ),
+                  const SizedBox(height: 10),
+                  _ProfileLanguageDropdown(
+                    label: 'Audio language',
+                    value: audioLanguage,
+                    includeAuto: true,
+                    onChanged: (value) =>
+                        setModalState(() => audioLanguage = value),
+                  ),
                 ],
               ),
             ),
@@ -750,6 +794,8 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                         isKids: isKids,
                         preferredGenres: selectedGenres,
                         feedMode: feedMode,
+                        preferredSubtitleLanguage: subtitleLanguage,
+                        preferredAudioLanguage: audioLanguage,
                       ),
                     );
                 Navigator.pop(ctx);
@@ -1034,6 +1080,63 @@ class _ProfileCardState extends State<_ProfileCard> {
       ),
     );
   }
+}
+
+const Map<String, String> _profileLanguages = {
+  'en': 'English',
+  'ja': 'Japanese',
+  'ko': 'Korean',
+  'hi': 'Hindi',
+  'es': 'Spanish',
+  'fr': 'French',
+  'de': 'German',
+  'ar': 'Arabic',
+  'zh': 'Chinese',
+  'pt': 'Portuguese',
+};
+
+class _ProfileLanguageDropdown extends StatelessWidget {
+  const _ProfileLanguageDropdown({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+    this.includeAuto = false,
+  });
+
+  final String label;
+  final String value;
+  final ValueChanged<String> onChanged;
+  final bool includeAuto;
+
+  @override
+  Widget build(BuildContext context) => DropdownButtonFormField<String>(
+    initialValue:
+        _profileLanguages.containsKey(value) || (includeAuto && value == 'auto')
+        ? value
+        : (includeAuto ? 'auto' : 'en'),
+    dropdownColor: const Color(0xFF151926),
+    style: const TextStyle(color: Colors.white, fontSize: 13),
+    decoration: InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: Colors.white60),
+      filled: true,
+      fillColor: Colors.white.withValues(alpha: 0.05),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide.none,
+      ),
+    ),
+    items: [
+      if (includeAuto)
+        const DropdownMenuItem(value: 'auto', child: Text('Original / Auto')),
+      for (final entry in _profileLanguages.entries)
+        DropdownMenuItem(value: entry.key, child: Text(entry.value)),
+    ],
+    onChanged: (value) {
+      if (value != null) onChanged(value);
+    },
+  );
 }
 
 class _AddProfileCard extends StatefulWidget {

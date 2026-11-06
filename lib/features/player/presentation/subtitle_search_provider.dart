@@ -13,6 +13,7 @@ import '../data/subtitle_providers.dart';
 import '../domain/entity/subtitle_model.dart';
 import '../domain/subtitle_archive.dart';
 import '../../settings/presentation/player_settings_provider.dart';
+import '../../../core/profile/profile_service.dart';
 
 part 'subtitle_search_provider.g.dart';
 
@@ -583,7 +584,22 @@ class SubtitleSearch extends _$SubtitleSearch {
 @riverpod
 class SubtitleLanguage extends _$SubtitleLanguage {
   @override
-  String build() => 'en';
+  String build() =>
+      ref
+          .watch(profileControllerProvider)
+          .activeProfile
+          ?.preferredSubtitleLanguage ??
+      'en';
 
-  void set(String lang) => state = lang;
+  void set(String lang) {
+    state = lang;
+    final profileState = ref.read(profileControllerProvider);
+    final profile = profileState.activeProfile;
+    if (profile == null) return;
+    unawaited(
+      ref
+          .read(profileControllerProvider.notifier)
+          .updateProfile(profile.copyWith(preferredSubtitleLanguage: lang)),
+    );
+  }
 }

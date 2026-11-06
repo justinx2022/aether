@@ -11,10 +11,7 @@ import '../../../explore/presentation/widgets/media_horizontal_list.dart';
 class BecauseYouWatchedSection extends ConsumerWidget {
   final MultimediaItem item;
 
-  const BecauseYouWatchedSection({
-    super.key,
-    required this.item,
-  });
+  const BecauseYouWatchedSection({super.key, required this.item});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -33,8 +30,15 @@ class BecauseYouWatchedSection extends ConsumerWidget {
             showViewAll: false,
             heroTagPrefix: 'because_watched',
             onTap: (selected) {
-              DetailsRoute($extra: DetailsRouteExtra(item: selected))
-                  .push<void>(context);
+              if (selected.provider == 'tmdb' && selected.tmdbId != null) {
+                TmdbDetailsRoute(
+                  movieId: selected.tmdbId!,
+                  mediaType: selected.tmdbMediaType,
+                ).push<void>(context);
+              } else {
+                DetailsRoute($extra: DetailsRouteExtra(item: selected))
+                    .push<void>(context);
+              }
             },
           ),
         );

@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 
 /// Represents a single viewer profile under the account with preferences.
@@ -10,6 +11,8 @@ class UserProfile {
   final bool isKids;
   final List<String> preferredGenres;
   final String feedMode; // 'all', 'movies', 'series', 'anime'
+  final String preferredSubtitleLanguage;
+  final String preferredAudioLanguage;
   final DateTime createdAt;
 
   const UserProfile({
@@ -20,6 +23,8 @@ class UserProfile {
     this.isKids = false,
     this.preferredGenres = const [],
     this.feedMode = 'all',
+    this.preferredSubtitleLanguage = 'en',
+    this.preferredAudioLanguage = 'auto',
     required this.createdAt,
   });
 
@@ -31,6 +36,8 @@ class UserProfile {
     bool? isKids,
     List<String>? preferredGenres,
     String? feedMode,
+    String? preferredSubtitleLanguage,
+    String? preferredAudioLanguage,
     DateTime? createdAt,
   }) {
     return UserProfile(
@@ -41,6 +48,10 @@ class UserProfile {
       isKids: isKids ?? this.isKids,
       preferredGenres: preferredGenres ?? this.preferredGenres,
       feedMode: feedMode ?? this.feedMode,
+      preferredSubtitleLanguage:
+          preferredSubtitleLanguage ?? this.preferredSubtitleLanguage,
+      preferredAudioLanguage:
+          preferredAudioLanguage ?? this.preferredAudioLanguage,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -54,6 +65,8 @@ class UserProfile {
       'isKids': isKids,
       'preferredGenres': preferredGenres,
       'feedMode': feedMode,
+      'preferredSubtitleLanguage': preferredSubtitleLanguage,
+      'preferredAudioLanguage': preferredAudioLanguage,
       'createdAt': createdAt.toIso8601String(),
     };
   }
@@ -72,6 +85,10 @@ class UserProfile {
       isKids: map['isKids'] as bool? ?? false,
       preferredGenres: genres,
       feedMode: map['feedMode'] as String? ?? 'all',
+      preferredSubtitleLanguage:
+          map['preferredSubtitleLanguage'] as String? ?? 'en',
+      preferredAudioLanguage:
+          map['preferredAudioLanguage'] as String? ?? 'auto',
       createdAt: map['createdAt'] != null
           ? DateTime.tryParse(map['createdAt'] as String) ?? DateTime.now()
           : DateTime.now(),
@@ -350,10 +367,7 @@ class ProfileAvatars {
   ];
 
   static ProfileAvatarInfo get(String id) {
-    return all.firstWhere(
-      (a) => a.id == id,
-      orElse: () => all.first,
-    );
+    return all.firstWhere((a) => a.id == id, orElse: () => all.first);
   }
 
   static List<ProfileAvatarInfo> byCategory(String category) {

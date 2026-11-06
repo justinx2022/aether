@@ -2,10 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:collection/collection.dart';
 
 import '../../../../core/domain/entity/multimedia_item.dart';
+import '../../../../core/network/dio_client_provider.dart';
 import '../../../core/extensions/base_provider.dart';
 import '../../../core/extensions/extension_manager.dart';
 import '../../../../core/storage/library_repository.dart';
@@ -32,6 +34,19 @@ String episodeSelectionKey(Episode episode) {
     episode.dubStatus.name,
     episode.url,
   ].join('|');
+}
+
+String _normalizedMediaTitle(String title) =>
+    title.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+
+bool _compatibleSeriesType(MultimediaItem source, MultimediaItem candidate) {
+  final sourceIsSeries =
+      source.contentType == MultimediaContentType.series ||
+      source.contentType == MultimediaContentType.anime;
+  final candidateIsSeries =
+      candidate.contentType == MultimediaContentType.series ||
+      candidate.contentType == MultimediaContentType.anime;
+  return sourceIsSeries == candidateIsSeries;
 }
 
 class DetailsState {
@@ -304,10 +319,16 @@ class DetailsController extends _$DetailsController {
         return;
       }
 
-      final isCatalogItem = item.provider == 'cinemeta' ||
+      final isCinemetaItem =
+          item.provider == 'cinemeta' || item.url.startsWith('cinemeta:');
+      final isCinemetaSeries =
+          isCinemetaItem &&
+          (item.contentType == MultimediaContentType.series ||
+              item.contentType == MultimediaContentType.anime);
+      final isCatalogItem =
+          isCinemetaItem ||
           item.provider == 'dev.justin.catalogue' ||
           item.provider == 'tmdb' ||
-          item.url.startsWith('cinemeta:') ||
           item.url.startsWith('tmdb:');
 
       SkyStreamProvider? provider;
@@ -321,25 +342,86 @@ class DetailsController extends _$DetailsController {
         }
       }
 
+      // Cinemeta cards are metadata-only. Resolve an exact title through the
+      // active streaming provider first so its episode URLs remain playable.
+      if (isCinemetaSeries) provider = active;
+
       if (!isCatalogItem) {
         provider ??= active;
       }
 
       MultimediaItem? fetchedItem;
       if (provider != null) {
-        try {
-          fetchedItem = await provider.getDetails(item.url);
-        } catch (e) {
-          if (kDebugMode) {
-            debugPrint('Provider getDetails failed: $e. Attempting title search fallback.');
-          }
+        if (isCinemetaSeries) {
           try {
             final searchResults = await provider.search(item.title);
-            if (searchResults.isNotEmpty) {
-              fetchedItem = await provider.getDetails(searchResults.first.url);
+            final titleKey = _normalizedMediaTitle(item.title);
+            final match = searchResults.firstWhereOrNull((result) {
+              if (_normalizedMediaTitle(result.title) != titleKey) return false;
+              if (!_compatibleSeriesType(item, result)) return false;
+              return item.year == null ||
+                  result.year == null ||
+                  item.year == result.year;
+            });
+            if (match != null) {
+              fetchedItem = await provider.getDetails(match.url);
             }
-          } catch (_) {}
+          } catch (e) {
+            if (kDebugMode) {
+              debugPrint('Provider title lookup failed for ${item.title}: $e');
+            }
+          }
+        } else {
+          try {
+            fetchedItem = await provider.getDetails(item.url);
+          } catch (e) {
+            if (kDebugMode) {
+              debugPrint(
+                'Provider getDetails failed: $e. Attempting title search fallback.',
+              );
+            }
+            try {
+              final searchResults = await provider.search(item.title);
+              final match = searchResults.firstWhereOrNull(
+                (result) =>
+                    _normalizedMediaTitle(result.title) ==
+                    _normalizedMediaTitle(item.title),
+              );
+              if (match != null) {
+                fetchedItem = await provider.getDetails(match.url);
+              }
+            } catch (_) {}
+          }
         }
+      }
+
+      // If the selected provider has no matching series, Cinemeta still has
+      // the canonical season and episode list. Its episode IDs provide
+      // navigation for catalog-backed title cards.
+      if (isCinemetaSeries && (fetchedItem?.episodes?.length ?? 0) < 2) {
+        try {
+          final catalogDetails = await _fetchCinemetaEpisodes(item);
+          if (catalogDetails != null) {
+            final providerEpisodes = fetchedItem?.episodes ?? const <Episode>[];
+            fetchedItem = (fetchedItem ?? catalogDetails).copyWith(
+              episodes: _mergeEpisodeLists(
+                catalogDetails.episodes ?? const <Episode>[],
+                providerEpisodes,
+              ),
+            );
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('Cinemeta episode lookup failed for ${item.title}: $e');
+          }
+        }
+      }
+
+      if (isCinemetaSeries && fetchedItem != null) {
+        fetchedItem = fetchedItem.copyWith(
+          url: item.url,
+          provider: provider?.packageName ?? item.provider,
+        );
       }
 
       if (!ref.mounted) return;
@@ -350,8 +432,14 @@ class DetailsController extends _$DetailsController {
         imdbId: fetchedItem?.imdbId ?? item.imdbId,
       );
 
-      // Ensure episodes exist (create default single episode for movies or unparsed items)
-      if (withProvider.episodes == null || withProvider.episodes!.isEmpty) {
+      // Movies can use their own item URL as a single playable entry. For a
+      // series, an empty episode list means metadata resolution failed; do not
+      // disguise that as a one-episode movie.
+      final isSeries =
+          withProvider.contentType == MultimediaContentType.series ||
+          withProvider.contentType == MultimediaContentType.anime;
+      if (!isSeries &&
+          (withProvider.episodes == null || withProvider.episodes!.isEmpty)) {
         withProvider = withProvider.copyWith(
           episodes: [
             Episode(
@@ -393,6 +481,102 @@ class DetailsController extends _$DetailsController {
         state = state.copyWith(details: AsyncError(e, st));
       }
     }
+  }
+
+  Future<MultimediaItem?> _fetchCinemetaEpisodes(MultimediaItem item) async {
+    final id =
+        item.imdbId ?? RegExp(r'tt\d{6,}').firstMatch(item.url)?.group(0);
+    if (id == null) return null;
+
+    final response = await ref
+        .read(dioClientProvider)
+        .get<dynamic>(
+          'https://v3-cinemeta.strem.io/meta/series/$id.json',
+          options: Options(receiveTimeout: const Duration(seconds: 8)),
+        );
+    final data = response.data;
+    if (data is! Map || data['meta'] is! Map) return null;
+
+    final meta = Map<String, dynamic>.from(data['meta'] as Map);
+    final rawVideos = meta['videos'];
+    if (rawVideos is! List) return null;
+
+    final episodes = <Episode>[];
+    for (final rawVideo in rawVideos) {
+      if (rawVideo is! Map) continue;
+      final video = Map<String, dynamic>.from(rawVideo);
+      final season = _parseCinemetaInt(video['season']);
+      final number =
+          _parseCinemetaInt(video['episode']) ??
+          _parseCinemetaInt(video['number']);
+      if (season == null || number == null) continue;
+
+      final videoId = video['id']?.toString().trim();
+      episodes.add(
+        Episode(
+          name: video['name']?.toString() ?? 'Episode $number',
+          url: videoId == null || videoId.isEmpty
+              ? '$id:$season:$number'
+              : videoId,
+          season: season,
+          episode: number,
+          description:
+              video['overview']?.toString() ?? video['description']?.toString(),
+          posterUrl: video['thumbnail']?.toString(),
+          airDate: video['released']?.toString(),
+          rating: double.tryParse(video['rating']?.toString() ?? ''),
+        ),
+      );
+    }
+
+    if (episodes.isEmpty) return null;
+    return item.copyWith(
+      title: meta['name']?.toString() ?? item.title,
+      description: meta['description']?.toString() ?? item.description,
+      episodes: episodes,
+    );
+  }
+
+  int? _parseCinemetaInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '');
+  }
+
+  List<Episode> _mergeEpisodeLists(
+    List<Episode> catalogEpisodes,
+    List<Episode> providerEpisodes,
+  ) {
+    if (providerEpisodes.isEmpty) return catalogEpisodes;
+
+    final playableByNumber = <(int, int), Episode>{};
+    for (final episode in providerEpisodes) {
+      if (episode.season > 0 && episode.episode > 0) {
+        playableByNumber[(episode.season, episode.episode)] = episode;
+      }
+    }
+
+    return catalogEpisodes.map((catalogEpisode) {
+      final playable =
+          playableByNumber[(catalogEpisode.season, catalogEpisode.episode)];
+      if (playable == null || playable.url.isEmpty) return catalogEpisode;
+
+      return Episode(
+        name: playable.name.isNotEmpty ? playable.name : catalogEpisode.name,
+        url: playable.url,
+        season: catalogEpisode.season,
+        episode: catalogEpisode.episode,
+        description: playable.description ?? catalogEpisode.description,
+        posterUrl: playable.posterUrl ?? catalogEpisode.posterUrl,
+        headers: playable.headers,
+        rating: playable.rating ?? catalogEpisode.rating,
+        runtime: playable.runtime,
+        airDate: playable.airDate ?? catalogEpisode.airDate,
+        dubStatus: playable.dubStatus,
+        playbackPolicy: playable.playbackPolicy,
+        streams: playable.streams,
+      );
+    }).toList();
   }
 
   Future<void> _resolveMetadataInBackground(MultimediaItem withProvider) async {
@@ -644,12 +828,15 @@ class DetailsController extends _$DetailsController {
     String? overrideUrl,
   }) async {
     final fullItem = state.details.asData?.value ?? details;
-    final itemToUse = (fullItem.episodes != null && fullItem.episodes!.isNotEmpty)
+    final itemToUse =
+        (fullItem.episodes != null && fullItem.episodes!.isNotEmpty)
         ? fullItem
         : details;
 
     if (overrideUrl != null) {
-      await ref.read(playbackLauncherProvider).play(
+      await ref
+          .read(playbackLauncherProvider)
+          .play(
             context,
             overrideUrl,
             baseItem: itemToUse,
@@ -659,7 +846,9 @@ class DetailsController extends _$DetailsController {
     }
 
     if (specificEpisode != null) {
-      await ref.read(playbackLauncherProvider).play(
+      await ref
+          .read(playbackLauncherProvider)
+          .play(
             context,
             specificEpisode.url,
             baseItem: itemToUse,
@@ -671,7 +860,9 @@ class DetailsController extends _$DetailsController {
 
     if (state.isMovie) {
       final ep = itemToUse.episodes?.firstOrNull;
-      await ref.read(playbackLauncherProvider).play(
+      await ref
+          .read(playbackLauncherProvider)
+          .play(
             context,
             ep?.url ?? itemToUse.url,
             baseItem: itemToUse,
@@ -682,7 +873,9 @@ class DetailsController extends _$DetailsController {
     }
 
     if (state.targetEpisode != null) {
-      await ref.read(playbackLauncherProvider).play(
+      await ref
+          .read(playbackLauncherProvider)
+          .play(
             context,
             state.targetEpisode!.url,
             baseItem: itemToUse,
@@ -696,7 +889,9 @@ class DetailsController extends _$DetailsController {
     if (firstSeason.isNotEmpty) {
       final ep = state.seasonMap[firstSeason.first]?.first;
       if (ep != null) {
-        await ref.read(playbackLauncherProvider).play(
+        await ref
+            .read(playbackLauncherProvider)
+            .play(
               context,
               ep.url,
               baseItem: itemToUse,

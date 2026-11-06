@@ -20,6 +20,7 @@ import '../../../../core/network/dio_client_provider.dart';
 import '../../../../core/network/http_defaults.dart';
 import '../../data/subtitle_providers.dart';
 import '../../../../core/providers/device_info_provider.dart';
+import '../../../../core/profile/profile_service.dart';
 import '../../../../core/services/buffered_video_saver.dart';
 import '../../../../core/services/local_proxy_service.dart';
 import '../../../../core/services/provider_health_service.dart';
@@ -40,6 +41,7 @@ import '../../domain/side_car_subtitles.dart';
 import '../../domain/skip_segments.dart';
 import '../../../skip/data/skip_service.dart';
 import '../../domain/stream_resolver.dart';
+import '../../domain/track_language.dart';
 import '../../domain/subtitle_search_target.dart';
 import '../player_platform_service.dart';
 import '../subtitle_search_provider.dart' show subtitleLanguageProvider;
@@ -94,6 +96,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   Episode? _nextEpisodeOffer;
   bool _nextEpisodeDeclined = false;
   bool _hasPrewarmedNextEpisode = false;
+  bool _audioPreferenceApplied = false;
 
   final List<StreamSubscription<Object?>> _subscriptions = [];
   Duration? _dragPosition;
@@ -958,6 +961,26 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     _subscriptions.add(
       _player.stream.tracks.listen((tracks) {
         if (_disposed) return;
+        final audioPreference = _read(profileControllerProvider)
+            .activeProfile
+            ?.preferredAudioLanguage;
+        if (!_audioPreferenceApplied &&
+            audioPreference != null &&
+            audioPreference != 'auto') {
+          final preferredAudio = tracks.audio.firstWhereOrNull(
+            (track) =>
+                track.id != 'no' &&
+                track.id != 'auto' &&
+                languageCodeOf(track.language ?? track.title) ==
+                    audioPreference,
+          );
+          if (preferredAudio != null) {
+            _audioPreferenceApplied = true;
+            if (_player.state.track.audio.id != preferredAudio.id) {
+              unawaited(_player.setAudioTrack(preferredAudio));
+            }
+          }
+        }
         // mpv's own choices - `no` and `auto` - are not tracks a viewer can
         // pick; the sheet offers Off itself.
         final list = [
@@ -1555,6 +1578,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
       }
 
       _attemptOpenedAt = DateTime.now();
+      _audioPreferenceApplied = false;
       await _player.open(
         Media(url, httpHeaders: headers, start: at),
         play: true,
@@ -1608,6 +1632,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
         await native.setProperty('http-header-fields', 'X-Local-Proxy: 1');
       }
       _attemptOpenedAt = DateTime.now();
+      _audioPreferenceApplied = false;
       _attemptHasVideoTrack = false;
       _attemptSawVideoParamsReset = false;
       await _player.open(
@@ -1670,6 +1695,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
         await native.setProperty('http-header-fields', extraFields.join(','));
       }
       _attemptOpenedAt = DateTime.now();
+      _audioPreferenceApplied = false;
       _attemptHasVideoTrack = false;
       _attemptSawVideoParamsReset = false;
       await _player.open(

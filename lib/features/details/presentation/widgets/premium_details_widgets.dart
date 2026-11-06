@@ -624,7 +624,15 @@ class AutoRecommendationsSection extends ConsumerWidget {
       return RecommendationsCarousel(
         items: item.recommendations!,
         onItemTap: (rec) {
-          DetailsRoute($extra: DetailsRouteExtra(item: rec)).push<void>(context);
+          if (rec.provider == 'tmdb' && rec.tmdbId != null) {
+            TmdbDetailsRoute(
+              movieId: rec.tmdbId!,
+              mediaType: rec.tmdbMediaType,
+            ).push<void>(context);
+          } else {
+            DetailsRoute($extra: DetailsRouteExtra(item: rec))
+                .push<void>(context);
+          }
         },
       );
     }
@@ -636,7 +644,15 @@ class AutoRecommendationsSection extends ConsumerWidget {
         return RecommendationsCarousel(
           items: items,
           onItemTap: (rec) {
-            DetailsRoute($extra: DetailsRouteExtra(item: rec)).push<void>(context);
+            if (rec.provider == 'tmdb' && rec.tmdbId != null) {
+              TmdbDetailsRoute(
+                movieId: rec.tmdbId!,
+                mediaType: rec.tmdbMediaType,
+              ).push<void>(context);
+            } else {
+              DetailsRoute($extra: DetailsRouteExtra(item: rec))
+                  .push<void>(context);
+            }
           },
         );
       },
@@ -645,4 +661,3 @@ class AutoRecommendationsSection extends ConsumerWidget {
     );
   }
 }
-
