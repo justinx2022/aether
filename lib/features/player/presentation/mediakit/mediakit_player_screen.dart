@@ -220,6 +220,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   bool _isFullscreen = false;
   BoxFit _fit = BoxFit.contain;
   PlayerSettings? _settings;
+  ProviderSubscription<DetailsState>? _detailsSubscription;
 
   static BoxFit _fitFromSettings(String mode) => switch (mode.toLowerCase()) {
     'zoom' => BoxFit.cover,
@@ -453,6 +454,9 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
           final u2 = widget.videoUrl.trim().replaceAll(RegExp(r'/+$'), '');
           return e.url == widget.videoUrl || (u1.isNotEmpty && u1 == u2);
         });
+    if (widget.episode != null && (_item.episodes?.length ?? 0) < 2) {
+      _loadEpisodesForNavigation();
+    }
 
     _player = Player(
       configuration: PlayerConfiguration(
@@ -715,6 +719,55 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
 
   bool get _hasNextEpisode => _nextEpisode != null;
   bool get _hasPreviousEpisode => _previousEpisode != null;
+
+  /// A playback route can carry the selected episode without carrying the
+  /// series' full episode list. The title can then show "S1 E1" while the
+  /// navigation getters have no siblings to inspect. Ask the details
+  /// controller for the list and update the player when it arrives.
+  void _loadEpisodesForNavigation() {
+    final itemUrl = widget.item.url;
+    if (itemUrl.isEmpty) return;
+
+    final provider = detailsControllerProvider(itemUrl);
+    void applyDetails(DetailsState? previous, DetailsState next) {
+      final detailedItem = next.details.asData?.value;
+      final episodes = detailedItem?.episodes;
+      if (episodes != null && episodes.length > 1 && mounted && !_disposed) {
+        setState(() {
+          _item = detailedItem!;
+          _currentEpisode =
+              widget.episode ??
+              episodes.firstWhereOrNull((episode) {
+                final episodeUrl = episode.url.trim().replaceAll(
+                  RegExp(r'/+$'),
+                  '',
+                );
+                final currentUrl = _currentVideoUrl.trim().replaceAll(
+                  RegExp(r'/+$'),
+                  '',
+                );
+                return episode.url == _currentVideoUrl ||
+                    (episodeUrl.isNotEmpty && episodeUrl == currentUrl);
+              });
+        });
+        _detailsSubscription?.close();
+        _detailsSubscription = null;
+      } else if (next.details.hasError) {
+        _detailsSubscription?.close();
+        _detailsSubscription = null;
+      }
+    }
+
+    final current = _read(provider);
+    final cachedItem = current.details.asData?.value;
+    if ((cachedItem?.episodes?.length ?? 0) > 1) {
+      _item = cachedItem!;
+      return;
+    }
+
+    _detailsSubscription = ref.listenManual(provider, applyDetails);
+    unawaited(_read(provider.notifier).loadDetails(widget.item));
+  }
 
   /// Moves to the next episode once.
   ///
@@ -2574,6 +2627,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
       _focusNode.dispose();
     } catch (_) {}
     _positionForChrome.dispose();
+    _detailsSubscription?.close();
     super.dispose();
   }
 
