@@ -28,6 +28,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../../shared/widgets/profile_app_bar_button.dart';
 import '../../../core/profile/profile_feed.dart';
 import '../../../core/profile/profile_service.dart';
+import '../../../core/profile/user_profile.dart';
 
 import 'package:skystream/core/extensions/extension_manager.dart';
 import 'package:skystream/core/extensions/base_provider.dart';
@@ -354,6 +355,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     bool isWidescreen,
   ) {
     final data = home.sections;
+    final profiles = ref.watch(profileControllerProvider);
+    final showAccountSync = profiles.activeProfile != null &&
+        profiles.activeProfile!.id ==
+            legacyProfileOwnerId(profiles.profiles);
     return RefreshIndicator(
           onRefresh: () async => ref.read(homeDataProvider.notifier).fetch(),
           child: CustomScrollView(
@@ -442,7 +447,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   ),
                 ),
 
-              if (syncedProgressAsync.asData?.value.isNotEmpty == true)
+              if (showAccountSync &&
+                  syncedProgressAsync.asData?.value.isNotEmpty == true)
                 SliverToBoxAdapter(
                   child: SyncedProgressSection(
                     title: 'Synced from Trakt',

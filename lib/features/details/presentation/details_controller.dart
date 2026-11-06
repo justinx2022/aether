@@ -22,6 +22,8 @@ import '../data/metadata_resolution_service.dart';
 import 'downloaded_file_provider.dart';
 import '../../tracking/data/simkl_service.dart';
 import '../../../core/services/stream_prewarmer.dart';
+import '../../../core/addons/data/addon_client.dart';
+import '../../../core/addons/data/builtin_addons.dart';
 
 part 'details_controller.g.dart';
 
@@ -350,8 +352,23 @@ class DetailsController extends _$DetailsController {
         imdbId: fetchedItem?.imdbId ?? item.imdbId,
       );
 
-      // Ensure episodes exist (create default single episode for movies or unparsed items)
-      if (withProvider.episodes == null || withProvider.episodes!.isEmpty) {
+      final isSeriesLike =
+          withProvider.contentType == MultimediaContentType.series ||
+          withProvider.contentType == MultimediaContentType.anime;
+      if (isSeriesLike &&
+          (withProvider.episodes == null || withProvider.episodes!.isEmpty)) {
+        final episodes = await _cinemetaEpisodes(withProvider);
+        if (!ref.mounted) return;
+        if (episodes.isNotEmpty) {
+          withProvider = withProvider.copyWith(episodes: episodes);
+        }
+      }
+
+      // Movies still need a playable row when the provider sent none.
+      // A series with no episode list stays a series, so the page does not
+      // turn into a movie and hide the episode grid.
+      if (!isSeriesLike &&
+          (withProvider.episodes == null || withProvider.episodes!.isEmpty)) {
         withProvider = withProvider.copyWith(
           episodes: [
             Episode(
@@ -509,6 +526,27 @@ class DetailsController extends _$DetailsController {
     }
   }
 
+  Future<List<Episode>> _cinemetaEpisodes(MultimediaItem item) async {
+    final imdb =
+        item.imdbId ?? RegExp(r'tt\d+').firstMatch(item.url)?.group(0);
+    if (imdb == null) return const [];
+    try {
+      final meta = await ref
+          .read(addonClientProvider)
+          .meta(BuiltInAddons.cinemeta, type: 'series', id: imdb);
+      if (meta == null) return const [];
+      return [
+        for (final video in meta.videos)
+          if (video.id.isNotEmpty) video.toEpisode(),
+      ];
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('DetailsController: Cinemeta episodes failed: $e');
+      }
+      return const [];
+    }
+  }
+
   List<Episode>? _processEpisodes(
     List<Episode>? episodes,
     MultimediaItem contextItem, {
@@ -522,13 +560,9 @@ class DetailsController extends _$DetailsController {
       return episodes;
     }
 
-    bool isMovie =
+    final isMovie =
         contextItem.contentType == MultimediaContentType.movie ||
         contextItem.contentType == MultimediaContentType.livestream;
-
-    if (!isMovie && episodes.length == 1) {
-      isMovie = true;
-    }
 
     if (isMovie) {
       state = state.copyWith(

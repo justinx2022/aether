@@ -285,13 +285,16 @@ class LanSyncService {
 
     int mergedCount = 0;
     final localEntries = storage.getWatchHistory();
-    final localMap = {for (final e in localEntries) (e['url'] ?? ''): e};
+    final localMap = {
+      for (final e in localEntries)
+        '${e['profileId'] ?? ''}|${e['url'] ?? ''}': e,
+    };
 
     for (final remote in remoteEntries) {
       final url = remote['url'] as String?;
       if (url == null || url.isEmpty) continue;
 
-      final local = localMap[url];
+      final local = localMap['${remote['profileId'] ?? ''}|$url'];
       final remoteTs = (remote['timestamp'] as int?) ?? 0;
       final localTs = local != null ? ((local['timestamp'] as int?) ?? 0) : 0;
       final remotePos = (remote['position'] as int?) ?? 0;
@@ -324,6 +327,7 @@ class LanSyncService {
           episode: remote['episode'] as int?,
           episodeTitle: remote['episodeTitle'] as String?,
           episodePosterUrl: remote['episodePosterUrl'] as String?,
+          profileId: remote['profileId'] as String?,
         );
         mergedCount++;
       }

@@ -1,5 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../domain/entity/multimedia_item.dart';
+import '../profile/profile_service.dart';
+import '../profile/user_profile.dart';
 import 'storage_service.dart';
 
 part 'history_repository.g.dart';
@@ -66,13 +68,21 @@ class HistoryItem {
 
 @Riverpod(keepAlive: true)
 HistoryRepository historyRepository(Ref ref) {
-  return HistoryRepository(ref.watch(storageServiceProvider));
+  final profiles = ref.watch(profileControllerProvider);
+  return HistoryRepository(
+    ref.watch(storageServiceProvider),
+    scope: ProfileScope(
+      profileId: profiles.activeProfile?.id,
+      legacyOwnerId: legacyProfileOwnerId(profiles.profiles),
+    ),
+  );
 }
 
 class HistoryRepository {
   final StorageService _storageService;
+  final ProfileScope scope;
 
-  HistoryRepository(this._storageService);
+  HistoryRepository(this._storageService, {this.scope = ProfileScope.none});
 
   Future<void> saveProgress(
     MultimediaItem item,
@@ -96,12 +106,13 @@ class HistoryRepository {
       episode: episode,
       episodeTitle: episodeTitle,
       episodePosterUrl: episodePosterUrl,
-      profileId: profileId,
+      profileId: profileId ?? scope.profileId,
+      scope: scope,
     );
   }
 
   Future<void> removeFromHistory(String url) async {
-    await _storageService.removeFromHistory(url);
+    await _storageService.removeFromHistory(url, scope: scope);
   }
 
   Future<void> updateHistoryItemTimestampAndPosition(
@@ -114,11 +125,17 @@ class HistoryRepository {
       item.lastEpisodeUrl,
       timestamp,
       position,
+      scope: scope,
     );
   }
 
+  /// Clears the active profile only. Other profiles keep their own rows.
   Future<void> clearAllHistory() async {
-    await _storageService.clearAllHistory();
+    if (scope.profileId == null) {
+      await _storageService.clearAllHistory();
+      return;
+    }
+    await _storageService.clearHistoryForProfile(scope);
   }
 
   List<HistoryItem> getWatchHistory() {
@@ -127,7 +144,7 @@ class HistoryRepository {
   }
 
   int getPosition(String url) {
-    return _storageService.getPosition(url);
+    return _storageService.getPosition(url, scope: scope);
   }
 
   int getEpisodePosition(
@@ -141,11 +158,12 @@ class HistoryRepository {
       mainUrl: mainUrl,
       season: season,
       episode: episode,
+      scope: scope,
     );
   }
 
   int getDuration(String url) {
-    return _storageService.getDuration(url);
+    return _storageService.getDuration(url, scope: scope);
   }
 
   int getEpisodeDuration(
@@ -159,14 +177,15 @@ class HistoryRepository {
       mainUrl: mainUrl,
       season: season,
       episode: episode,
+      scope: scope,
     );
   }
 
   String? getLastStreamUrl(String url) {
-    return _storageService.getLastStreamUrl(url);
+    return _storageService.getLastStreamUrl(url, scope: scope);
   }
 
   String? getLastEpisodeUrl(String url) {
-    return _storageService.getLastEpisodeUrl(url);
+    return _storageService.getLastEpisodeUrl(url, scope: scope);
   }
 }

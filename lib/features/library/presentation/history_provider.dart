@@ -2,53 +2,35 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/storage/history_repository.dart';
 import '../../../../core/domain/entity/multimedia_item.dart';
-import '../../../../core/profile/profile_feed.dart';
+import '../../../../core/profile/profile_history.dart';
 import '../../../../core/profile/profile_service.dart';
-import '../../../../core/profile/user_profile.dart';
 import '../../settings/presentation/general_settings_provider.dart';
 
 export '../../../../core/storage/history_repository.dart' show HistoryItem;
 
 part 'history_provider.g.dart';
 
-/// History rows the active profile is allowed to see.
-///
-/// A row with no profile id is still shown: older installs wrote history
-/// before profiles existed. Feed mode and the kids gate apply on top.
-List<HistoryItem> _visibleHistory(
-  List<HistoryItem> all,
-  UserProfile? profile,
-) {
-  if (profile == null) return all;
-  return all.where((entry) {
-    if (entry.profileId != null && entry.profileId != profile.id) {
-      return false;
-    }
-    return itemFitsProfile(entry.item, profile);
-  }).toList();
-}
-
 @Riverpod(keepAlive: true)
 class WatchHistory extends _$WatchHistory {
   @override
   List<HistoryItem> build() {
     final repository = ref.watch(historyRepositoryProvider);
-    final activeProfile = ref.watch(profileControllerProvider).activeProfile;
-    final all = repository.getWatchHistory();
-    if (activeProfile == null) return all;
-
-    return _visibleHistory(all, activeProfile);
+    final profiles = ref.watch(profileControllerProvider);
+    return historyForProfile(
+      repository.getWatchHistory(),
+      profiles.activeProfile,
+      profiles.profiles,
+    );
   }
 
   void refresh() {
     final repository = ref.read(historyRepositoryProvider);
-    final activeProfile = ref.read(profileControllerProvider).activeProfile;
-    final all = repository.getWatchHistory();
-    if (activeProfile == null) {
-      state = all;
-      return;
-    }
-    state = _visibleHistory(all, activeProfile);
+    final profiles = ref.read(profileControllerProvider);
+    state = historyForProfile(
+      repository.getWatchHistory(),
+      profiles.activeProfile,
+      profiles.profiles,
+    );
   }
 
   Future<void> clearAllHistory() async {

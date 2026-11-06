@@ -1,6 +1,19 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 
+/// Profile that keeps rows written before profiles existed.
+///
+/// Those rows have no profile id. They stay with whoever was created first,
+/// so a profile added later does not inherit them.
+String? legacyProfileOwnerId(List<UserProfile> profiles) {
+  if (profiles.isEmpty) return null;
+  var oldest = profiles.first;
+  for (final profile in profiles.skip(1)) {
+    if (profile.createdAt.isBefore(oldest.createdAt)) oldest = profile;
+  }
+  return oldest.id;
+}
+
 /// Represents a single viewer profile under the account with preferences.
 class UserProfile {
   final String id;

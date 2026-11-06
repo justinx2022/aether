@@ -48,6 +48,16 @@ StorageService storageService(Ref ref) {
   throw UnimplementedError('StorageService must be initialized');
 }
 
+/// Which profile a library or history read belongs to.
+class ProfileScope {
+  final String? profileId;
+  final String? legacyOwnerId;
+
+  const ProfileScope({this.profileId, this.legacyOwnerId});
+
+  static const none = ProfileScope();
+}
+
 class StorageService {
   late Box<dynamic> _libraryBox;
   late Box<dynamic> _settingsBox;
@@ -158,11 +168,93 @@ class StorageService {
     return md5.convert(utf8.encode(url)).toString();
   }
 
+  /// Profile-scoped Hive key. Untagged keys are the pre-profile format.
+  String _scopedKey(String url, String? profileId) {
+    final base = _getKey(url);
+    if (profileId == null || profileId.isEmpty) return base;
+    final key = 'pf:$profileId|$base';
+    if (key.length <= 250) return key;
+    return 'pf:${md5.convert(utf8.encode(key))}';
+  }
+
+  String? _keyProfile(String key) {
+    final body = key.startsWith('EP_') ? key.substring(3) : key;
+    if (!body.startsWith('pf:')) return null;
+    final bar = body.indexOf('|');
+    if (bar <= 3) return null;
+    return body.substring(3, bar);
+  }
+
+  bool _recordOwned(String? stored, String key, ProfileScope scope) {
+    final profileId = scope.profileId;
+    final keyProfile = _keyProfile(key);
+    if (profileId == null || profileId.isEmpty) {
+      return (stored == null || stored.isEmpty) && keyProfile == null;
+    }
+    if (stored == profileId || keyProfile == profileId) return true;
+    final untagged = (stored == null || stored.isEmpty) && keyProfile == null;
+    return untagged && profileId == scope.legacyOwnerId;
+  }
+
+  Map<String, dynamic>? _ownedLibraryMap(String url, ProfileScope scope) {
+    Map<String, dynamic>? legacy;
+    for (var i = 0; i < _libraryBox.length; i++) {
+      final key = _libraryBox.keyAt(i) as String;
+      final raw = _libraryBox.get(key);
+      if (raw is! Map) continue;
+      final map = Map<String, dynamic>.from(raw);
+      if (map['url'] != url) continue;
+      if (!_recordOwned(map['profileId'] as String?, key, scope)) continue;
+      if (scope.profileId != null && _keyProfile(key) == scope.profileId) {
+        return map;
+      }
+      legacy ??= map;
+    }
+    return legacy;
+  }
+
+  String _historyKey(String url, String? profileId, {bool episode = false}) {
+    final body = _scopedKey(url, profileId);
+    return episode ? 'EP_$body' : body;
+  }
+
+  Map<String, dynamic>? _historyMap(String key) {
+    if (!_historyBox.containsKey(key)) return null;
+    final raw = _historyBox.get(key);
+    if (raw is! Map) return null;
+    return Map<String, dynamic>.from(raw);
+  }
+
+  Map<String, dynamic>? _ownedHistory(
+    String url,
+    ProfileScope scope, {
+    bool episode = false,
+  }) {
+    final profileId = scope.profileId;
+    if (profileId != null && profileId.isNotEmpty) {
+      final scoped = _historyMap(
+        _historyKey(url, profileId, episode: episode),
+      );
+      if (scoped != null) return scoped;
+    }
+    final legacyKey = _historyKey(url, null, episode: episode);
+    final legacy = _historyMap(legacyKey);
+    if (legacy != null &&
+        _recordOwned(legacy['profileId'] as String?, legacyKey, scope)) {
+      return legacy;
+    }
+    return null;
+  }
+
   // --- Library (Favorites) ---
 
-  // Stored as a map, keyed by the url, which is assumed to be unique.
-  Future<void> addToLibrary(MultimediaItem item) async {
-    await _libraryBox.put(_getKey(item.url), {
+  // Stored per profile. Older installs used the url alone; those rows stay
+  // with the profile that was created first.
+  Future<void> addToLibrary(
+    MultimediaItem item, {
+    ProfileScope scope = ProfileScope.none,
+  }) async {
+    await _libraryBox.put(_scopedKey(item.url, scope.profileId), {
       'title': item.title,
       'url': item.url,
       'posterUrl': item.posterUrl,
@@ -170,22 +262,47 @@ class StorageService {
       'description': item.description,
       'type': item.contentType.name,
       'provider': item.provider,
+      'profileId': scope.profileId,
     });
   }
 
-  Future<void> removeFromLibrary(String url) async {
-    await _libraryBox.delete(_getKey(url));
-  }
-
-  bool isInLibrary(String url) {
-    return _libraryBox.containsKey(_getKey(url));
-  }
-
-  List<MultimediaItem> getLibraryItems() {
-    final items = <MultimediaItem>[];
+  Future<void> removeFromLibrary(
+    String url, {
+    ProfileScope scope = ProfileScope.none,
+  }) async {
+    final keys = <String>[];
     for (var i = 0; i < _libraryBox.length; i++) {
-      final key = _libraryBox.keyAt(i);
-      final map = Map<String, dynamic>.from(_libraryBox.get(key) as Map);
+      final key = _libraryBox.keyAt(i) as String;
+      final raw = _libraryBox.get(key);
+      if (raw is! Map) continue;
+      final map = Map<String, dynamic>.from(raw);
+      if (map['url'] != url) continue;
+      if (_recordOwned(map['profileId'] as String?, key, scope)) {
+        keys.add(key);
+      }
+    }
+    for (final key in keys) {
+      await _libraryBox.delete(key);
+    }
+  }
+
+  bool isInLibrary(String url, {ProfileScope scope = ProfileScope.none}) {
+    return _ownedLibraryMap(url, scope) != null;
+  }
+
+  List<MultimediaItem> getLibraryItems({
+    ProfileScope scope = ProfileScope.none,
+  }) {
+    final items = <MultimediaItem>[];
+    final seen = <String>{};
+    for (var i = 0; i < _libraryBox.length; i++) {
+      final key = _libraryBox.keyAt(i) as String;
+      final raw = _libraryBox.get(key);
+      if (raw is! Map) continue;
+      final map = Map<String, dynamic>.from(raw);
+      if (!_recordOwned(map['profileId'] as String?, key, scope)) continue;
+      final url = (map['url'] as String?) ?? '';
+      if (!seen.add(url)) continue;
       items.add(
         MultimediaItem(
           title: (map['title'] as String?) ?? '',
@@ -550,7 +667,9 @@ class StorageService {
     String? episodeTitle,
     String? episodePosterUrl,
     String? profileId,
+    ProfileScope scope = ProfileScope.none,
   }) async {
+    final owner = profileId ?? scope.profileId;
     final entry = {
       'title': item.title,
       'url': item.url,
@@ -569,40 +688,40 @@ class StorageService {
       'episode': episode,
       'episodeTitle': episodeTitle,
       'episodePosterUrl': episodePosterUrl,
-      'profileId': profileId,
+      'profileId': owner,
       'timestamp': DateTime.now().millisecondsSinceEpoch,
     };
 
-    // Save main entry (keyed by series/movie URL)
-    await _historyBox.put(_getKey(item.url), entry);
+    await _historyBox.put(_historyKey(item.url, owner), entry);
 
-    // Save episode-specific progress for both series and anime.
     final isSeries =
         item.contentType == MultimediaContentType.series ||
         item.contentType == MultimediaContentType.anime;
 
     if (isSeries && lastEpisodeUrl != null) {
-      final episodeKey = "EP_${_getKey(lastEpisodeUrl)}";
-      await _historyBox.put(episodeKey, entry);
+      await _historyBox.put(
+        _historyKey(lastEpisodeUrl, owner, episode: true),
+        entry,
+      );
     }
 
     _historyCacheDirty = true;
     onProgressSaved?.call();
   }
 
-  Future<void> removeFromHistory(String url) async {
-    final mainKey = _getKey(url);
-    await _historyBox.delete(mainKey);
-
-    // Cascade delete: find and remove all EP_ entries for this series
+  Future<void> removeFromHistory(
+    String url, {
+    ProfileScope scope = ProfileScope.none,
+  }) async {
     final keysToDelete = <String>[];
     for (var i = 0; i < _historyBox.length; i++) {
       final key = _historyBox.keyAt(i) as String;
-      if (key.startsWith("EP_")) {
-        final entry = _historyBox.get(key);
-        if (entry != null && entry['url'] == url) {
-          keysToDelete.add(key);
-        }
+      final raw = _historyBox.get(key);
+      if (raw is! Map) continue;
+      final entry = Map<String, dynamic>.from(raw);
+      if (entry['url'] != url) continue;
+      if (_recordOwned(entry['profileId'] as String?, key, scope)) {
+        keysToDelete.add(key);
       }
     }
 
@@ -617,28 +736,34 @@ class StorageService {
     String url,
     String? lastEpisodeUrl,
     int timestamp,
-    int position,
-  ) async {
-    final mainKey = _getKey(url);
-    final entry = _historyBox.get(mainKey);
-    if (entry != null) {
-      final updatedEntry = Map<String, dynamic>.from(entry as Map);
-      updatedEntry['timestamp'] = timestamp;
-      updatedEntry['position'] = position;
-      await _historyBox.put(mainKey, updatedEntry);
-
-      if (lastEpisodeUrl != null) {
-        final episodeKey = "EP_${_getKey(lastEpisodeUrl)}";
-        final epEntry = _historyBox.get(episodeKey);
-        if (epEntry != null) {
-          final updatedEpEntry = Map<String, dynamic>.from(epEntry as Map);
-          updatedEpEntry['timestamp'] = timestamp;
-          updatedEpEntry['position'] = position;
-          await _historyBox.put(episodeKey, updatedEpEntry);
+    int position, {
+    ProfileScope scope = ProfileScope.none,
+  }) async {
+    Future<void> touch(String? target, {required bool episode}) async {
+      if (target == null) return;
+      final profileId = scope.profileId;
+      final keys = <String>[
+        if (profileId != null && profileId.isNotEmpty)
+          _historyKey(target, profileId, episode: episode),
+        _historyKey(target, null, episode: episode),
+      ];
+      for (final key in keys) {
+        final raw = _historyBox.get(key);
+        if (raw is! Map) continue;
+        final current = Map<String, dynamic>.from(raw);
+        if (!_recordOwned(current['profileId'] as String?, key, scope)) {
+          continue;
         }
+        current['timestamp'] = timestamp;
+        current['position'] = position;
+        await _historyBox.put(key, current);
+        _historyCacheDirty = true;
+        return;
       }
-      _historyCacheDirty = true;
     }
+
+    await touch(url, episode: false);
+    await touch(lastEpisodeUrl, episode: true);
   }
 
   Future<void> clearAllHistory() async {
@@ -669,21 +794,9 @@ class StorageService {
     return items;
   }
 
-  int getPosition(String url) {
-    // Check main entry first (movies use this)
-    final key = _getKey(url);
-    if (_historyBox.containsKey(key)) {
-      final map = _historyBox.get(key) as Map;
-      return (map['position'] as int?) ?? 0;
-    }
-
-    // Fallback to episode if applicable (for legacy or mixed lookups)
-    final epKey = "EP_${_getKey(url)}";
-    if (_historyBox.containsKey(epKey)) {
-      final map = _historyBox.get(epKey) as Map;
-      return (map['position'] as int?) ?? 0;
-    }
-    return 0;
+  int getPosition(String url, {ProfileScope scope = ProfileScope.none}) {
+    final map = _ownedHistory(url, scope) ?? _ownedHistory(url, scope, episode: true);
+    return (map?['position'] as int?) ?? 0;
   }
 
   int getEpisodePosition(
@@ -691,39 +804,25 @@ class StorageService {
     String? mainUrl,
     int? season,
     int? episode,
+    ProfileScope scope = ProfileScope.none,
   }) {
-    final epKey = "EP_${_getKey(epUrl)}";
-    if (_historyBox.containsKey(epKey)) {
-      final map = _historyBox.get(epKey) as Map;
-      return (map['position'] as int?) ?? 0;
-    }
+    final map = _ownedHistory(epUrl, scope, episode: true);
+    if (map != null) return (map['position'] as int?) ?? 0;
 
-    // Fallback: If we have season/episode info, look into the main item entry
     if (mainUrl != null && season != null && episode != null) {
-      final mainKey = _getKey(mainUrl);
-      if (_historyBox.containsKey(mainKey)) {
-        final map = _historyBox.get(mainKey) as Map;
-        if (map['season'] == season && map['episode'] == episode) {
-          return (map['position'] as int?) ?? 0;
-        }
+      final main = _ownedHistory(mainUrl, scope);
+      if (main != null &&
+          main['season'] == season &&
+          main['episode'] == episode) {
+        return (main['position'] as int?) ?? 0;
       }
     }
     return 0;
   }
 
-  int getDuration(String url) {
-    final key = _getKey(url);
-    if (_historyBox.containsKey(key)) {
-      final map = _historyBox.get(key) as Map;
-      return (map['duration'] as int?) ?? 0;
-    }
-
-    final epKey = "EP_${_getKey(url)}";
-    if (_historyBox.containsKey(epKey)) {
-      final map = _historyBox.get(epKey) as Map;
-      return (map['duration'] as int?) ?? 0;
-    }
-    return 0;
+  int getDuration(String url, {ProfileScope scope = ProfileScope.none}) {
+    final map = _ownedHistory(url, scope) ?? _ownedHistory(url, scope, episode: true);
+    return (map?['duration'] as int?) ?? 0;
   }
 
   int getEpisodeDuration(
@@ -731,42 +830,47 @@ class StorageService {
     String? mainUrl,
     int? season,
     int? episode,
+    ProfileScope scope = ProfileScope.none,
   }) {
-    final epKey = "EP_${_getKey(epUrl)}";
-    if (_historyBox.containsKey(epKey)) {
-      final map = _historyBox.get(epKey) as Map;
-      return (map['duration'] as int?) ?? 0;
-    }
+    final map = _ownedHistory(epUrl, scope, episode: true);
+    if (map != null) return (map['duration'] as int?) ?? 0;
 
-    // Fallback: Look into main item entry
     if (mainUrl != null && season != null && episode != null) {
-      final mainKey = _getKey(mainUrl);
-      if (_historyBox.containsKey(mainKey)) {
-        final map = _historyBox.get(mainKey) as Map;
-        if (map['season'] == season && map['episode'] == episode) {
-          return (map['duration'] as int?) ?? 0;
-        }
+      final main = _ownedHistory(mainUrl, scope);
+      if (main != null &&
+          main['season'] == season &&
+          main['episode'] == episode) {
+        return (main['duration'] as int?) ?? 0;
       }
     }
     return 0;
   }
 
-  String? getLastStreamUrl(String url) {
-    final key = _getKey(url);
-    if (_historyBox.containsKey(key)) {
-      final map = _historyBox.get(key) as Map;
-      return map['lastStreamUrl'] as String?;
-    }
-    return null;
+  String? getLastStreamUrl(String url, {ProfileScope scope = ProfileScope.none}) {
+    final map = _ownedHistory(url, scope);
+    return map?['lastStreamUrl'] as String?;
   }
 
-  String? getLastEpisodeUrl(String url) {
-    final key = _getKey(url);
-    if (_historyBox.containsKey(key)) {
-      final map = _historyBox.get(key) as Map;
-      return map['lastEpisodeUrl'] as String?;
+  String? getLastEpisodeUrl(String url, {ProfileScope scope = ProfileScope.none}) {
+    final map = _ownedHistory(url, scope);
+    return map?['lastEpisodeUrl'] as String?;
+  }
+
+  Future<void> clearHistoryForProfile(ProfileScope scope) async {
+    final keys = <String>[];
+    for (var i = 0; i < _historyBox.length; i++) {
+      final key = _historyBox.keyAt(i) as String;
+      final raw = _historyBox.get(key);
+      if (raw is! Map) continue;
+      final map = Map<String, dynamic>.from(raw);
+      if (_recordOwned(map['profileId'] as String?, key, scope)) {
+        keys.add(key);
+      }
     }
-    return null;
+    for (final key in keys) {
+      await _historyBox.delete(key);
+    }
+    _historyCacheDirty = true;
   }
 
   static const String _kExtensionRepoUrls = 'extension_repo_urls';

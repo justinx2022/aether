@@ -270,8 +270,28 @@ class AddonMeta extends AddonMetaPreview {
     if (rawVideos is List) {
       for (final entry in rawVideos) {
         if (entry is Map) {
-          final video = AddonVideo.fromJson(Map<String, dynamic>.from(entry));
-          if (video.id.isNotEmpty) videos.add(video);
+          final parsed = AddonVideo.fromJson(
+            Map<String, dynamic>.from(entry),
+          );
+          final id = parsed.id.isNotEmpty
+              ? parsed.id
+              : (parsed.season != null && parsed.episode != null
+                    ? '${preview.id}:${parsed.season}:${parsed.episode}'
+                    : '');
+          if (id.isEmpty) continue;
+          videos.add(
+            id == parsed.id
+                ? parsed
+                : AddonVideo(
+                    id: id,
+                    title: parsed.title,
+                    season: parsed.season,
+                    episode: parsed.episode,
+                    released: parsed.released,
+                    thumbnail: parsed.thumbnail,
+                    overview: parsed.overview,
+                  ),
+          );
         }
       }
     }
