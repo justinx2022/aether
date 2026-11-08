@@ -623,9 +623,7 @@ class AutoRecommendationsSection extends ConsumerWidget {
     if (item.recommendations != null && item.recommendations!.isNotEmpty) {
       return RecommendationsCarousel(
         items: item.recommendations!,
-        onItemTap: (rec) {
-          DetailsRoute($extra: DetailsRouteExtra(item: rec)).push<void>(context);
-        },
+        onItemTap: (rec) => unawaited(openMediaItem(context, rec)),
       );
     }
 
@@ -635,9 +633,7 @@ class AutoRecommendationsSection extends ConsumerWidget {
         if (items.isEmpty) return const SizedBox.shrink();
         return RecommendationsCarousel(
           items: items,
-          onItemTap: (rec) {
-            DetailsRoute($extra: DetailsRouteExtra(item: rec)).push<void>(context);
-          },
+          onItemTap: (rec) => unawaited(openMediaItem(context, rec)),
         );
       },
       loading: () => const SizedBox.shrink(),
@@ -645,4 +641,3 @@ class AutoRecommendationsSection extends ConsumerWidget {
     );
   }
 }
-

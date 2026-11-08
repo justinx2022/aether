@@ -241,16 +241,15 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
         }
 
         // Add-on content has no plugin behind it — reopen it in the add-on
-        // stack, which knows how to resolve its streams.
-        if (item.source == kAddonItemSource) {
-          unawaited(
-            AddonDetailRoute(
-              type: item.contentType == MultimediaContentType.movie
-                  ? 'movie'
-                  : 'series',
-              id: item.url,
-            ).push<void>(context),
-          );
+        // stack, which knows how to resolve its streams. Older history
+        // entries predate the persisted marker, so an upstream id is also
+        // enough: a `tt…` title can only be played through the add-on stack.
+        final isAddon =
+            item.source == kAddonItemSource ||
+            item.url.startsWith('tt') ||
+            item.url.startsWith('kitsu:');
+        if (isAddon) {
+          unawaited(openMediaItem(context, item));
           return;
         }
 

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/entity/multimedia_item.dart';
+import '../addons/models/addon_meta.dart' show kAddonItemSource;
 import '../network/dio_client_provider.dart';
 
 final recommendationsServiceProvider = Provider<RecommendationsService>((ref) {
@@ -11,10 +12,13 @@ final recommendationsServiceProvider = Provider<RecommendationsService>((ref) {
 });
 
 final similarItemsProvider =
-    FutureProvider.family<List<MultimediaItem>, MultimediaItem>((ref, item) async {
-  final service = ref.watch(recommendationsServiceProvider);
-  return service.getSimilarItems(item);
-});
+    FutureProvider.family<List<MultimediaItem>, MultimediaItem>((
+      ref,
+      item,
+    ) async {
+      final service = ref.watch(recommendationsServiceProvider);
+      return service.getSimilarItems(item);
+    });
 
 class RecommendationsService {
   final Dio _dio;
@@ -50,7 +54,8 @@ class RecommendationsService {
         if (searchResp.data is Map && searchResp.data['metas'] is List) {
           final metas = searchResp.data['metas'] as List;
           if (metas.isNotEmpty && metas.first is Map) {
-            targetImdb = (metas.first['imdb_id'] ?? metas.first['id']) as String?;
+            targetImdb =
+                (metas.first['imdb_id'] ?? metas.first['id']) as String?;
           }
         }
       }
@@ -89,6 +94,12 @@ class RecommendationsService {
           final id = (entry['imdb_id'] ?? entry['id']) as String? ?? '';
           if (name.isEmpty) continue;
 
+          // Recommendation cards open in the add-on stack, which resolves a
+          // `tt…` id through the installed meta and stream add-ons. A card
+          // without a real IMDb id has nothing playable to point at, so it is
+          // dropped rather than shown as a dead tile.
+          if (!id.startsWith('tt')) continue;
+
           // Exclude the source item itself
           if (name.toLowerCase() == item.title.toLowerCase() ||
               (targetImdb != null && id == targetImdb)) {
@@ -98,23 +109,29 @@ class RecommendationsService {
           final poster = entry['poster'] as String? ?? '';
           final banner = entry['background'] as String?;
           final desc = entry['description'] as String?;
-          final year = entry['year'] as String? ?? entry['releaseInfo'] as String?;
+          final year =
+              entry['year'] as String? ?? entry['releaseInfo'] as String?;
 
-            results.add(
-              MultimediaItem(
-                title: name,
-                url: 'cinemeta:$id',
-                posterUrl: poster,
-                bannerUrl: banner,
-                description: desc,
-                year: int.tryParse(year?.split('-').first ?? ''),
-                contentType: isSeries
-                    ? MultimediaContentType.series
-                    : MultimediaContentType.movie,
-                imdbId: id.startsWith('tt') ? id : null,
-                provider: 'cinemeta',
-              ),
-            );
+          results.add(
+            MultimediaItem(
+              title: name,
+              // Bare IMDb id — the same shape search results carry.
+              // `cinemeta:$id` was a plugin-scraper URL, so opening it
+              // asked a CloudStream plugin to load a "site page" that does
+              // not exist instead of asking stream add-ons for links.
+              url: id,
+              posterUrl: poster,
+              bannerUrl: banner,
+              description: desc,
+              year: int.tryParse(year?.split('-').first ?? ''),
+              contentType: isSeries
+                  ? MultimediaContentType.series
+                  : MultimediaContentType.movie,
+              imdbId: id,
+              provider: 'cinemeta',
+              source: kAddonItemSource,
+            ),
+          );
 
           if (results.length >= 20) break;
         }

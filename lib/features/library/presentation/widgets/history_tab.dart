@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,9 +23,10 @@ import '../history_provider.dart';
 ///
 /// GROUND's centrepiece: a list, not a grid, because history is read for
 /// "where was I" rather than browsed for "what next" - a row can carry the
-/// episode and the progress, and a poster cannot. Every row opens the title's
-/// details page, which is where Resume already lives, so this screen never
-/// guesses how to start playback.
+/// episode and the progress, and a poster cannot. Every row reopens the
+/// title on the screen that owns it — plugin details for plugin content,
+/// the add-on stack for add-on content — so this screen never guesses how
+/// to start playback.
 class HistoryTab extends ConsumerStatefulWidget {
   const HistoryTab({super.key});
 
@@ -98,8 +101,7 @@ class _HistoryTabState extends ConsumerState<HistoryTab>
                 key: ValueKey('history_${entry.item.url}_$index'),
                 entry: entry,
                 onTap: () =>
-                    DetailsRoute($extra: DetailsRouteExtra(item: entry.item))
-                        .push<void>(context),
+                    unawaited(openMediaItem(context, entry.item)),
                 onRemove: () => ref
                     .read(watchHistoryProvider.notifier)
                     .removeFromHistory(entry.item.url),
