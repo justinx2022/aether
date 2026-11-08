@@ -1,0 +1,4 @@
+# gen-l10n writes the host's line endings, and CI regenerates on Linux. Pinning
+# the committed output to LF keeps the "gen-l10n Output Is Committed" drift
+# check green no matter which OS the files were last generated on.
+lib/l10n/generated/** text eol=lf
