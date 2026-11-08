@@ -141,6 +141,7 @@ class NoHistory extends HistoryRepository {
     int? episode,
     String? episodeTitle,
     String? episodePosterUrl,
+    String? profileId,
   }) async {}
 }
 

@@ -170,9 +170,6 @@ class StorageService {
       'description': item.description,
       'type': item.contentType.name,
       'provider': item.provider,
-      // Kept so bookmarked add-on titles (including ones saved from a
-      // recommendation shelf) reopen in the add-on stack after a restart.
-      'source': item.source,
     });
   }
 
@@ -200,7 +197,6 @@ class StorageService {
             (map['type'] as String?) ?? (map['contentType'] as String?),
           ),
           provider: map['provider'] as String?,
-          source: map['source'] as String?,
         ),
       );
     }
@@ -565,10 +561,6 @@ class StorageService {
       'provider': item.provider,
       'tmdbId': item.tmdbId,
       'imdbId': item.imdbId,
-      // How this title should be reopened. Add-on content (recommendation
-      // shelves included) must go back through the add-on stack, not the
-      // plugin details screen, or it opens a page that cannot play.
-      'source': item.source,
       'position': positionMillis,
       'duration': durationMillis,
       'lastStreamUrl': lastStreamUrl,

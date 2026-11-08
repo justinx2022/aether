@@ -22,7 +22,6 @@ import '../../features/details/presentation/details_screen.dart';
 import '../../features/details/presentation/tmdb_movie_details_screen.dart';
 import '../../features/explore/presentation/view_all_screen.dart';
 import '../domain/entity/multimedia_item.dart';
-import '../addons/models/addon_meta.dart' show kAddonItemSource;
 import 'package:skystream/shared/widgets/app_scaffold.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 import 'package:flutter/foundation.dart';
@@ -366,40 +365,6 @@ class DetailsRoute extends GoRouteData with $DetailsRoute {
   Widget build(BuildContext context, GoRouterState state) {
     return DetailsScreen(item: $extra.item, autoPlay: $extra.autoPlay);
   }
-}
-
-/// Opens [item] on the screen that can actually resolve its playback.
-///
-/// Add-on content — anything marked [kAddonItemSource], or carrying an
-/// upstream id such as `tt…` or `kitsu:…` — belongs in the add-on stack: meta
-/// add-ons describe it, stream add-ons hand back links. Sending it to the
-/// plugin details screen instead makes playback call a plugin's
-/// `loadStreams()` with an id that plugin has never seen, so the page opens
-/// but no link ever plays. That is exactly how "Because you watched" shelves
-/// (built from Cinemeta) used to break.
-Future<void> openMediaItem(BuildContext context, MultimediaItem item) async {
-  // Items built before the add-on route was fixed carry a `cinemeta:` prefix;
-  // strip it so they still resolve through Cinemeta's meta.
-  final id = item.url.startsWith('cinemeta:')
-      ? item.url.substring('cinemeta:'.length)
-      : item.url;
-
-  final isAddon =
-      item.source == kAddonItemSource ||
-      id.startsWith('tt') ||
-      id.startsWith('kitsu:');
-
-  if (isAddon) {
-    await AddonDetailRoute(
-      type: item.contentType == MultimediaContentType.series
-          ? 'series'
-          : 'movie',
-      id: id,
-    ).push<void>(context);
-    return;
-  }
-
-  await DetailsRoute($extra: DetailsRouteExtra(item: item)).push<void>(context);
 }
 
 @TypedGoRoute<TmdbDetailsRoute>(path: '/tmdb-details')

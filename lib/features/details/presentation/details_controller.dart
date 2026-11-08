@@ -8,6 +8,7 @@ import 'package:collection/collection.dart';
 import '../../../../core/domain/entity/multimedia_item.dart';
 import '../../../core/extensions/base_provider.dart';
 import '../../../core/extensions/extension_manager.dart';
+import '../../../core/recommendations/recommendations_service.dart';
 import '../../../../core/storage/library_repository.dart';
 import '../../../../core/storage/history_repository.dart';
 
@@ -32,6 +33,38 @@ String episodeSelectionKey(Episode episode) {
     episode.dubStatus.name,
     episode.url,
   ].join('|');
+}
+
+/// Gives a legacy recommendation card the catalogue's own token.
+///
+/// Shelves and history rows minted before the token shape was fixed carry
+/// `cinemeta:tt…`, which `dev.justin.catalogue` cannot parse — that is the
+/// "Title not found" a recommendation used to hit. The card already knows its
+/// IMDb id and type, so rebuild the row the catalogue would have issued and
+/// playback finds its HLS links with nothing for the viewer to pick.
+MultimediaItem _withCatalogueTokenIfLegacy(MultimediaItem item) {
+  final legacy =
+      item.provider == 'cinemeta' ||
+      item.provider == 'tmdb' ||
+      item.url.startsWith('cinemeta:') ||
+      item.url.startsWith('tmdb:');
+  if (!legacy) return item;
+
+  final imdb =
+      item.imdbId ?? RecommendationsService.imdbFromCatalogueToken(item.url);
+  if (imdb == null || !imdb.startsWith('tt')) return item;
+
+  return item.copyWith(
+    url: RecommendationsService.catalogueToken(
+      imdbId: imdb,
+      type: item.contentType == MultimediaContentType.series
+          ? 'series'
+          : 'movie',
+      title: item.title,
+      year: item.year?.toString(),
+    ),
+    provider: RecommendationsService.catalogueProvider,
+  );
 }
 
 class DetailsState {
@@ -264,6 +297,8 @@ class DetailsController extends _$DetailsController {
 
   Future<void> loadDetails(MultimediaItem item, {bool autoPlay = false}) async {
     if (state.details is AsyncData) return;
+
+    item = _withCatalogueTokenIfLegacy(item);
 
     state = state.copyWith(details: const AsyncLoading());
 

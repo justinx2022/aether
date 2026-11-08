@@ -152,9 +152,8 @@ class _BookmarksTabState extends ConsumerState<BookmarksTab>
   /// The await is the mechanism: `push` completes when the details page is
   /// popped, which is the moment the viewer is looking at this grid again.
   Future<void> _openDetails(MultimediaItem item) async {
-    // Saved add-on titles (including ones bookmarked from a recommendation
-    // shelf) must reopen in the add-on stack, exactly like search results.
-    await openMediaItem(context, item);
+    await DetailsRoute($extra: DetailsRouteExtra(item: item))
+        .push<void>(context);
     if (!mounted) return;
     if (!_restoresFocus) return;
     _focusReturn.restoreTo(item.url);

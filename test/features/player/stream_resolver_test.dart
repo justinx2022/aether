@@ -73,6 +73,12 @@ class FakePlugin implements SkyStreamProvider {
   @override
   Future<Map<String, List<MultimediaItem>>> getHome() async => const {};
   @override
+  Future<List<MultimediaItem>?> getCategoryPage(
+    String category,
+    int page,
+    int offset,
+  ) async => null;
+  @override
   Future<MultimediaItem> getDetails(String url) async =>
       throw UnimplementedError();
 }

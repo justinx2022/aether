@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -34,7 +32,10 @@ class BecauseYouWatchedSection extends ConsumerWidget {
             category: ViewAllCategory.providerContent,
             showViewAll: false,
             heroTagPrefix: 'because_watched',
-            onTap: (selected) => unawaited(openMediaItem(context, selected)),
+            onTap: (selected) {
+              DetailsRoute($extra: DetailsRouteExtra(item: selected))
+                  .push<void>(context);
+            },
           ),
         );
       },

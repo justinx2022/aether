@@ -49,7 +49,6 @@ class HistoryItem {
         provider: map['provider'] as String?,
         tmdbId: map['tmdbId'] as int?,
         imdbId: map['imdbId'] as String?,
-        source: map['source'] as String?,
       ),
       position: (map['position'] as int?) ?? 0,
       duration: (map['duration'] as int?) ?? 0,
