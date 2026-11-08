@@ -339,8 +339,12 @@ class DetailsController extends _$DetailsController {
         return;
       }
 
+      // Cards whose ids belong to metadata services, not to any installed
+      // plugin. Their ids cannot be resolved, so they are rendered from what
+      // the card already carries. `dev.justin.catalogue` is not one of these:
+      // it parses its own row token, so its items are fetched through it like
+      // any other plugin's, which is what gives a series its episode list.
       final isCatalogItem = item.provider == 'cinemeta' ||
-          item.provider == 'dev.justin.catalogue' ||
           item.provider == 'tmdb' ||
           item.url.startsWith('cinemeta:') ||
           item.url.startsWith('tmdb:');
