@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/device_info_provider.dart';
@@ -123,17 +124,35 @@ class _DesktopScrollWrapperState extends ConsumerState<DesktopScrollWrapper> {
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) => _updateArrows());
 
-    final childWithListener = NotificationListener<ScrollNotification>(
-      onNotification: (notification) {
-        _updateArrows();
-        return false;
+    final childWithListener = Listener(
+      onPointerSignal: (pointerSignal) {
+        if (pointerSignal is PointerScrollEvent && widget.controller.hasClients) {
+          final delta = pointerSignal.scrollDelta.dy != 0
+              ? pointerSignal.scrollDelta.dy
+              : pointerSignal.scrollDelta.dx;
+          if (delta != 0) {
+            final target = (widget.controller.offset + (delta * 1.8))
+                .clamp(0.0, widget.controller.position.maxScrollExtent);
+            widget.controller.animateTo(
+              target,
+              duration: const Duration(milliseconds: 140),
+              curve: Curves.easeOutCubic,
+            );
+          }
+        }
       },
-      child: NotificationListener<ScrollMetricsNotification>(
+      child: NotificationListener<ScrollNotification>(
         onNotification: (notification) {
           _updateArrows();
           return false;
         },
-        child: widget.child,
+        child: NotificationListener<ScrollMetricsNotification>(
+          onNotification: (notification) {
+            _updateArrows();
+            return false;
+          },
+          child: widget.child,
+        ),
       ),
     );
 

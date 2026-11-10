@@ -100,34 +100,36 @@ class HistoryRepository {
     );
   }
 
-  Future<void> removeFromHistory(String url) async {
-    await _storageService.removeFromHistory(url);
+  Future<void> removeFromHistory(String url, {String? profileId}) async {
+    await _storageService.removeFromHistory(url, profileId: profileId);
   }
 
   Future<void> updateHistoryItemTimestampAndPosition(
     HistoryItem item,
     int timestamp,
-    int position,
-  ) async {
+    int position, {
+    String? profileId,
+  }) async {
     await _storageService.updateHistoryItemTimestampAndPosition(
       item.item.url,
       item.lastEpisodeUrl,
       timestamp,
       position,
+      profileId: profileId ?? item.profileId,
     );
   }
 
-  Future<void> clearAllHistory() async {
-    await _storageService.clearAllHistory();
+  Future<void> clearAllHistory({String? profileId}) async {
+    await _storageService.clearAllHistory(profileId: profileId);
   }
 
-  List<HistoryItem> getWatchHistory() {
-    final rawItems = _storageService.getWatchHistory();
+  List<HistoryItem> getWatchHistory({String? profileId}) {
+    final rawItems = _storageService.getWatchHistory(profileId: profileId);
     return rawItems.map((map) => HistoryItem.fromMap(map)).toList();
   }
 
-  int getPosition(String url) {
-    return _storageService.getPosition(url);
+  int getPosition(String url, {String? profileId}) {
+    return _storageService.getPosition(url, profileId: profileId);
   }
 
   int getEpisodePosition(
@@ -135,17 +137,19 @@ class HistoryRepository {
     String? mainUrl,
     int? season,
     int? episode,
+    String? profileId,
   }) {
     return _storageService.getEpisodePosition(
       url,
       mainUrl: mainUrl,
       season: season,
       episode: episode,
+      profileId: profileId,
     );
   }
 
-  int getDuration(String url) {
-    return _storageService.getDuration(url);
+  int getDuration(String url, {String? profileId}) {
+    return _storageService.getDuration(url, profileId: profileId);
   }
 
   int getEpisodeDuration(
@@ -153,20 +157,22 @@ class HistoryRepository {
     String? mainUrl,
     int? season,
     int? episode,
+    String? profileId,
   }) {
     return _storageService.getEpisodeDuration(
       url,
       mainUrl: mainUrl,
       season: season,
       episode: episode,
+      profileId: profileId,
     );
   }
 
-  String? getLastStreamUrl(String url) {
-    return _storageService.getLastStreamUrl(url);
+  String? getLastStreamUrl(String url, {String? profileId}) {
+    return _storageService.getLastStreamUrl(url, profileId: profileId);
   }
 
-  String? getLastEpisodeUrl(String url) {
-    return _storageService.getLastEpisodeUrl(url);
+  String? getLastEpisodeUrl(String url, {String? profileId}) {
+    return _storageService.getLastEpisodeUrl(url, profileId: profileId);
   }
 }

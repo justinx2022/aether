@@ -367,6 +367,11 @@ void _navigateToItem(
   String? placeholderPoster,
   bool isStremioMode = false,
 }) {
+  if (item.url.startsWith('cinemeta:') || item.provider == 'cinemeta') {
+    DetailsRoute($extra: DetailsRouteExtra(item: item)).push<void>(context);
+    return;
+  }
+
   final isAddon =
       item.source == kAddonItemSource ||
       item.url.startsWith('addon:') ||

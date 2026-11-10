@@ -15,11 +15,11 @@ class WatchHistory extends _$WatchHistory {
   List<HistoryItem> build() {
     final repository = ref.watch(historyRepositoryProvider);
     final activeProfile = ref.watch(profileControllerProvider).activeProfile;
-    final all = repository.getWatchHistory();
+    final all = repository.getWatchHistory(profileId: activeProfile?.id);
     if (activeProfile == null) return all;
 
     return all.where((h) {
-      // 1. Profile isolation: match activeProfile id or legacy unassigned entries
+      // 1. Strict profile isolation
       if (h.profileId != null && h.profileId != activeProfile.id) {
         return false;
       }
@@ -41,7 +41,7 @@ class WatchHistory extends _$WatchHistory {
   void refresh() {
     final repository = ref.read(historyRepositoryProvider);
     final activeProfile = ref.read(profileControllerProvider).activeProfile;
-    final all = repository.getWatchHistory();
+    final all = repository.getWatchHistory(profileId: activeProfile?.id);
     if (activeProfile == null) {
       state = all;
       return;
@@ -66,13 +66,15 @@ class WatchHistory extends _$WatchHistory {
 
   Future<void> clearAllHistory() async {
     final repository = ref.read(historyRepositoryProvider);
-    await repository.clearAllHistory();
+    final activeProfile = ref.read(profileControllerProvider).activeProfile;
+    await repository.clearAllHistory(profileId: activeProfile?.id);
     refresh();
   }
 
   Future<void> removeFromHistory(String url) async {
     final repository = ref.read(historyRepositoryProvider);
-    await repository.removeFromHistory(url);
+    final activeProfile = ref.read(profileControllerProvider).activeProfile;
+    await repository.removeFromHistory(url, profileId: activeProfile?.id);
     refresh();
   }
 
@@ -82,10 +84,12 @@ class WatchHistory extends _$WatchHistory {
     int position,
   ) async {
     final repository = ref.read(historyRepositoryProvider);
+    final activeProfile = ref.read(profileControllerProvider).activeProfile;
     await repository.updateHistoryItemTimestampAndPosition(
       item,
       timestamp,
       position,
+      profileId: activeProfile?.id,
     );
     refresh();
   }

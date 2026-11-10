@@ -31,7 +31,7 @@ class BecauseYouWatchedSection extends ConsumerWidget {
             mediaList: items,
             category: ViewAllCategory.providerContent,
             showViewAll: false,
-            heroTagPrefix: 'because_watched',
+            heroTagPrefix: 'because_watched_${item.title.hashCode}',
             onTap: (selected) {
               DetailsRoute($extra: DetailsRouteExtra(item: selected))
                   .push<void>(context);

@@ -1,16 +1,27 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 
-/// The app's scroll behaviour with the scrollbar taken away.
+/// The app's scroll behaviour with smooth momentum, mouse dragging, and no ugly scrollbar.
 ///
-/// For screens that draw their own edge hint - a gradient where the list
-/// carries on - in place of a scrollbar.
-///
-/// A [MaterialScrollBehavior], not a bare [ScrollBehavior]: the base class
-/// predates Material 3 and gives Android the pre-12 glow at the ends of a
-/// list, where this one gives it the stretch that every other screen already
-/// gets from [MaterialApp]. The scrollbar is the only thing that changes.
+/// Enables butter-smooth scrolling across Windows, macOS, Linux, and Android
+/// with mouse drag, trackpad, and touch support.
 class NoScrollbarBehavior extends MaterialScrollBehavior {
   const NoScrollbarBehavior();
+
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.trackpad,
+        PointerDeviceKind.stylus,
+      };
+
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) {
+    return const BouncingScrollPhysics(
+      parent: AlwaysScrollableScrollPhysics(),
+    );
+  }
 
   @override
   Widget buildScrollbar(

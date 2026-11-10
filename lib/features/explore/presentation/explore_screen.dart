@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/tmdb_config.dart';
-import '../../settings/presentation/widgets/settings_dialogs.dart';
 import '../../../shared/widgets/cards_wrapper.dart';
 import '../../../shared/widgets/no_scrollbar_behavior.dart';
 import '../data/explore_tmdb_provider.dart';
@@ -27,6 +26,10 @@ import '../../addons/presentation/addons_screen.dart';
 import 'widgets/explore_mode_selector_dialog.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/router/app_router.dart';
+import '../../../core/recommendations/recommendations_service.dart';
+import '../../library/presentation/history_provider.dart';
+import '../../home/presentation/widgets/because_you_watched_section.dart';
+import '../../../../shared/widgets/loading_indicator.dart';
 
 import 'dart:async';
 
@@ -404,19 +407,139 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
     ref.invalidate(genresProvider);
   }
 
-  Widget _buildScrollView(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+  Widget _buildGlobalCatalogueScrollView(BuildContext context) {
+    final globalCatalogueAsync = ref.watch(globalCatalogueProvider);
+    final history = ref.watch(watchHistoryProvider);
 
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(globalCatalogueProvider);
+      },
+      child: globalCatalogueAsync.when(
+        data: (catalogue) {
+          if (catalogue.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.cloud_off_rounded, size: 64),
+                  const SizedBox(height: 16),
+                  const Text('Unable to load Global Catalogue'),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: () => ref.invalidate(globalCatalogueProvider),
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: const Text('Retry'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final heroItems = catalogue['Trending Movies'] ??
+              catalogue['Trending Series'] ??
+              catalogue.values.firstOrNull ??
+              [];
+
+          return CustomScrollView(
+            controller: _scrollController,
+            slivers: [
+              if (heroItems.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: ExploreCarousel(
+                    movies: heroItems.take(10).toList(),
+                    scrollController: _scrollController,
+                    onNavigateUp: () => _firstActionFocusNode.requestFocus(),
+                    onControllerReady: (c) =>
+                        setState(() => _carouselController = c),
+                  ),
+                ),
+
+              // Up to 5 "Because you watched" personalized shelves
+              if (history.isNotEmpty) ...[
+                for (final uniqueItem in history
+                    .map((h) => h.item)
+                    .fold<List<MultimediaItem>>(<MultimediaItem>[], (List<MultimediaItem> list, MultimediaItem it) {
+                      final title = it.title.trim().toLowerCase();
+                      if (title.isNotEmpty &&
+                          !list.any((existing) =>
+                              existing.title.trim().toLowerCase() == title)) {
+                        list.add(it);
+                      }
+                      return list;
+                    })
+                    .take(5))
+                  SliverToBoxAdapter(
+                    key: ValueKey('explore_because_watched_${uniqueItem.title}'),
+                    child: BecauseYouWatchedSection(
+                      item: uniqueItem,
+                    ),
+                  ),
+              ],
+
+              // All international & genre shelves
+              for (final entry in catalogue.entries)
+                SliverToBoxAdapter(
+                  key: ValueKey('global_${entry.key}'),
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: MediaHorizontalList(
+                      title: entry.key,
+                      mediaList: entry.value,
+                      category: ViewAllCategory.providerContent,
+                      showViewAll: false,
+                      heroTagPrefix: 'explore_global_${entry.key.hashCode}',
+                      onTap: (item) {
+                        DetailsRoute($extra: DetailsRouteExtra(item: item))
+                            .push<void>(context);
+                      },
+                    ),
+                  ),
+                ),
+
+              SliverPadding(
+                padding: EdgeInsets.only(
+                  bottom: LayoutConstants.shellBottomContentPadding(context),
+                ),
+              ),
+            ],
+          );
+        },
+        loading: () => CustomScrollView(
+          controller: _scrollController,
+          slivers: [
+            SliverToBoxAdapter(
+              child: _buildCarouselShimmer(context),
+            ),
+            const SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(child: AppLoadingIndicator()),
+            ),
+          ],
+        ),
+        error: (err, stack) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline_rounded, size: 64),
+              const SizedBox(height: 16),
+              const Text('Could not load Global Catalogue'),
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: () => ref.invalidate(globalCatalogueProvider),
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScrollView(BuildContext context) {
     if (TmdbConfig.apiKey.isEmpty) {
-      return _buildNeedsKeyOrErrorState(
-        context,
-        icon: Icons.vpn_key_rounded,
-        title: 'TMDB API key needed',
-        subtitle:
-            'TMDB is used to discover movies and series on Explore. '
-            'Please configure a free TMDB API key in Settings or Nuvio plugins.',
-        showApiKeyButton: true,
-      );
+      return _buildGlobalCatalogueScrollView(context);
     }
 
     final heroMoviesAsync = ref.watch(exploreHeroMovieProvider);
@@ -451,15 +574,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
         });
 
     if (isAllFailedOrEmpty) {
-      final firstError = allSections.firstWhereOrNull((s) => s.hasError)?.error;
-      return _buildNeedsKeyOrErrorState(
-        context,
-        icon: Icons.cloud_off_rounded,
-        title: l10n.siteNotReachable,
-        subtitle: 'Could not load Explore content. Check your internet connection or verify your TMDB API key.',
-        errorDetails: firstError?.toString(),
-        showApiKeyButton: true,
-      );
+      return _buildGlobalCatalogueScrollView(context);
     }
 
     final isNone = heroMoviesAsync.maybeWhen(
@@ -488,87 +603,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
             );
           }),
         ],
-      ),
-    );
-  }
-
-  Widget _buildNeedsKeyOrErrorState(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    String? errorDetails,
-    bool showApiKeyButton = false,
-  }) {
-    final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 80, color: theme.colorScheme.error),
-            const SizedBox(height: 24),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            if (errorDetails != null && errorDetails.isNotEmpty) ...[
-              const SizedBox(height: 24),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: SelectableText(
-                  errorDetails,
-                  style: TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 12,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-            ],
-            const SizedBox(height: 32),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              alignment: WrapAlignment.center,
-              children: [
-                FilledButton.icon(
-                  onPressed: _refreshAll,
-                  icon: const Icon(Icons.refresh_rounded),
-                  label: Text(l10n.retry),
-                ),
-                if (showApiKeyButton)
-                  ElevatedButton.icon(
-                    onPressed: () => showTmdbApiKeyDialog(context, ref),
-                    icon: const Icon(Icons.vpn_key_rounded),
-                    label: const Text('TMDB API Key'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: theme.colorScheme.secondaryContainer,
-                      foregroundColor: theme.colorScheme.onSecondaryContainer,
-                    ),
-                  ),
-              ],
-            ),
-          ],
-        ),
       ),
     );
   }

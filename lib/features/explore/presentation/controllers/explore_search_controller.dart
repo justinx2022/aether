@@ -10,6 +10,8 @@ import '../../../addons/presentation/addon_providers.dart';
 import '../../../../core/addons/data/addon_repository.dart';
 import '../../../../core/addons/models/addon_meta.dart';
 import '../../../../core/domain/entity/multimedia_item.dart';
+import '../../../../core/config/tmdb_config.dart';
+import '../../../../core/recommendations/recommendations_service.dart';
 
 part 'explore_search_controller.g.dart';
 
@@ -121,9 +123,12 @@ class ExploreSearchController extends _$ExploreSearchController {
         } else if (mode == ExploreModeType.stremio) {
           final previews = await ref.read(addonSearchProvider(query).future);
           results = _addonItems(previews);
-        } else {
+        } else if (TmdbConfig.apiKey.isNotEmpty) {
           final tmdb = ref.read(tmdbServiceProvider);
           results = await tmdb.multiSearch(query: query, language: 'en-US');
+        } else {
+          final cinemeta = ref.read(recommendationsServiceProvider);
+          results = await cinemeta.searchCatalog(query);
         }
 
         if (state.query == query) {
@@ -166,13 +171,16 @@ class ExploreSearchController extends _$ExploreSearchController {
       } else if (mode == ExploreModeType.stremio) {
         final previews = await ref.read(addonSearchProvider(query).future);
         results = _addonItems(previews);
-      } else {
+      } else if (TmdbConfig.apiKey.isNotEmpty) {
         final tmdb = ref.read(tmdbServiceProvider);
         results = await tmdb.multiSearch(
           query: query,
           language: 'en-US',
           page: 1,
         );
+      } else {
+        final cinemeta = ref.read(recommendationsServiceProvider);
+        results = await cinemeta.searchCatalog(query);
       }
 
       if (state.resultsQuery == query) {

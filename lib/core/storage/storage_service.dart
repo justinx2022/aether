@@ -158,6 +158,22 @@ class StorageService {
     return md5.convert(utf8.encode(url)).toString();
   }
 
+  String _getProfileKey(String url, String? profileId) {
+    final baseKey = _getKey(url);
+    if (profileId != null && profileId.isNotEmpty) {
+      return '${profileId}_$baseKey';
+    }
+    return baseKey;
+  }
+
+  String _getProfileEpisodeKey(String epUrl, String? profileId) {
+    final baseKey = _getKey(epUrl);
+    if (profileId != null && profileId.isNotEmpty) {
+      return '${profileId}_EP_$baseKey';
+    }
+    return 'EP_$baseKey';
+  }
+
   // --- Library (Favorites) ---
 
   // Stored as a map, keyed by the url, which is assumed to be unique.
@@ -573,8 +589,8 @@ class StorageService {
       'timestamp': DateTime.now().millisecondsSinceEpoch,
     };
 
-    // Save main entry (keyed by series/movie URL)
-    await _historyBox.put(_getKey(item.url), entry);
+    // Save profile-scoped entry so profiles never overwrite each other's progress
+    await _historyBox.put(_getProfileKey(item.url, profileId), entry);
 
     // Save episode-specific progress for both series and anime.
     final isSeries =
@@ -582,7 +598,7 @@ class StorageService {
         item.contentType == MultimediaContentType.anime;
 
     if (isSeries && lastEpisodeUrl != null) {
-      final episodeKey = "EP_${_getKey(lastEpisodeUrl)}";
+      final episodeKey = _getProfileEpisodeKey(lastEpisodeUrl, profileId);
       await _historyBox.put(episodeKey, entry);
     }
 
@@ -590,18 +606,21 @@ class StorageService {
     onProgressSaved?.call();
   }
 
-  Future<void> removeFromHistory(String url) async {
-    final mainKey = _getKey(url);
+  Future<void> removeFromHistory(String url, {String? profileId}) async {
+    final mainKey = _getProfileKey(url, profileId);
     await _historyBox.delete(mainKey);
+    await _historyBox.delete(_getKey(url));
 
-    // Cascade delete: find and remove all EP_ entries for this series
+    // Cascade delete: find and remove all EP_ entries for this series and profile
     final keysToDelete = <String>[];
     for (var i = 0; i < _historyBox.length; i++) {
       final key = _historyBox.keyAt(i) as String;
-      if (key.startsWith("EP_")) {
+      if (key.contains("EP_")) {
         final entry = _historyBox.get(key);
         if (entry != null && entry['url'] == url) {
-          keysToDelete.add(key);
+          if (profileId == null || entry['profileId'] == profileId) {
+            keysToDelete.add(key);
+          }
         }
       }
     }
@@ -617,10 +636,11 @@ class StorageService {
     String url,
     String? lastEpisodeUrl,
     int timestamp,
-    int position,
-  ) async {
-    final mainKey = _getKey(url);
-    final entry = _historyBox.get(mainKey);
+    int position, {
+    String? profileId,
+  }) async {
+    final mainKey = _getProfileKey(url, profileId);
+    final entry = _historyBox.get(mainKey) ?? _historyBox.get(_getKey(url));
     if (entry != null) {
       final updatedEntry = Map<String, dynamic>.from(entry as Map);
       updatedEntry['timestamp'] = timestamp;
@@ -628,8 +648,9 @@ class StorageService {
       await _historyBox.put(mainKey, updatedEntry);
 
       if (lastEpisodeUrl != null) {
-        final episodeKey = "EP_${_getKey(lastEpisodeUrl)}";
-        final epEntry = _historyBox.get(episodeKey);
+        final episodeKey = _getProfileEpisodeKey(lastEpisodeUrl, profileId);
+        final epEntry = _historyBox.get(episodeKey) ??
+            _historyBox.get("EP_${_getKey(lastEpisodeUrl)}");
         if (epEntry != null) {
           final updatedEpEntry = Map<String, dynamic>.from(epEntry as Map);
           updatedEpEntry['timestamp'] = timestamp;
@@ -641,35 +662,70 @@ class StorageService {
     }
   }
 
-  Future<void> clearAllHistory() async {
-    await _historyBox.clear();
+  Future<void> clearAllHistory({String? profileId}) async {
+    if (profileId != null && profileId.isNotEmpty) {
+      final keysToDelete = <String>[];
+      for (var i = 0; i < _historyBox.length; i++) {
+        final key = _historyBox.keyAt(i) as String;
+        if (key.startsWith('${profileId}_')) {
+          keysToDelete.add(key);
+        } else {
+          final entry = _historyBox.get(key);
+          if (entry is Map && entry['profileId'] == profileId) {
+            keysToDelete.add(key);
+          }
+        }
+      }
+      for (final k in keysToDelete) {
+        await _historyBox.delete(k);
+      }
+    } else {
+      await _historyBox.clear();
+    }
     _historyCacheDirty = true;
   }
 
-  List<Map<String, dynamic>> getWatchHistory() {
-    if (!_historyCacheDirty && _cachedHistory != null) {
-      return _cachedHistory!;
-    }
-
+  List<Map<String, dynamic>> getWatchHistory({String? profileId}) {
     final items = <Map<String, dynamic>>[];
     for (var i = 0; i < _historyBox.length; i++) {
       final key = _historyBox.keyAt(i) as String;
       // Filter out episode-specific entries from the main history list
-      if (key.startsWith("EP_")) continue;
+      if (key.contains("EP_")) continue;
 
-      final map = Map<String, dynamic>.from(_historyBox.get(key) as Map);
+      final rawEntry = _historyBox.get(key);
+      if (rawEntry is! Map) continue;
+      final map = Map<String, dynamic>.from(rawEntry);
+      final itemProfile = map['profileId'] as String?;
+
+      if (profileId != null && profileId.isNotEmpty) {
+        // Strict profile isolation: only return items belonging to this profile
+        if (itemProfile != profileId) continue;
+      }
+
       items.add(map);
     }
     items.sort(
-      (a, b) => (b['timestamp'] as int).compareTo(a['timestamp'] as int),
+      (a, b) => ((b['timestamp'] as int?) ?? 0)
+          .compareTo((a['timestamp'] as int?) ?? 0),
     );
 
-    _cachedHistory = items;
-    _historyCacheDirty = false;
     return items;
   }
 
-  int getPosition(String url) {
+  int getPosition(String url, {String? profileId}) {
+    if (profileId != null && profileId.isNotEmpty) {
+      final pKey = _getProfileKey(url, profileId);
+      if (_historyBox.containsKey(pKey)) {
+        final map = _historyBox.get(pKey) as Map;
+        return (map['position'] as int?) ?? 0;
+      }
+      final pEpKey = _getProfileEpisodeKey(url, profileId);
+      if (_historyBox.containsKey(pEpKey)) {
+        final map = _historyBox.get(pEpKey) as Map;
+        return (map['position'] as int?) ?? 0;
+      }
+    }
+
     // Check main entry first (movies use this)
     final key = _getKey(url);
     if (_historyBox.containsKey(key)) {
@@ -691,7 +747,16 @@ class StorageService {
     String? mainUrl,
     int? season,
     int? episode,
+    String? profileId,
   }) {
+    if (profileId != null && profileId.isNotEmpty) {
+      final pEpKey = _getProfileEpisodeKey(epUrl, profileId);
+      if (_historyBox.containsKey(pEpKey)) {
+        final map = _historyBox.get(pEpKey) as Map;
+        return (map['position'] as int?) ?? 0;
+      }
+    }
+
     final epKey = "EP_${_getKey(epUrl)}";
     if (_historyBox.containsKey(epKey)) {
       final map = _historyBox.get(epKey) as Map;
@@ -700,6 +765,15 @@ class StorageService {
 
     // Fallback: If we have season/episode info, look into the main item entry
     if (mainUrl != null && season != null && episode != null) {
+      if (profileId != null && profileId.isNotEmpty) {
+        final pMainKey = _getProfileKey(mainUrl, profileId);
+        if (_historyBox.containsKey(pMainKey)) {
+          final map = _historyBox.get(pMainKey) as Map;
+          if (map['season'] == season && map['episode'] == episode) {
+            return (map['position'] as int?) ?? 0;
+          }
+        }
+      }
       final mainKey = _getKey(mainUrl);
       if (_historyBox.containsKey(mainKey)) {
         final map = _historyBox.get(mainKey) as Map;
@@ -711,7 +785,20 @@ class StorageService {
     return 0;
   }
 
-  int getDuration(String url) {
+  int getDuration(String url, {String? profileId}) {
+    if (profileId != null && profileId.isNotEmpty) {
+      final pKey = _getProfileKey(url, profileId);
+      if (_historyBox.containsKey(pKey)) {
+        final map = _historyBox.get(pKey) as Map;
+        return (map['duration'] as int?) ?? 0;
+      }
+      final pEpKey = _getProfileEpisodeKey(url, profileId);
+      if (_historyBox.containsKey(pEpKey)) {
+        final map = _historyBox.get(pEpKey) as Map;
+        return (map['duration'] as int?) ?? 0;
+      }
+    }
+
     final key = _getKey(url);
     if (_historyBox.containsKey(key)) {
       final map = _historyBox.get(key) as Map;
@@ -731,7 +818,16 @@ class StorageService {
     String? mainUrl,
     int? season,
     int? episode,
+    String? profileId,
   }) {
+    if (profileId != null && profileId.isNotEmpty) {
+      final pEpKey = _getProfileEpisodeKey(epUrl, profileId);
+      if (_historyBox.containsKey(pEpKey)) {
+        final map = _historyBox.get(pEpKey) as Map;
+        return (map['duration'] as int?) ?? 0;
+      }
+    }
+
     final epKey = "EP_${_getKey(epUrl)}";
     if (_historyBox.containsKey(epKey)) {
       final map = _historyBox.get(epKey) as Map;
@@ -740,6 +836,15 @@ class StorageService {
 
     // Fallback: Look into main item entry
     if (mainUrl != null && season != null && episode != null) {
+      if (profileId != null && profileId.isNotEmpty) {
+        final pMainKey = _getProfileKey(mainUrl, profileId);
+        if (_historyBox.containsKey(pMainKey)) {
+          final map = _historyBox.get(pMainKey) as Map;
+          if (map['season'] == season && map['episode'] == episode) {
+            return (map['duration'] as int?) ?? 0;
+          }
+        }
+      }
       final mainKey = _getKey(mainUrl);
       if (_historyBox.containsKey(mainKey)) {
         final map = _historyBox.get(mainKey) as Map;
@@ -751,7 +856,14 @@ class StorageService {
     return 0;
   }
 
-  String? getLastStreamUrl(String url) {
+  String? getLastStreamUrl(String url, {String? profileId}) {
+    if (profileId != null && profileId.isNotEmpty) {
+      final pKey = _getProfileKey(url, profileId);
+      if (_historyBox.containsKey(pKey)) {
+        final map = _historyBox.get(pKey) as Map;
+        return map['lastStreamUrl'] as String?;
+      }
+    }
     final key = _getKey(url);
     if (_historyBox.containsKey(key)) {
       final map = _historyBox.get(key) as Map;
@@ -760,7 +872,14 @@ class StorageService {
     return null;
   }
 
-  String? getLastEpisodeUrl(String url) {
+  String? getLastEpisodeUrl(String url, {String? profileId}) {
+    if (profileId != null && profileId.isNotEmpty) {
+      final pKey = _getProfileKey(url, profileId);
+      if (_historyBox.containsKey(pKey)) {
+        final map = _historyBox.get(pKey) as Map;
+        return map['lastEpisodeUrl'] as String?;
+      }
+    }
     final key = _getKey(url);
     if (_historyBox.containsKey(key)) {
       final map = _historyBox.get(key) as Map;

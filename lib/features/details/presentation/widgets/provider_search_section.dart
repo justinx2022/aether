@@ -387,10 +387,17 @@ class _ProviderSearchSectionState extends ConsumerState<ProviderSearchSection> {
             ),
           ),
         ),
-        error: (err, _) => Padding(
+        error: (err, _) => Container(
+          height: ProviderSearchSection.railHeight,
+          alignment: Alignment.center,
           padding: const EdgeInsets.all(LayoutConstants.spacingMd),
           child: Text(
-            AppLocalizations.of(context)!.errorPrefix(err.toString()),
+            AppLocalizations.of(context)!.noResultsFound,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontSize: 12,
+            ),
           ),
         ),
       );

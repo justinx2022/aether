@@ -21,7 +21,6 @@ import '../../../core/config/tmdb_config.dart';
 import '../../../core/config/sync_config.dart';
 import '../../tracking/presentation/tracking_auth_provider.dart';
 import '../../tracking/data/simkl_service.dart';
-import '../../tracking/data/trakt_service.dart';
 import '../../tracking/data/mal_service.dart';
 import '../../tracking/data/anilist_service.dart';
 import '../../../core/storage/settings_repository.dart';
@@ -39,14 +38,12 @@ class AccountSettingsScreen extends ConsumerStatefulWidget {
 
 class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
   final FocusNode _simklFocusNode = FocusNode();
-  final FocusNode _traktFocusNode = FocusNode();
   final FocusNode _malFocusNode = FocusNode();
   final FocusNode _anilistFocusNode = FocusNode();
 
   @override
   void dispose() {
     _simklFocusNode.dispose();
-    _traktFocusNode.dispose();
     _malFocusNode.dispose();
     _anilistFocusNode.dispose();
     super.dispose();
@@ -238,108 +235,6 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                                       .showError(
                                         l10n.connectionFailed,
                                         title: 'Simkl',
-                                        icon: Icons.sync_problem_rounded,
-                                      );
-                                }
-                                if (isDialogShowing &&
-                                    dialogContext != null &&
-                                    dialogContext!.mounted) {
-                                  Navigator.of(dialogContext!).pop();
-                                }
-                              }
-                              ref.invalidate(trackingAuthProvider);
-                            },
-                          ),
-                          SettingsTile(
-                            focusNode: _traktFocusNode,
-                            icon: Icons.sync_rounded,
-                            title: 'Trakt',
-                            subtitle: trackingAuthAsync.when(
-                              data: (state) => state['trakt'] == true
-                                  ? 'Connected'
-                                  : l10n.notLoggedIn,
-                              loading: () => l10n.loading,
-                              error: (_, _) => l10n.unknown,
-                            ),
-                            onTap: () async {
-                              final state = trackingAuthAsync.value ?? {};
-                              if (state['trakt'] == true) {
-                                final confirm = await _confirmDisconnect(
-                                  context,
-                                  'Trakt',
-                                );
-                                if (confirm) {
-                                  await ref.read(traktServiceProvider).logout();
-                                  ref.invalidate(trackingAuthProvider);
-                                  if (context.mounted) {
-                                    _traktFocusNode.requestFocus();
-                                  }
-                                }
-                              } else {
-                                bool isCancelled = false;
-                                bool isDialogShowing = false;
-                                BuildContext? dialogContext;
-                                bool success = false;
-                                try {
-                                  success = await ref
-                                      .read(traktServiceProvider)
-                                      .login(
-                                        isCancelled: () => isCancelled,
-                                        onDeviceCodeGenerated:
-                                            (url, code) async {
-                                              if (context.mounted) {
-                                                isDialogShowing = true;
-                                                unawaited(
-                                                  showDialog<void>(
-                                                    context: context,
-                                                    barrierDismissible: true,
-                                                    builder: (ctx) {
-                                                      dialogContext = ctx;
-                                                      return TrackingAuthDialog(
-                                                        providerName: 'Trakt',
-                                                        verificationUrl: url,
-                                                        userCode: code,
-                                                      );
-                                                    },
-                                                  ).then((_) {
-                                                    isCancelled = true;
-                                                    isDialogShowing = false;
-                                                    if (context.mounted) {
-                                                      _traktFocusNode
-                                                          .requestFocus();
-                                                    }
-                                                  }),
-                                                );
-                                              }
-                                            },
-                                      );
-                                } catch (error, stackTrace) {
-                                  talker.error(
-                                    'AccountSettingsScreen: Trakt login threw',
-                                    error,
-                                    stackTrace,
-                                  );
-                                }
-                                if (success && context.mounted) {
-                                  ref
-                                      .read(notificationServiceProvider)
-                                      .showSuccess(
-                                        'Successfully connected to Trakt!',
-                                        title: 'Trakt',
-                                        icon: Icons.sync_rounded,
-                                      );
-                                } else if (!isCancelled && context.mounted) {
-                                  // A device-code login that times out, is denied, or
-                                  // throws all land here. Without this branch the tile
-                                  // just falls back to "Not logged in" and the viewer
-                                  // is told nothing at all. A dialog the viewer
-                                  // dismissed is not a failure, hence the isCancelled
-                                  // guard.
-                                  ref
-                                      .read(notificationServiceProvider)
-                                      .showError(
-                                        l10n.connectionFailed,
-                                        title: 'Trakt',
                                         icon: Icons.sync_problem_rounded,
                                       );
                                 }

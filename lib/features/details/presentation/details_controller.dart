@@ -18,6 +18,7 @@ import '../../library/presentation/library_provider.dart';
 import '../../library/presentation/history_provider.dart';
 import 'playback_launcher.dart';
 import '../../../core/services/download_service.dart';
+import '../../../core/recommendations/recommendations_service.dart';
 import '../data/metadata_resolution_service.dart';
 import 'downloaded_file_provider.dart';
 import '../../tracking/data/simkl_service.dart';
@@ -326,7 +327,19 @@ class DetailsController extends _$DetailsController {
       }
 
       MultimediaItem? fetchedItem;
-      if (provider != null) {
+      if (isCatalogItem) {
+        final rawId = item.imdbId ??
+            (item.url.startsWith('cinemeta:')
+                ? item.url.replaceFirst('cinemeta:', '')
+                : null);
+        if (rawId != null) {
+          final cleanId = rawId.split(':').first;
+          final isSeries = item.contentType == MultimediaContentType.series;
+          fetchedItem = await ref
+              .read(recommendationsServiceProvider)
+              .getCinemetaDetails(cleanId, isSeries: isSeries);
+        }
+      } else if (provider != null) {
         try {
           fetchedItem = await provider.getDetails(item.url);
         } catch (e) {
