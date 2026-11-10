@@ -6,7 +6,7 @@ part 'explore_mode_provider.g.dart';
 
 const String _kExploreModeKey = 'explore_mode_type';
 
-enum ExploreModeType { movies, anime, stremio }
+enum ExploreModeType { movies, anime }
 
 // App-wide user state that persists to SharedPreferences. Disposing it would
 // snap the mode back to `movies` and re-read prefs asynchronously; the

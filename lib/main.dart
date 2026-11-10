@@ -389,14 +389,6 @@ class _MyAppState extends ConsumerState<MyApp> {
         'Nuvio scrapers',
         () => ref.read(nuvioRepositoryProvider.notifier).autoUpdate(),
       ),
-      _updating(
-        'Stremio add-ons',
-        () async => ExtensionUpdateReport(
-          updated: await ref
-              .read(addonRepositoryProvider.notifier)
-              .autoUpdate(),
-        ),
-      ),
     ]);
     final report = ExtensionUpdateReport.merge(reports);
     if (report.isEmpty || !mounted) return;

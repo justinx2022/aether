@@ -1,6 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -191,21 +191,51 @@ class PlaybackLauncher {
 
     try {
       final manager = _ref.read(extensionManagerProvider.notifier);
+      final allProviders = manager.getAllProviders();
+      final catalogueProvider = allProviders.firstWhereOrNull(
+        (p) =>
+            p.packageName == 'dev.justin.catalogue' ||
+            p.name.toLowerCase().contains('catalogue'),
+      );
+
       SkyStreamProvider? provider;
       if (item.provider != null) {
-        try {
-          final val = item.provider!;
-          provider = manager.getAllProviders().firstWhere(
-            (p) => p.packageName == val || p.name == val,
-          );
-        } catch (e) {
-          if (kDebugMode) debugPrint('PlaybackLauncher.launch: $e');
-        }
+        final val = item.provider!;
+        provider = allProviders.firstWhereOrNull(
+          (p) => p.packageName == val || p.name == val,
+        );
       }
-      provider ??= _ref.read(activeProviderProvider);
+      provider ??= _ref.read(activeProviderProvider) ?? catalogueProvider;
       if (provider == null) throw Exception('No active provider');
 
-      final streams = await provider.loadStreams(episodeDataUrl);
+      String effectiveEpUrl = episodeDataUrl;
+      if (effectiveEpUrl.startsWith('cinemeta:')) {
+        final stripped = effectiveEpUrl.replaceFirst('cinemeta:', '');
+        final parts = stripped.split(':');
+        final imdbId = parts[0];
+        final s = parts.length > 1 ? (int.tryParse(parts[1]) ?? 1) : 1;
+        final ep = parts.length > 2 ? (int.tryParse(parts[2]) ?? 1) : 1;
+        final isSeries =
+            item.contentType == MultimediaContentType.series || parts.length > 1;
+        effectiveEpUrl = jsonEncode({
+          'id': imdbId,
+          'imdbId': imdbId,
+          'type': isSeries ? 'series' : 'movie',
+          'season': s,
+          'episode': ep,
+          'title': item.title,
+          if (item.tmdbId != null) 'tmdbId': item.tmdbId,
+        });
+      }
+
+      var streams = await provider.loadStreams(effectiveEpUrl);
+      if (streams.isEmpty &&
+          catalogueProvider != null &&
+          provider.packageName != catalogueProvider.packageName) {
+        try {
+          streams = await catalogueProvider.loadStreams(effectiveEpUrl);
+        } catch (_) {}
+      }
       if (isCanceled || isSkipped || !context.mounted) return;
 
       if (!dialogDismissed) {

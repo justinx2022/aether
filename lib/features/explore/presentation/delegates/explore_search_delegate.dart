@@ -20,7 +20,6 @@ import '../../../../core/utils/responsive_breakpoints.dart';
 import '../../../../core/domain/entity/multimedia_item.dart';
 import '../../../../core/addons/models/addon_meta.dart' show kAddonItemSource;
 import '../../../../shared/widgets/cards_wrapper.dart';
-import '../../data/explore_mode_provider.dart';
 
 class ExploreSearchDelegate extends SearchDelegate<void> {
   final FocusNode _firstSuggestionFocusNode = FocusNode();
@@ -352,8 +351,7 @@ class _SearchSuggestionsListState
           context,
           item,
           heroTag: 'search_${item.url}',
-          isStremioMode:
-              ref.read(exploreModeProvider) == ExploreModeType.stremio,
+          isStremioMode: false,
         );
       },
     );
@@ -570,8 +568,7 @@ class _SearchResultsGridState extends ConsumerState<_SearchResultsGrid> {
               item,
               heroTag: uniqueTag,
               placeholderPoster: imageUrl,
-              isStremioMode:
-                  ref.read(exploreModeProvider) == ExploreModeType.stremio,
+              isStremioMode: false,
             );
           },
         );

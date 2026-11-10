@@ -1134,7 +1134,7 @@ class StremioOpenSubtitlesProvider extends SubtitleProvider {
   StremioOpenSubtitlesProvider(this._dio);
 
   @override
-  String get name => "OpenSubtitles (Stremio v3)";
+  String get name => "OpenSubtitles v3 (Universal)";
 
   @override
   String get idPrefix => "stremio_os";

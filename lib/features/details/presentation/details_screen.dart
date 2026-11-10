@@ -528,7 +528,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    "Standard provider metadata unavailable. You can stream directly via Add-ons / Stremio below.",
+                    "Metadata unavailable. High-speed HLS streaming available below.",
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 12,
@@ -691,7 +691,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          "Standard provider metadata unavailable. You can stream directly via Add-ons / Stremio below.",
+                          "Metadata unavailable. High-speed HLS streaming available below.",
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onSurfaceVariant,
                             fontSize: 12,

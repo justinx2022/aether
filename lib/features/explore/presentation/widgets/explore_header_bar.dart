@@ -12,8 +12,6 @@ import 'package:skystream/features/explore/presentation/widgets/explore_mode_sel
 
 import 'dart:async';
 
-import '../../../../core/router/app_router.dart';
-
 /// A custom header bar for the explore screen in widescreen/desktop layout.
 ///
 /// Contains: carousel prev/next arrows, capsule search, filter chip.
@@ -121,14 +119,6 @@ class ExploreHeaderBar extends ConsumerWidget {
                       );
                       labelText = l10n.exploreAnime;
                       break;
-                    case ExploreModeType.stremio:
-                      iconWidget = Icon(
-                        Icons.extension_outlined,
-                        size: 14,
-                        color: textColor,
-                      );
-                      labelText = 'Stremio Add-ons';
-                      break;
                   }
 
                   return Row(
@@ -205,11 +195,9 @@ class ExploreHeaderBar extends ConsumerWidget {
           ),
 
           const SizedBox(width: 16),
-          // Filter / Stremio Add-on Settings chip
+          // Filter chip
           Consumer(
             builder: (context, ref, _) {
-              final mode = ref.watch(exploreModeProvider);
-              final isStremio = mode == ExploreModeType.stremio;
               final filters = ref.watch(exploreFilterProvider);
               final hasActiveFilter =
                   filters.selectedGenre != null ||
@@ -219,35 +207,29 @@ class ExploreHeaderBar extends ConsumerWidget {
               return CardsWrapper(
                 scaleFactor: 1.01,
                 onTap: () {
-                  if (isStremio) {
-                    const AddonsRoute().go(context);
-                  } else {
-                    unawaited(
-                      showDialog<void>(
-                        context: context,
-                        builder: (context) => const UnifiedFilterDialog(),
-                      ),
-                    );
-                  }
+                  unawaited(
+                    showDialog<void>(
+                      context: context,
+                      builder: (context) => const UnifiedFilterDialog(),
+                    ),
+                  );
                 },
                 borderRadius: BorderRadius.circular(50),
                 child: Tooltip(
-                  message: isStremio ? 'Stremio Settings' : 'Filter',
+                  message: 'Filter',
                   child: Container(
                     width: 36,
                     height: 36,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: (!isStremio && hasActiveFilter)
+                      color: hasActiveFilter
                           ? theme.colorScheme.primary
                           : theme.colorScheme.surfaceContainerHighest
                                 .withValues(alpha: 0.3),
                     ),
                     child: Icon(
-                      isStremio
-                          ? Icons.dashboard_customize_rounded
-                          : Icons.tune,
+                      Icons.tune,
                       color: theme.colorScheme.onSurface,
                       size: 18,
                     ),

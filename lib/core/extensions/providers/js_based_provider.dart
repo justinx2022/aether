@@ -751,14 +751,11 @@ class JsBasedProvider extends SkyStreamProvider {
       } on JsPluginException catch (e) {
         if (kDebugMode) debugPrint("JsPluginException in getDetails: $e");
         talker.error("JsPluginException in getDetails: $e");
-        if (e.code == 'NOT_FOUND') {
-          return MultimediaItem(title: "Not Found", url: url, posterUrl: "");
-        }
         rethrow;
       } catch (e) {
         if (kDebugMode) debugPrint("Error in getDetails: $e");
         talker.error("Error in getDetails: $e");
-        return MultimediaItem(title: "Error: $e", url: url, posterUrl: "");
+        rethrow;
       }
     });
   }

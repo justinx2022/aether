@@ -72,21 +72,6 @@ Future<void> showExploreModeSelectorDialog(
                     Navigator.pop(dialogContext);
                   },
                 ),
-                _ModeOptionTile(
-                  value: ExploreModeType.stremio,
-                  icon: Icons.dashboard_customize_outlined,
-                  title: 'Stremio Add-ons',
-                  subtitle:
-                      'Explore catalogs from your installed Stremio add-ons',
-                  isSelected: currentMode == ExploreModeType.stremio,
-                  autofocus: currentMode == ExploreModeType.stremio,
-                  onTap: () {
-                    ref
-                        .read(exploreModeProvider.notifier)
-                        .setMode(ExploreModeType.stremio);
-                    Navigator.pop(dialogContext);
-                  },
-                ),
               ],
             ),
           ),

@@ -111,7 +111,7 @@ class PlayerSettingsScreen extends ConsumerWidget {
                   ),
                   SettingsTile(
                     icon: Icons.blur_on_rounded,
-                    title: 'Stremio-style Loading Screen',
+                    title: 'Cinematic Poster Loading Screen',
                     subtitle: playerSettings.stremioLoadScreen
                         ? 'Pulsating title, poster backdrop & Dive In button'
                         : 'Classic minimal spinner',

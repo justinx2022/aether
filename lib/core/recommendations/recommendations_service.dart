@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -200,19 +202,26 @@ class RecommendationsService {
           final desc = entry['description'] as String?;
           final year = entry['year'] as String? ?? entry['releaseInfo'] as String?;
 
+          final parsedYear = int.tryParse(year?.split('-').first ?? '');
           results.add(
             MultimediaItem(
               title: name,
-              url: 'cinemeta:$id',
+              url: jsonEncode({
+                'id': id,
+                'imdbId': id,
+                'type': isSeries ? 'series' : 'movie',
+                'title': name,
+                'year': parsedYear,
+              }),
               posterUrl: poster,
               bannerUrl: banner,
               description: desc,
-              year: int.tryParse(year?.split('-').first ?? ''),
+              year: parsedYear,
               contentType: isSeries
                   ? MultimediaContentType.series
                   : MultimediaContentType.movie,
               imdbId: id.startsWith('tt') ? id : null,
-              provider: 'cinemeta',
+              provider: 'dev.justin.catalogue',
             ),
           );
           if (results.length >= 25) break;
@@ -313,13 +322,13 @@ class RecommendationsService {
     // Parse episodes
     final episodesList = <Episode>[];
     final videos = meta['videos'];
+    final dynamic moviedbId = meta['moviedb_id'];
     if (videos is List && videos.isNotEmpty) {
       for (final v in videos) {
         if (v is! Map) continue;
         final int s = (v['season'] as num?)?.toInt() ?? 1;
         final int ep = ((v['number'] ?? v['episode']) as num?)?.toInt() ?? 1;
         final epName = v['name'] as String? ?? v['title'] as String? ?? 'Episode $ep';
-        final epId = v['id'] as String? ?? '$cleanId:$s:$ep';
         final epThumb = v['thumbnail'] as String?;
         final epDesc = v['overview'] as String? ?? v['description'] as String?;
 
@@ -328,7 +337,15 @@ class RecommendationsService {
             name: epName,
             season: s,
             episode: ep,
-            url: 'cinemeta:$epId',
+            url: jsonEncode({
+              'imdbId': cleanId,
+              if (moviedbId != null) 'tmdbId': moviedbId,
+              'type': 'series',
+              'season': s,
+              'episode': ep,
+              'title': name,
+              'epTitle': epName,
+            }),
             posterUrl: epThumb ?? poster,
             description: epDesc,
           ),
@@ -340,7 +357,16 @@ class RecommendationsService {
       episodesList.add(
         Episode(
           name: name,
-          url: 'cinemeta:$cleanId',
+          season: 1,
+          episode: 1,
+          url: jsonEncode({
+            'imdbId': cleanId,
+            if (moviedbId != null) 'tmdbId': moviedbId,
+            'type': detectedSeries ? 'series' : 'movie',
+            'season': 1,
+            'episode': 1,
+            'title': name,
+          }),
           posterUrl: poster,
         ),
       );
@@ -348,7 +374,14 @@ class RecommendationsService {
 
     final item = MultimediaItem(
       title: name,
-      url: 'cinemeta:$cleanId',
+      url: jsonEncode({
+        'id': cleanId,
+        'imdbId': cleanId,
+        if (moviedbId != null) 'tmdbId': moviedbId,
+        'type': detectedSeries ? 'series' : 'movie',
+        'title': name,
+        'year': year,
+      }),
       description: desc,
       posterUrl: poster,
       bannerUrl: background,
@@ -362,7 +395,7 @@ class RecommendationsService {
           ? MultimediaContentType.series
           : MultimediaContentType.movie,
       imdbId: cleanId,
-      provider: 'cinemeta',
+      provider: 'dev.justin.catalogue',
     );
 
     _cache[cacheKey] = [item];

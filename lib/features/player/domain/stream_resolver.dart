@@ -10,6 +10,7 @@
 library;
 
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
@@ -331,13 +332,34 @@ Future<ResolvedPlayback> resolvePlayback({
   // tapped source first and have ranked the rest themselves.
   final handPicked = preloaded.isNotEmpty;
 
+  // Sanitize effectiveUrl for Global Catalogue and JS providers
+  String effectiveUrl = videoUrl;
+  if (effectiveUrl.startsWith('cinemeta:')) {
+    final stripped = effectiveUrl.replaceFirst('cinemeta:', '');
+    final parts = stripped.split(':');
+    final imdbId = parts[0];
+    final s = parts.length > 1 ? (int.tryParse(parts[1]) ?? 1) : 1;
+    final ep = parts.length > 2 ? (int.tryParse(parts[2]) ?? 1) : 1;
+    final isSeries =
+        item.contentType == MultimediaContentType.series || parts.length > 1;
+    effectiveUrl = jsonEncode({
+      'id': imdbId,
+      'imdbId': imdbId,
+      'type': isSeries ? 'series' : 'movie',
+      'season': s,
+      'episode': ep,
+      'title': item.title,
+      if (item.tmdbId != null) 'tmdbId': item.tmdbId,
+    });
+  }
+
   List<StreamResult> raw = const <StreamResult>[];
   if (handPicked) {
     raw = preloaded;
   } else {
     final sw = Stopwatch()..start();
     try {
-      raw = (await provider!.loadStreams(videoUrl))
+      raw = (await provider!.loadStreams(effectiveUrl))
           .where((s) => !isTorrentSource(s))
           .toList(growable: false);
       sw.stop();
@@ -346,18 +368,51 @@ Future<ResolvedPlayback> resolvePlayback({
             .recordSuccess(provider.packageName, responseTime: sw.elapsed);
       } catch (_) {}
     } catch (e) {
-      // No AI "repair" here. The only thing such a call could be handed is the
-      // exception text — there is no page to read a link out of — so it either
-      // answered NONE or invented a URL that was then played and failed, after
-      // up to nine seconds of waiting. The provider's error is the answer.
+      if (kDebugMode) {
+        debugPrint('[StreamResolver] Primary provider load failed: $e');
+      }
+    }
+
+    // High-speed HLS fallback: if primary provider yielded 0 streams, query Global Catalogue
+    final allProviders =
+        read(extensionManagerProvider.notifier).getAllProviders();
+    final catalogueProvider = allProviders.firstWhereOrNull(
+      (p) =>
+          p.packageName == 'dev.justin.catalogue' ||
+          p.name.toLowerCase().contains('catalogue'),
+    );
+
+    if (raw.isEmpty &&
+        catalogueProvider != null &&
+        provider?.packageName != catalogueProvider.packageName) {
       try {
-        read(providerHealthServiceProvider)
-            .recordFailure(provider?.packageName ?? '', reason: '$e');
-      } catch (_) {}
-      throw StreamResolutionException(
-        StreamResolutionFailure.loadFailed,
-        detail: '$e',
-      );
+        final catUrl = effectiveUrl.startsWith('{')
+            ? effectiveUrl
+            : jsonEncode({
+                'id': item.imdbId ??
+                    (item.url.startsWith('cinemeta:')
+                        ? item.url.replaceFirst('cinemeta:', '').split(':').first
+                        : item.imdbId),
+                'imdbId': item.imdbId ??
+                    (item.url.startsWith('cinemeta:')
+                        ? item.url.replaceFirst('cinemeta:', '').split(':').first
+                        : item.imdbId),
+                'type': item.contentType == MultimediaContentType.series
+                    ? 'series'
+                    : 'movie',
+                'season': 1,
+                'episode': 1,
+                'title': item.title,
+                if (item.tmdbId != null) 'tmdbId': item.tmdbId,
+              });
+        raw = (await catalogueProvider.loadStreams(catUrl))
+            .where((s) => !isTorrentSource(s))
+            .toList(growable: false);
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('[StreamResolver] Catalogue HLS fallback failed: $e');
+        }
+      }
     }
   }
   if (isCancelled?.call() ?? false) {
@@ -485,13 +540,24 @@ SkyStreamProvider? pluginFor(
 SkyStreamProvider? _resolveProvider(ProviderReader read, MultimediaItem item) {
   final active = read(activeProviderProvider);
   final wanted = item.provider;
+  final all = read(extensionManagerProvider.notifier).getAllProviders();
   if (wanted != null) {
-    final match = read(extensionManagerProvider.notifier)
-        .getAllProviders()
+    final match = all
         .firstWhereOrNull((p) => p.packageName == wanted || p.name == wanted);
     if (match != null) return match;
+    if (wanted == 'cinemeta' ||
+        wanted == 'dev.justin.catalogue' ||
+        wanted == 'Global Catalogue') {
+      final cat = all.firstWhereOrNull((p) =>
+          p.packageName == 'dev.justin.catalogue' ||
+          p.name.toLowerCase().contains('catalogue'));
+      if (cat != null) return cat;
+    }
   }
-  return active;
+  return active ??
+      all.firstWhereOrNull((p) =>
+          p.packageName == 'dev.justin.catalogue' ||
+          p.name.toLowerCase().contains('catalogue'));
 }
 
 /// Settings can still be loading when playback starts. Silently skipping the

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -33,6 +34,14 @@ String episodeSelectionKey(Episode episode) {
     episode.dubStatus.name,
     episode.url,
   ].join('|');
+}
+
+Map<String, dynamic>? _tryParseJson(String source) {
+  try {
+    final decoded = jsonDecode(source);
+    if (decoded is Map) return Map<String, dynamic>.from(decoded);
+  } catch (_) {}
+  return null;
 }
 
 class DetailsState {
@@ -305,46 +314,55 @@ class DetailsController extends _$DetailsController {
         return;
       }
 
-      final isCatalogItem = item.provider == 'cinemeta' ||
-          item.provider == 'dev.justin.catalogue' ||
-          item.provider == 'tmdb' ||
-          item.url.startsWith('cinemeta:') ||
-          item.url.startsWith('tmdb:');
+      final allProviders = manager.getAllProviders();
+      final catalogueProvider = allProviders.firstWhereOrNull(
+        (p) =>
+            p.packageName == 'dev.justin.catalogue' ||
+            p.name.toLowerCase().contains('catalogue'),
+      );
 
       SkyStreamProvider? provider;
-      if (!isCatalogItem && item.provider != null) {
-        try {
-          provider = manager.getAllProviders().firstWhere(
-            (p) => p.packageName == item.provider || p.name == item.provider,
-          );
-        } catch (e) {
-          if (kDebugMode) debugPrint('DetailsController.loadDetails: $e');
-        }
+      if (item.provider != null) {
+        provider = allProviders.firstWhereOrNull(
+          (p) => p.packageName == item.provider || p.name == item.provider,
+        );
       }
 
-      if (!isCatalogItem) {
-        provider ??= active;
+      final isCatalogItem = item.provider == 'dev.justin.catalogue' ||
+          item.provider == 'cinemeta' ||
+          item.provider == 'Global Catalogue' ||
+          item.url.startsWith('cinemeta:') ||
+          item.url.startsWith('{');
+
+      if (isCatalogItem) {
+        provider ??= catalogueProvider ?? active;
+      } else {
+        provider ??= active ?? catalogueProvider;
       }
 
       MultimediaItem? fetchedItem;
-      if (isCatalogItem) {
-        final rawId = item.imdbId ??
-            (item.url.startsWith('cinemeta:')
-                ? item.url.replaceFirst('cinemeta:', '')
-                : null);
-        if (rawId != null) {
-          final cleanId = rawId.split(':').first;
+      // 1. Try loading through provider directly with properly sanitized URL
+      if (provider != null) {
+        String resolveUrl = item.url;
+        if ((provider.packageName == 'dev.justin.catalogue' ||
+                provider.name.toLowerCase().contains('catalogue')) &&
+            resolveUrl.startsWith('cinemeta:')) {
+          final cleanId =
+              resolveUrl.replaceFirst('cinemeta:', '').split(':').first;
           final isSeries = item.contentType == MultimediaContentType.series;
-          fetchedItem = await ref
-              .read(recommendationsServiceProvider)
-              .getCinemetaDetails(cleanId, isSeries: isSeries);
+          resolveUrl = jsonEncode({
+            'id': cleanId,
+            'imdbId': cleanId,
+            'type': isSeries ? 'series' : 'movie',
+            'title': item.title,
+          });
         }
-      } else if (provider != null) {
         try {
-          fetchedItem = await provider.getDetails(item.url);
+          fetchedItem = await provider.getDetails(resolveUrl);
         } catch (e) {
           if (kDebugMode) {
-            debugPrint('Provider getDetails failed: $e. Attempting title search fallback.');
+            debugPrint(
+                'Provider getDetails failed: $e. Attempting title search fallback.');
           }
           try {
             final searchResults = await provider.search(item.title);
@@ -355,10 +373,32 @@ class DetailsController extends _$DetailsController {
         }
       }
 
+      // 2. Fallback to Cinemeta service if provider could not fetch metadata
+      if (fetchedItem == null) {
+        final parsedUrl = _tryParseJson(item.url);
+        final rawId = item.imdbId ??
+            (item.url.startsWith('cinemeta:')
+                ? item.url.replaceFirst('cinemeta:', '')
+                : (parsedUrl != null
+                    ? (parsedUrl['id']?.toString() ??
+                        parsedUrl['imdbId']?.toString())
+                    : null));
+        if (rawId != null) {
+          final cleanId = rawId.split(':').first;
+          final isSeries = item.contentType == MultimediaContentType.series;
+          fetchedItem = await ref
+              .read(recommendationsServiceProvider)
+              .getCinemetaDetails(cleanId, isSeries: isSeries);
+        }
+      }
+
       if (!ref.mounted) return;
 
       var withProvider = (fetchedItem ?? item).copyWith(
-        provider: provider?.packageName ?? item.provider ?? 'cinemeta',
+        provider: provider?.packageName ??
+            catalogueProvider?.packageName ??
+            item.provider ??
+            'dev.justin.catalogue',
         tmdbId: fetchedItem?.tmdbId ?? item.tmdbId,
         imdbId: fetchedItem?.imdbId ?? item.imdbId,
       );
