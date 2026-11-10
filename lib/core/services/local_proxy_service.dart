@@ -894,7 +894,7 @@ class LocalProxyService {
           firstResponseChunk = responseIterator.current;
           isHtmlBlockPage = isWebPage(
             responseType,
-            firstResponseChunk!.take(kProbeSniffBytes).toList(),
+            firstResponseChunk.take(kProbeSniffBytes).toList(),
           );
         }
       }
@@ -961,7 +961,7 @@ class LocalProxyService {
           await response.pipe(request.response);
         } else {
           if (firstResponseChunk != null) {
-            request.response.add(firstResponseChunk!);
+            request.response.add(firstResponseChunk);
           }
           while (await responseIterator.moveNext()) {
             request.response.add(responseIterator.current);

@@ -7,7 +7,6 @@ import 'home_state.dart';
 
 import 'package:skystream/features/home/presentation/widgets/continue_watching_section.dart';
 import 'package:skystream/features/home/presentation/widgets/because_you_watched_section.dart';
-import 'package:skystream/features/search/presentation/search_provider.dart';
 import 'package:skystream/features/library/presentation/history_provider.dart';
 
 import '../../settings/presentation/general_settings_provider.dart';
@@ -156,7 +155,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 homeDataAsync,
                 history,
                 generalSettings.watchHistoryEnabled,
-                syncedProgressAsync,
                 isWidescreen: true,
               ),
             ),
@@ -273,7 +271,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         homeDataAsync,
         history,
         generalSettings.watchHistoryEnabled,
-        syncedProgressAsync,
       ),
     );
   }
@@ -282,8 +279,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     BuildContext context,
     HomeState state,
     List<dynamic> history,
-    bool watchHistoryEnabled,
-    AsyncValue<List<SyncProgressItem>> syncedProgressAsync, {
+    bool watchHistoryEnabled, {
     bool isWidescreen = false,
   }) {
     final l10n = AppLocalizations.of(context)!;

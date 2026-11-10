@@ -550,9 +550,6 @@ class StorageService {
   // --- Watch History ---
 
   static const String kHistoryBox = 'history_box';
-  // Box late initialization is handled in init()
-  List<Map<String, dynamic>>? _cachedHistory;
-  bool _historyCacheDirty = true;
   VoidCallback? onProgressSaved;
 
   Future<void> saveProgress(
@@ -602,7 +599,6 @@ class StorageService {
       await _historyBox.put(episodeKey, entry);
     }
 
-    _historyCacheDirty = true;
     onProgressSaved?.call();
   }
 
@@ -628,8 +624,6 @@ class StorageService {
     for (final k in keysToDelete) {
       await _historyBox.delete(k);
     }
-
-    _historyCacheDirty = true;
   }
 
   Future<void> updateHistoryItemTimestampAndPosition(
@@ -658,7 +652,6 @@ class StorageService {
           await _historyBox.put(episodeKey, updatedEpEntry);
         }
       }
-      _historyCacheDirty = true;
     }
   }
 
@@ -682,7 +675,6 @@ class StorageService {
     } else {
       await _historyBox.clear();
     }
-    _historyCacheDirty = true;
   }
 
   List<Map<String, dynamic>> getWatchHistory({String? profileId}) {

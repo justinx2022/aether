@@ -24,7 +24,6 @@ import '../../../../core/services/buffered_video_saver.dart';
 import '../../../../core/services/local_proxy_service.dart';
 import '../../../../core/services/provider_health_service.dart';
 import '../../../../core/services/stream_prewarmer.dart';
-import '../../../../core/services/neural_media_enhancer.dart';
 import '../../../settings/presentation/ai_settings_provider.dart';
 import '../../../../core/utils/app_utils.dart';
 import '../../../../core/utils/stream_quality_sorter.dart';
