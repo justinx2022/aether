@@ -44,6 +44,7 @@ class GlassActionButton extends StatefulWidget {
 class _GlassActionButtonState extends State<GlassActionButton> {
   final FocusNode _node = FocusNode(debugLabel: 'GlassActionButton');
   bool _focused = false;
+  bool _pressed = false;
 
   @override
   void initState() {
@@ -115,7 +116,7 @@ class _GlassActionButtonState extends State<GlassActionButton> {
               vertical: AppSpace.md,
             ),
             fill: colors.elevated.withValues(
-              alpha: colors.isDark ? 0.72 : 0.86,
+              alpha: colors.isDark ? 0.42 : 0.56,
             ),
             child: content,
           );
@@ -130,6 +131,9 @@ class _GlassActionButtonState extends State<GlassActionButton> {
           focusNode: _node,
           autofocus: widget.autofocus,
           onTap: widget.onPressed,
+          onTapDown: enabled ? (_) => setState(() => _pressed = true) : null,
+          onTapUp: enabled ? (_) => setState(() => _pressed = false) : null,
+          onTapCancel: enabled ? () => setState(() => _pressed = false) : null,
           borderRadius: radius,
           focusColor: Colors.transparent,
           hoverColor: colors.textPrimary.withValues(alpha: 0.04),
@@ -146,6 +150,13 @@ class _GlassActionButtonState extends State<GlassActionButton> {
                 ),
         ),
       ),
+    );
+
+    button = AnimatedScale(
+      scale: _pressed ? 0.96 : 1.0,
+      duration: AppMotion.fast,
+      curve: Curves.easeOutCubic,
+      child: button,
     );
 
     button = FocusRing(

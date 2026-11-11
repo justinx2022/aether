@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/foundation.dart'
     show LicenseEntryWithLineBreaks, LicenseRegistry;
 import 'package:flutter/material.dart';
@@ -122,6 +123,8 @@ class AppTheme {
     AppSurfaceStyle surface = AppSurfaceStyle.automatic,
     AppBackdrop backdrop = AppBackdrop.none,
     AppWorld world = AppWorld.sky,
+    bool liquidGlass = true,
+    bool glassPerformance = false,
   }) {
     return _build(
       brightness: Brightness.dark,
@@ -130,6 +133,8 @@ class AppTheme {
       surfaceStyle: surface,
       backdrop: backdrop,
       world: world,
+      liquidGlass: liquidGlass,
+      glassPerformance: glassPerformance,
     );
   }
 
@@ -139,6 +144,8 @@ class AppTheme {
     AppSurfaceStyle surface = AppSurfaceStyle.automatic,
     AppBackdrop backdrop = AppBackdrop.none,
     AppWorld world = AppWorld.sky,
+    bool liquidGlass = true,
+    bool glassPerformance = false,
   }) {
     return _build(
       brightness: Brightness.light,
@@ -147,6 +154,8 @@ class AppTheme {
       surfaceStyle: surface,
       backdrop: backdrop,
       world: world,
+      liquidGlass: liquidGlass,
+      glassPerformance: glassPerformance,
     );
   }
 
@@ -216,6 +225,8 @@ class AppTheme {
     required AppSurfaceStyle surfaceStyle,
     required AppBackdrop backdrop,
     required AppWorld world,
+    bool liquidGlass = true,
+    bool glassPerformance = false,
   }) {
     _registerFontLicence();
     final bool isDark = brightness == Brightness.dark;
@@ -339,6 +350,15 @@ class AppTheme {
       fontFamily: fontFamily,
       colorScheme: colorScheme,
       textTheme: textTheme,
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: <TargetPlatform, PageTransitionsBuilder>{
+          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.windows: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.linux: CupertinoPageTransitionsBuilder(),
+        },
+      ),
       // The opaque base every screen paints on. The ambient backdrop is drawn
       // *inside the shell*, behind its transparent tab scaffolds (see
       // `AppBackdropLayer`), so the scaffold colour stays honest here: pushed
@@ -350,6 +370,8 @@ class AppTheme {
           style: surfaceStyle,
           backdrop: backdrop,
           base: surfaces.scaffold,
+          liquidGlass: liquidGlass,
+          glassPerformance: glassPerformance,
         ),
         AppWorldTokens(world: world, colors: worldColors),
       ],

@@ -58,6 +58,7 @@ enum AppSurfaceStyle {
 /// be behind the glass.
 enum AppBackdrop {
   none,
+  liquidMesh,
   nebula,
   blackhole,
   starfield,
@@ -70,7 +71,7 @@ enum AppBackdrop {
     for (final value in values) {
       if (value.name == raw) return value;
     }
-    return nebula; // Default to cosmic nebula
+    return liquidMesh;
   }
 
   /// The gradient for [base] at this brightness, or null when there is none.
@@ -85,16 +86,16 @@ enum AppBackdrop {
   }) {
     if (this == none) return null;
     final dark = brightness == Brightness.dark;
-    // A tenth of a vivid hue on black is still black to the eye; a tenth on
-    // cream would be a different page. The light values are half the dark
-    // ones so both read as the same level of "there is something there".
-    final strong = dark ? 0.22 : 0.12;
-    final soft = dark ? 0.12 : 0.06;
+    final strong = dark ? 0.28 : 0.16;
+    final soft = dark ? 0.15 : 0.08;
     final Color a;
     final Color b;
     switch (this) {
       case none:
         return null;
+      case liquidMesh:
+        a = const Color(0xFF4F46E5);
+        b = const Color(0xFF0EA5E9);
       case nebula:
         a = const Color(0xFF7C3AED);
         b = const Color(0xFF06B6D4);
@@ -128,28 +129,40 @@ enum AppBackdrop {
   }
 }
 
-/// The user's three appearance choices, as one value.
+/// The user's appearance & display smoothness choices, as one value.
 @immutable
 class ThemeCustomization {
   const ThemeCustomization({
     this.palette = AppPalette.dynamic,
     this.surface = AppSurfaceStyle.automatic,
-    this.backdrop = AppBackdrop.none,
+    this.backdrop = AppBackdrop.liquidMesh,
+    this.liquidGlass = true,
+    this.glassPerformance = false,
+    this.highRefreshRate = true,
   });
 
   final AppPalette palette;
   final AppSurfaceStyle surface;
   final AppBackdrop backdrop;
+  final bool liquidGlass;
+  final bool glassPerformance;
+  final bool highRefreshRate;
 
   ThemeCustomization copyWith({
     AppPalette? palette,
     AppSurfaceStyle? surface,
     AppBackdrop? backdrop,
+    bool? liquidGlass,
+    bool? glassPerformance,
+    bool? highRefreshRate,
   }) {
     return ThemeCustomization(
       palette: palette ?? this.palette,
       surface: surface ?? this.surface,
       backdrop: backdrop ?? this.backdrop,
+      liquidGlass: liquidGlass ?? this.liquidGlass,
+      glassPerformance: glassPerformance ?? this.glassPerformance,
+      highRefreshRate: highRefreshRate ?? this.highRefreshRate,
     );
   }
 
@@ -158,10 +171,20 @@ class ThemeCustomization {
       other is ThemeCustomization &&
       other.palette == palette &&
       other.surface == surface &&
-      other.backdrop == backdrop;
+      other.backdrop == backdrop &&
+      other.liquidGlass == liquidGlass &&
+      other.glassPerformance == glassPerformance &&
+      other.highRefreshRate == highRefreshRate;
 
   @override
-  int get hashCode => Object.hash(palette, surface, backdrop);
+  int get hashCode => Object.hash(
+    palette,
+    surface,
+    backdrop,
+    liquidGlass,
+    glassPerformance,
+    highRefreshRate,
+  );
 }
 
 /// The resolved colours of one surface style, for one brightness.
@@ -374,6 +397,8 @@ class AppSurfaceTokens extends ThemeExtension<AppSurfaceTokens> {
     required this.style,
     required this.backdrop,
     required this.base,
+    this.liquidGlass = true,
+    this.glassPerformance = false,
   });
 
   final AppSurfaceStyle style;
@@ -383,16 +408,26 @@ class AppSurfaceTokens extends ThemeExtension<AppSurfaceTokens> {
   /// scaffold would be painted with if the backdrop were off.
   final Color base;
 
+  /// Apple iOS 26 / BitChord Liquid Glass theme toggle.
+  final bool liquidGlass;
+
+  /// Reduces multi-layer dynamic blur filters while keeping glass rims & tint.
+  final bool glassPerformance;
+
   @override
   AppSurfaceTokens copyWith({
     AppSurfaceStyle? style,
     AppBackdrop? backdrop,
     Color? base,
+    bool? liquidGlass,
+    bool? glassPerformance,
   }) {
     return AppSurfaceTokens(
       style: style ?? this.style,
       backdrop: backdrop ?? this.backdrop,
       base: base ?? this.base,
+      liquidGlass: liquidGlass ?? this.liquidGlass,
+      glassPerformance: glassPerformance ?? this.glassPerformance,
     );
   }
 
@@ -406,6 +441,8 @@ class AppSurfaceTokens extends ThemeExtension<AppSurfaceTokens> {
       style: t < 0.5 ? style : other.style,
       backdrop: t < 0.5 ? backdrop : other.backdrop,
       base: Color.lerp(base, other.base, t)!,
+      liquidGlass: t < 0.5 ? liquidGlass : other.liquidGlass,
+      glassPerformance: t < 0.5 ? glassPerformance : other.glassPerformance,
     );
   }
 }

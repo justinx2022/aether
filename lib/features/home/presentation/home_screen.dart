@@ -31,6 +31,7 @@ import 'delegates/home_search_delegate.dart';
 import '../../../shared/widgets/cards_wrapper.dart';
 import '../../../shared/widgets/custom_widgets.dart';
 import '../../../shared/widgets/empty_state.dart';
+import '../../../shared/widgets/glass_surface.dart';
 import '../../../shared/widgets/shimmer_placeholder.dart';
 import '../../../../core/utils/layout_constants.dart';
 import '../../../../core/utils/responsive_breakpoints.dart';
@@ -178,10 +179,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           // long as the AppBar is in the tree (even at opacity 1.0), which
           // shows up on the perf overlay as a constant raster cost. Alpha
           // blending on a Container fill costs ~0.
-          builder: (context, opacity, _) => Container(
-            color: Theme.of(context).scaffoldBackgroundColor
-                .withValues(alpha: opacity),
-          ),
+          builder: (context, opacity, _) {
+            if (opacity <= 0.02) return const SizedBox.shrink();
+            return GlassSurface(
+              borderRadius: BorderRadius.zero,
+              padding: EdgeInsets.zero,
+              blurSigma: 18 * opacity,
+              shadow: false,
+              rimStrength: 0.35 * opacity,
+              fill: Theme.of(
+                context,
+              ).scaffoldBackgroundColor.withValues(alpha: (0.46 * opacity).clamp(0.0, 0.52)),
+              child: const SizedBox.expand(),
+            );
+          },
         ),
         title: Row(
           mainAxisSize: MainAxisSize.min,

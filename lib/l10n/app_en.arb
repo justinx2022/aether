@@ -1368,6 +1368,78 @@
   "aiNeuralEngine": "AI Neural Engine",
   "@aiNeuralEngine": {
     "description": "Title of the AI settings screen. 'Neural Engine' is the feature's own name."
+  },
+  "liquidGlassAnd120Hz": "Liquid Glass & 120Hz",
+  "@liquidGlassAnd120Hz": {
+    "description": "Appearance picker section header for the Liquid Glass theme and 120Hz refresh rate controls."
+  },
+  "liquidGlassTheme": "Liquid Glass Theme",
+  "@liquidGlassTheme": {
+    "description": "Toggle label for enabling the frosted Apple-style Liquid Glass appearance."
+  },
+  "liquidGlassThemeSubtitle": "Apple-style frosted blur, vibrancy & specular rims",
+  "@liquidGlassThemeSubtitle": {
+    "description": "Subtitle explaining the Liquid Glass theme switch."
+  },
+  "glassFrostPerformance": "Glass Frost Performance",
+  "@glassFrostPerformance": {
+    "description": "Toggle label for switching glass panels to a lighter, lower-GPU mode."
+  },
+  "glassFrostPerformanceSubtitle": "Lighter blur pass for older GPUs",
+  "@glassFrostPerformanceSubtitle": {
+    "description": "Subtitle explaining Glass Frost Performance mode."
+  },
+  "highRefreshMode": "120Hz Ultra-Smooth Mode",
+  "@highRefreshMode": {
+    "description": "Toggle title for enabling high display refresh rate (120Hz/144Hz) mode."
+  },
+  "highRefreshModeSubtitle": "Requests native 120Hz / 144Hz output",
+  "@highRefreshModeSubtitle": {
+    "description": "Fallback subtitle for the high refresh rate toggle when hardware hz info is unavailable."
+  },
+  "highRefreshActiveDetail": "{currentHz}Hz active · Max {maxHz}Hz",
+  "@highRefreshActiveDetail": {
+    "description": "Live refresh rate readout inside the Theme picker.",
+    "placeholders": {
+      "currentHz": {
+        "type": "int"
+      },
+      "maxHz": {
+        "type": "int"
+      }
+    }
+  },
+  "highRefreshEnabledBadge": "120Hz Smooth",
+  "@highRefreshEnabledBadge": {
+    "description": "Compact badge shown in the Theme summary row when Ultra-Smooth mode is on."
+  },
+  "liquidGlassShort": "Liquid Glass",
+  "@liquidGlassShort": {
+    "description": "Compact label shown in the Theme summary row when Liquid Glass is active."
+  },
+  "backdropLiquidMesh": "Liquid Mesh (Apple)",
+  "@backdropLiquidMesh": {
+    "description": "Name of the chromatic ambient mesh backdrop preset."
+  },
+  "highRefreshStandardSubtitle": "Standard 60Hz display pacing",
+  "@highRefreshStandardSubtitle": {
+    "description": "Settings row subtitle when 120Hz Ultra-Smooth Mode is switched off."
+  },
+  "highRefreshFallbackEnabled": "Ultra-Smooth 120Hz / high refresh rate enabled",
+  "@highRefreshFallbackEnabled": {
+    "description": "Settings row subtitle when 120Hz Ultra-Smooth Mode is on without live display readout."
+  },
+  "highRefreshStatusLabel": "Ultra-Smooth active ({badge} / Max {maxHz}Hz)",
+  "@highRefreshStatusLabel": {
+    "description": "Live Settings row subtitle showing active and max refresh rates.",
+    "placeholders": {
+      "badge": {
+        "type": "String"
+      },
+      "maxHz": {
+        "type": "int"
+      }
+    }
   }
 }
 

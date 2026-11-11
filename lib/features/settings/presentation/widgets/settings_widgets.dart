@@ -4,6 +4,7 @@ import '../../../../core/theme/app_world.dart';
 import '../../../../core/theme/design_tokens.dart';
 import '../../../../core/utils/layout_constants.dart';
 import '../../../../shared/focus/app_focus.dart';
+import '../../../../shared/widgets/glass_surface.dart';
 
 class SettingsGroup extends StatelessWidget {
   final String title;
@@ -54,35 +55,21 @@ class SettingsGroup extends StatelessWidget {
             ],
           ),
         ),
-        Container(
-          margin: const EdgeInsets.symmetric(
+        Padding(
+          padding: const EdgeInsets.symmetric(
             horizontal: LayoutConstants.spacingMd,
           ),
-          decoration: filled
-              ? BoxDecoration(
-                  // Translucent warm elevated surface with fine luminous edge
-                  color: world.elevated.withValues(
-                    alpha: world.isDark ? 0.70 : 0.85,
-                  ),
+          child: filled
+              ? LightweightGlassSurface(
                   borderRadius: BorderRadius.circular(AppRadius.lg),
-                  border: Border.all(
-                    color: (world.isDark ? Colors.white : Colors.black)
-                        .withValues(alpha: world.isDark ? 0.08 : 0.06),
-                    width: 0.75,
+                  padding: EdgeInsets.zero,
+                  shadow: true,
+                  fill: world.elevated.withValues(
+                    alpha: world.isDark ? 0.40 : 0.58,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(
-                        alpha: world.isDark ? 0.18 : 0.04,
-                      ),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  child: Column(children: children),
                 )
-              : null,
-          clipBehavior: filled ? Clip.antiAlias : Clip.none,
-          child: Column(children: children),
+              : Column(children: children),
         ),
       ],
     );

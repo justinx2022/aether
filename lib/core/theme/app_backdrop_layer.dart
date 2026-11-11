@@ -47,7 +47,7 @@ class AppBackdropLayer extends StatelessWidget {
         world?.colors.pageGradient ??
         LinearGradient(colors: [base, base]);
 
-    final backdrop = tokens?.backdrop ?? AppBackdrop.nebula;
+    final backdrop = tokens?.backdrop ?? AppBackdrop.liquidMesh;
 
     return DecoratedBox(
       decoration: BoxDecoration(gradient: gradient),
@@ -55,6 +55,7 @@ class AppBackdropLayer extends StatelessWidget {
         painter: SpaceBackdropPainter(
           backdrop: backdrop,
           brightness: theme.brightness,
+          accent: theme.colorScheme.primary,
         ),
         child: child,
       ),
@@ -62,14 +63,16 @@ class AppBackdropLayer extends StatelessWidget {
   }
 }
 
-/// Paints subtle celestial space effects (nebula gas clouds, event horizon accretion glow, star clusters).
+/// Paints soft luminous chromatic mesh orbs so Liquid Glass chrome visibly refracts depth.
 class SpaceBackdropPainter extends CustomPainter {
   final AppBackdrop backdrop;
   final Brightness brightness;
+  final Color? accent;
 
   const SpaceBackdropPainter({
     required this.backdrop,
     required this.brightness,
+    this.accent,
   });
 
   @override
@@ -79,58 +82,145 @@ class SpaceBackdropPainter extends CustomPainter {
     }
 
     final isDark = brightness == Brightness.dark;
-    if (!isDark) return;
+    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
 
-    if (backdrop == AppBackdrop.nebula) {
-      final paint1 = Paint()
-        ..shader = RadialGradient(
-          center: const Alignment(-0.6, -0.7),
-          radius: 0.8,
-          colors: [
-            const Color(0xFF7C3AED).withValues(alpha: 0.18),
-            Colors.transparent,
-          ],
-        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
-      canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint1);
-
-      final paint2 = Paint()
-        ..shader = RadialGradient(
-          center: const Alignment(0.7, -0.2),
-          radius: 0.7,
-          colors: [
-            const Color(0xFF06B6D4).withValues(alpha: 0.12),
-            Colors.transparent,
-          ],
-        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
-      canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint2);
-    } else if (backdrop == AppBackdrop.blackhole) {
+    void drawOrb({
+      required Alignment alignment,
+      required double radius,
+      required Color color,
+      required double alpha,
+    }) {
       final paint = Paint()
         ..shader = RadialGradient(
-          center: const Alignment(0.0, -0.5),
-          radius: 0.9,
-          colors: [
-            const Color(0xFFD97706).withValues(alpha: 0.16),
-            const Color(0xFF92400E).withValues(alpha: 0.08),
-            Colors.transparent,
-          ],
-          stops: const [0.0, 0.45, 1.0],
-        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
-      canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
-    } else if (backdrop == AppBackdrop.starfield) {
-      final paint = Paint()
-        ..shader = RadialGradient(
-          center: const Alignment(0.0, -0.8),
+          center: alignment,
+          radius: radius,
+          colors: [color.withValues(alpha: alpha), Colors.transparent],
+        ).createShader(rect);
+      canvas.drawRect(rect, paint);
+    }
+
+    final aScale = isDark ? 1.0 : 0.58;
+    final seedColor = accent ?? const Color(0xFF448AFF);
+
+    switch (backdrop) {
+      case AppBackdrop.none:
+      case AppBackdrop.obsidianVoid:
+        return;
+      case AppBackdrop.liquidMesh:
+        drawOrb(
+          alignment: const Alignment(-0.72, -0.78),
+          radius: 0.92,
+          color: Color.lerp(const Color(0xFF4F46E5), seedColor, 0.35)!,
+          alpha: 0.28 * aScale,
+        );
+        drawOrb(
+          alignment: const Alignment(0.82, -0.25),
+          radius: 0.80,
+          color: const Color(0xFF06B6D4),
+          alpha: 0.18 * aScale,
+        );
+        drawOrb(
+          alignment: const Alignment(-0.05, 0.92),
+          radius: 0.85,
+          color: Color.lerp(const Color(0xFF7C3AED), seedColor, 0.30)!,
+          alpha: 0.22 * aScale,
+        );
+      case AppBackdrop.nebula:
+        drawOrb(
+          alignment: const Alignment(-0.6, -0.7),
+          radius: 0.85,
+          color: const Color(0xFF7C3AED),
+          alpha: 0.22 * aScale,
+        );
+        drawOrb(
+          alignment: const Alignment(0.7, -0.2),
+          radius: 0.75,
+          color: const Color(0xFF06B6D4),
+          alpha: 0.15 * aScale,
+        );
+        drawOrb(
+          alignment: const Alignment(0.0, 0.95),
+          radius: 0.75,
+          color: const Color(0xFF6D28D9),
+          alpha: 0.14 * aScale,
+        );
+      case AppBackdrop.blackhole:
+        final paint = Paint()
+          ..shader = RadialGradient(
+            center: const Alignment(0.0, -0.5),
+            radius: 0.9,
+            colors: [
+              const Color(0xFFD97706).withValues(alpha: 0.20 * aScale),
+              const Color(0xFF92400E).withValues(alpha: 0.10 * aScale),
+              Colors.transparent,
+            ],
+            stops: const [0.0, 0.45, 1.0],
+          ).createShader(rect);
+        canvas.drawRect(rect, paint);
+        drawOrb(
+          alignment: const Alignment(0.15, 0.95),
+          radius: 0.70,
+          color: const Color(0xFFB45309),
+          alpha: 0.12 * aScale,
+        );
+      case AppBackdrop.starfield:
+        drawOrb(
+          alignment: const Alignment(0.0, -0.8),
           radius: 1.0,
-          colors: [
-            const Color(0xFF2563EB).withValues(alpha: 0.14),
-            Colors.transparent,
-          ],
-        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
-      canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
+          color: const Color(0xFF2563EB),
+          alpha: 0.18 * aScale,
+        );
+        drawOrb(
+          alignment: const Alignment(0.0, 0.95),
+          radius: 0.75,
+          color: const Color(0xFF1D4ED8),
+          alpha: 0.12 * aScale,
+        );
+      case AppBackdrop.aurora:
+        drawOrb(
+          alignment: const Alignment(-0.65, -0.7),
+          radius: 0.85,
+          color: const Color(0xFF2AA9A0),
+          alpha: 0.22 * aScale,
+        );
+        drawOrb(
+          alignment: const Alignment(0.55, 0.88),
+          radius: 0.85,
+          color: const Color(0xFF7C5CFF),
+          alpha: 0.16 * aScale,
+        );
+      case AppBackdrop.dusk:
+        drawOrb(
+          alignment: const Alignment(-0.6, -0.7),
+          radius: 0.85,
+          color: const Color(0xFFB14E8C),
+          alpha: 0.20 * aScale,
+        );
+        drawOrb(
+          alignment: const Alignment(0.4, 0.9),
+          radius: 0.85,
+          color: const Color(0xFF4A5BC4),
+          alpha: 0.16 * aScale,
+        );
+      case AppBackdrop.ember:
+        drawOrb(
+          alignment: const Alignment(-0.6, -0.7),
+          radius: 0.85,
+          color: const Color(0xFFD2691E),
+          alpha: 0.20 * aScale,
+        );
+        drawOrb(
+          alignment: const Alignment(0.35, 0.92),
+          radius: 0.80,
+          color: const Color(0xFFB23A2E),
+          alpha: 0.14 * aScale,
+        );
     }
   }
 
   @override
   bool shouldRepaint(covariant SpaceBackdropPainter oldDelegate) =>
-      oldDelegate.backdrop != backdrop || oldDelegate.brightness != brightness;
+      oldDelegate.backdrop != backdrop ||
+      oldDelegate.brightness != brightness ||
+      oldDelegate.accent != accent;
 }

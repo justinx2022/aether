@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,7 +8,9 @@ import 'package:skystream/core/utils/layout_constants.dart';
 
 import '../../core/theme/app_world.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/theme/theme_presets.dart';
 import '../focus/app_focus.dart';
+import 'glass_surface.dart';
 
 /// Global provider to track whether the D-pad/keyboard navigation mode is active.
 /// This prevents cursor hover magnification from fighting with focus magnification,
@@ -124,14 +125,6 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
     });
   }
 
-  BoxDecoration _dockGlass(AppWorldColors world, BorderRadius radius) {
-    return BoxDecoration(
-      color: world.glassFill,
-      borderRadius: radius,
-      border: Border.all(color: world.glassEdge),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -168,7 +161,6 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
     // lit edge, and a blur of whatever the branch is painting behind it. The
     // radius and edge come from the shared tokens so it matches every other
     // panel.
-    final world = AppWorldTokens.colorsOf(context);
     final dockRadius = BorderRadius.circular(AppRadius.xl);
     final reduceMotion = AppMotion.reduced(context);
 
@@ -230,7 +222,9 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
                 _mouseY.value = double.infinity;
               },
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 350),
+                duration: reduceMotion
+                    ? Duration.zero
+                    : const Duration(milliseconds: 350),
                 curve: const _AceternitySpringCurve(),
                 width: dockWidth,
                 height: dynamicDockHeight, // Dynamic height scales on the spring curve!
@@ -254,21 +248,13 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
                     // The pane itself, on its own layer so the tooltips and
                     // the magnified items may still overflow the dock.
                     Positioned.fill(
-                      child: ClipRRect(
+                      child: GlassSurface(
                         borderRadius: dockRadius,
-                        child: reduceMotion
-                            ? DecoratedBox(
-                                decoration: _dockGlass(world, dockRadius),
-                              )
-                            : BackdropFilter(
-                                filter: ImageFilter.blur(
-                                  sigmaX: AppBlur.chrome,
-                                  sigmaY: AppBlur.chrome,
-                                ),
-                                child: DecoratedBox(
-                                  decoration: _dockGlass(world, dockRadius),
-                                ),
-                              ),
+                        padding: EdgeInsets.zero,
+                        blurSigma: AppBlur.chrome,
+                        shadow: false,
+                        rimStrength: 1.15,
+                        child: const SizedBox.expand(),
                       ),
                     ),
                     ...List.generate(destinations.length, (i) {
@@ -345,10 +331,20 @@ class _SidebarDockItemState extends ConsumerState<_SidebarDockItem> {
     // The selected destination is the world's accent; the rest are neutral,
     // so the dock reads as one rail with a current place in it rather than
     // five tinted buttons.
+    final liquidGlass =
+        Theme.of(context).extension<AppSurfaceTokens>()?.liquidGlass ?? true;
     final itemBgColor = widget.isSelected
-        ? world.accent.withValues(alpha: world.isDark ? 0.18 : 0.14)
-        : world.textPrimary.withValues(alpha: world.isDark ? 0.06 : 0.05);
-    final iconColor = widget.isSelected ? world.accent : world.textSecondary;
+        ? (liquidGlass
+              ? (world.isDark
+                    ? Colors.white.withValues(alpha: 0.16)
+                    : Colors.white.withValues(alpha: 0.72))
+              : world.accent.withValues(alpha: world.isDark ? 0.18 : 0.14))
+        : world.textPrimary.withValues(alpha: world.isDark ? 0.06 : 0.04);
+    final iconColor = widget.isSelected
+        ? (liquidGlass
+              ? (world.isDark ? Colors.white : Colors.black)
+              : world.accent)
+        : world.textSecondary;
 
     // Tooltips are glass too, so a label hovering beside the dock belongs to
     // the same material as the dock.

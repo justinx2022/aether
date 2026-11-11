@@ -23,6 +23,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:skystream/core/providers/device_info_provider.dart';
 import 'package:skystream/core/storage/storage_service.dart';
+import 'package:skystream/core/theme/theme_presets.dart';
 import 'package:skystream/core/theme/theme_provider.dart';
 
 void main() {
@@ -138,5 +139,61 @@ void main() {
 
     expect(container.read(appThemeModeProvider), ThemeMode.light);
     expect(storage.getThemeMode(), 'light');
+  });
+
+  group('Liquid Glass & 120Hz customization defaults', () {
+    test('defaults to Liquid Glass, Liquid Mesh, and 120Hz enabled', () {
+      final container = ProviderContainer(
+        overrides: [
+          storageServiceProvider.overrideWithValue(storage),
+          deviceProfileProvider.overrideWith((ref) => const DeviceProfile()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final customization = container.read(themeCustomizationProvider);
+      expect(customization.liquidGlass, isTrue);
+      expect(customization.glassPerformance, isFalse);
+      expect(customization.highRefreshRate, isTrue);
+      expect(customization.backdrop, AppBackdrop.liquidMesh);
+    });
+
+    test('persists Liquid Glass and 120Hz toggles', () async {
+      binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        const MethodChannel('dev.akash.skystream/display'),
+        (call) async => <String, Object?>{
+          'currentHz': 120.0,
+          'maxHz': 120.0,
+          'supportedHz': <double>[60.0, 120.0],
+        },
+      );
+      addTearDown(() {
+        binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          const MethodChannel('dev.akash.skystream/display'),
+          null,
+        );
+      });
+
+      final container = ProviderContainer(
+        overrides: [
+          storageServiceProvider.overrideWithValue(storage),
+          deviceProfileProvider.overrideWith((ref) => const DeviceProfile()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final notifier = container.read(themeCustomizationProvider.notifier);
+      await notifier.setLiquidGlass(false);
+      await notifier.setGlassPerformance(true);
+      await notifier.setHighRefreshRate(false);
+
+      final updated = container.read(themeCustomizationProvider);
+      expect(updated.liquidGlass, isFalse);
+      expect(updated.glassPerformance, isTrue);
+      expect(updated.highRefreshRate, isFalse);
+      expect(storage.getLiquidGlassEnabled(), isFalse);
+      expect(storage.getGlassPerformanceMode(), isTrue);
+      expect(storage.getHighRefreshRateEnabled(), isFalse);
+    });
   });
 }

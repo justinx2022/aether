@@ -3,6 +3,8 @@ package dev.akash.skystream
 import android.content.Intent
 import android.os.Bundle
 import android.net.Uri
+import android.view.Display
+import android.view.View
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -18,6 +20,8 @@ class MainActivity : FlutterActivity() {
     private val CHANNEL = "dev.akash.skystream.player/pip"
     private val TV_CHANNEL = "dev.akash.skystream/tv_channel"
     private val PLAYER_CHANNEL = "dev.akash.skystream/external_player"
+    private val DISPLAY_CHANNEL = "dev.akash.skystream/display"
+    private var highRefreshRateEnabled: Boolean = true
 
     private var isPlaying = false
 
@@ -31,6 +35,22 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         val messenger = flutterEngine.dartExecutor.binaryMessenger
+
+        // High Refresh Rate / 120Hz+ Display Channel
+        MethodChannel(messenger, DISPLAY_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "setHighRefreshRate" -> {
+                    val enabled = call.argument<Boolean>("enabled") ?: true
+                    applyDisplayRefreshRate(enabled)
+                    result.success(getDisplayInfoMap())
+                }
+                "getDisplayInfo" -> {
+                    result.success(getDisplayInfoMap())
+                }
+                else -> result.notImplemented()
+            }
+        }
+        applyDisplayRefreshRate(highRefreshRateEnabled)
         
         // PiP Channel
         MethodChannel(messenger, CHANNEL).setMethodCallHandler { call, result ->
@@ -318,6 +338,95 @@ class MainActivity : FlutterActivity() {
         val ratio = (width.toDouble() / height.toDouble())
             .coerceIn(1.0 / MAX_PIP_ASPECT, MAX_PIP_ASPECT)
         return Rational((ratio * 10_000).roundToInt(), 10_000)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        applyDisplayRefreshRate(highRefreshRateEnabled)
+    }
+
+    private fun applyDisplayRefreshRate(enabled: Boolean) {
+        highRefreshRateEnabled = enabled
+        val activeDisplay: Display? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            display
+        } else {
+            @Suppress("DEPRECATION")
+            windowManager.defaultDisplay
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && activeDisplay != null) {
+            val currentMode = activeDisplay.mode
+            val validModes = activeDisplay.supportedModes.filter { it.refreshRate in 50f..240f }
+            val sameResModes = validModes.filter {
+                it.physicalWidth == currentMode.physicalWidth &&
+                    it.physicalHeight == currentMode.physicalHeight
+            }
+            val pool = sameResModes.ifEmpty { validModes }
+            val lp = window.attributes
+            if (enabled) {
+                val maxMode = pool.maxByOrNull { it.refreshRate }
+                if (maxMode != null) {
+                    lp.preferredDisplayModeId = maxMode.modeId
+                    lp.preferredRefreshRate = maxMode.refreshRate
+                }
+            } else {
+                val baseMode = pool.minByOrNull { kotlin.math.abs(it.refreshRate - 60f) }
+                lp.preferredDisplayModeId = baseMode?.modeId ?: 0
+                lp.preferredRefreshRate = baseMode?.refreshRate ?: 60f
+            }
+            window.attributes = lp
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            // BitChord / Android 15+ ARR lock: opt out of power-savings downclocking to 60/80Hz
+            window.setFrameRatePowerSavingsBalanced(!enabled)
+            window.setFrameRateBoostOnTouchEnabled(true)
+            window.decorView.requestedFrameRate = if (enabled) {
+                View.REQUESTED_FRAME_RATE_CATEGORY_HIGH
+            } else {
+                View.REQUESTED_FRAME_RATE_CATEGORY_DEFAULT
+            }
+        }
+    }
+
+    private fun getDisplayInfoMap(): Map<String, Any> {
+        val activeDisplay: Display? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            display
+        } else {
+            @Suppress("DEPRECATION")
+            windowManager.defaultDisplay
+        }
+        var currentHz = 60.0
+        val supported = mutableSetOf<Double>()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && activeDisplay != null) {
+            val mode = activeDisplay.mode
+            currentHz = mode.refreshRate.toDouble()
+            for (m in activeDisplay.supportedModes) {
+                if (m.physicalWidth == mode.physicalWidth &&
+                    m.physicalHeight == mode.physicalHeight &&
+                    m.refreshRate in 48f..240f
+                ) {
+                    supported.add(m.refreshRate.roundToInt().toDouble())
+                }
+            }
+        } else if (activeDisplay != null) {
+            @Suppress("DEPRECATION")
+            currentHz = activeDisplay.refreshRate.toDouble()
+        }
+
+        if (supported.isEmpty()) {
+            supported.add(currentHz.roundToInt().toDouble())
+        }
+        val sortedRates = supported.sorted()
+        val maxHz = sortedRates.lastOrNull() ?: currentHz
+
+        return mapOf(
+            "currentHz" to currentHz,
+            "maxHz" to maxHz,
+            "supportedHz" to sortedRates,
+            "enabled" to highRefreshRateEnabled,
+        )
     }
 
     companion object {

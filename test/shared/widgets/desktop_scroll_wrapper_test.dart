@@ -10,6 +10,7 @@
 /// somewhere else. It is gone; the profile is the only authority left.
 library;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -101,5 +102,56 @@ void main() {
     expect(find.byIcon(Icons.chevron_right), findsOneWidget);
     // Nothing has scrolled yet, so there is nothing to the left.
     expect(find.byIcon(Icons.chevron_left), findsNothing);
+  });
+
+  testWidgets('smooth mouse-wheel scroll advances the horizontal controller', (
+    WidgetTester tester,
+  ) async {
+    final ScrollController controller = ScrollController();
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          deviceProfileProvider.overrideWithValue(
+            const AsyncValue<DeviceProfile>.data(
+              DeviceProfile(isDesktopOS: true),
+            ),
+          ),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 300,
+              height: 120,
+              child: DesktopScrollWrapper(
+                controller: controller,
+                showButtons: true,
+                child: ListView(
+                  controller: controller,
+                  scrollDirection: Axis.horizontal,
+                  children: List<Widget>.generate(
+                    10,
+                    (_) => const SizedBox(width: 200, height: 100),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final Offset center = tester.getCenter(find.byType(DesktopScrollWrapper));
+    final TestPointer pointer = TestPointer(1, PointerDeviceKind.mouse);
+    await tester.sendEventToBinding(pointer.hover(center));
+    await tester.sendEventToBinding(pointer.scroll(const Offset(0, 180)));
+
+    await tester.pump(const Duration(milliseconds: 16));
+    await tester.pump(const Duration(milliseconds: 160));
+    await tester.pumpAndSettle();
+
+    expect(controller.offset, greaterThan(0.0));
   });
 }

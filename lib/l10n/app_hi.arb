@@ -510,6 +510,20 @@
   "selectBufferDuration": "बफ़र अवधि चुनें",
   "playerQualityAndSources": "गुणवत्ता और स्रोत",
   "playerAutoAdaptive": "स्वतः (अनुकूली)",
-  "aiNeuralEngine": "एआई न्यूरल इंजन"
+  "aiNeuralEngine": "एआई न्यूरल इंजन",
+  "liquidGlassAnd120Hz": "लिक्विड ग्लास और 120Hz",
+  "liquidGlassTheme": "लिक्विड ग्लास थीम",
+  "liquidGlassThemeSubtitle": "Apple जैसा फ्रॉस्टेड ब्लर, वाइब्रेंसी और स्पेक्युलर किनारे",
+  "glassFrostPerformance": "ग्लास फ्रॉस्ट परफ़ॉर्मेंस",
+  "glassFrostPerformanceSubtitle": "पुराने GPU के लिए हल्का ब्लर पास",
+  "highRefreshMode": "120Hz अल्ट्रा-स्मूथ मोड",
+  "highRefreshModeSubtitle": "नेटिव 120Hz / 144Hz आउटपुट का अनुरोध करता है",
+  "highRefreshActiveDetail": "{currentHz}Hz सक्रिय · अधिकतम {maxHz}Hz",
+  "highRefreshEnabledBadge": "120Hz स्मूथ",
+  "liquidGlassShort": "लिक्विड ग्लास",
+  "backdropLiquidMesh": "लिक्विड मेश (Apple)",
+  "highRefreshStandardSubtitle": "मानक 60Hz डिस्प्ले पेसिंग",
+  "highRefreshFallbackEnabled": "अल्ट्रा-स्मूथ 120Hz / उच्च रिफ्रेश दर सक्षम",
+  "highRefreshStatusLabel": "अल्ट्रा-स्मूथ सक्रिय ({badge} / अधिकतम {maxHz}Hz)"
 }
 

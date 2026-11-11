@@ -45,6 +45,30 @@ class SettingsRepository {
     return _storageService.getThemeBackdrop();
   }
 
+  Future<void> saveLiquidGlassEnabled(bool enabled) async {
+    await _storageService.saveLiquidGlassEnabled(enabled);
+  }
+
+  bool getLiquidGlassEnabled() {
+    return _storageService.getLiquidGlassEnabled();
+  }
+
+  Future<void> saveGlassPerformanceMode(bool enabled) async {
+    await _storageService.saveGlassPerformanceMode(enabled);
+  }
+
+  bool getGlassPerformanceMode() {
+    return _storageService.getGlassPerformanceMode();
+  }
+
+  Future<void> saveHighRefreshRateEnabled(bool enabled) async {
+    await _storageService.saveHighRefreshRateEnabled(enabled);
+  }
+
+  bool getHighRefreshRateEnabled() {
+    return _storageService.getHighRefreshRateEnabled();
+  }
+
   Future<void> setSidebarExpanded(bool expanded) async {
     await _storageService.setSidebarExpanded(expanded);
   }

@@ -7,6 +7,8 @@ import '../../../core/theme/theme_provider.dart';
 import '../../../core/theme/theme_presets.dart';
 
 import 'widgets/settings_widgets.dart';
+import '../../../core/services/display_refresh_service.dart';
+import '../../../shared/widgets/glass_surface.dart';
 import 'widgets/settings_dialogs.dart';
 import 'full_screen_mode_provider.dart';
 import 'general_settings_provider.dart';
@@ -32,7 +34,20 @@ class SettingsScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(title: Text(l10n.settings)),
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: Text(l10n.settings),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        flexibleSpace: const GlassSurface(
+          borderRadius: BorderRadius.zero,
+          padding: EdgeInsets.zero,
+          blurSigma: 18,
+          shadow: false,
+          rimStrength: 0.35,
+          child: SizedBox.expand(),
+        ),
+      ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
@@ -43,9 +58,12 @@ class SettingsScreen extends ConsumerWidget {
               // card by spacingMd, so a horizontal inset here would be paid
               // for twice and the cards would sit further in than on the
               // Accounts screen, which never added one.
-              padding: const EdgeInsets.symmetric(
-                vertical: LayoutConstants.spacingSm,
-              ).copyWith(bottom: LayoutConstants.shellBottomContentPadding(context)),
+              padding: EdgeInsets.only(
+                top: MediaQuery.paddingOf(context).top +
+                    kToolbarHeight +
+                    LayoutConstants.spacingSm,
+                bottom: LayoutConstants.shellBottomContentPadding(context),
+              ),
               children: [
                 _buildGeneralSettingsGroup(
                   context,
@@ -102,6 +120,8 @@ class SettingsScreen extends ConsumerWidget {
     // or surface has been moved off its default.
     final themeLabel = <String>[
       modeLabel,
+      if (customization.liquidGlass) l10n.liquidGlassShort,
+      if (customization.highRefreshRate) l10n.highRefreshEnabledBadge,
       if (customization.palette != AppPalette.dynamic)
         appearancePaletteLabel(customization.palette, l10n),
       if (customization.surface != AppSurfaceStyle.automatic)
@@ -115,6 +135,33 @@ class SettingsScreen extends ConsumerWidget {
           title: l10n.appTheme,
           subtitle: themeLabel,
           onTap: () => showThemeDialog(context, ref, themeMode),
+        ),
+        ValueListenableBuilder<DisplayRefreshInfo?>(
+          valueListenable: DisplayRefreshService.instance.infoNotifier,
+          builder: (context, info, _) {
+            final subtitle = customization.highRefreshRate
+                ? (info != null
+                      ? l10n.highRefreshStatusLabel(
+                          info.badgeLabel,
+                          info.maxHz.round(),
+                        )
+                      : l10n.highRefreshFallbackEnabled)
+                : l10n.highRefreshStandardSubtitle;
+            return SettingsTile(
+              icon: Icons.speed_rounded,
+              title: l10n.highRefreshMode,
+              subtitle: subtitle,
+              trailing: Switch.adaptive(
+                value: customization.highRefreshRate,
+                onChanged: (value) => ref
+                    .read(themeCustomizationProvider.notifier)
+                    .setHighRefreshRate(value),
+              ),
+              onTap: () => ref
+                  .read(themeCustomizationProvider.notifier)
+                  .setHighRefreshRate(!customization.highRefreshRate),
+            );
+          },
         ),
         SettingsTile(
           icon: Icons.translate_rounded,

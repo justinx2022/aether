@@ -288,4 +288,37 @@ void main() {
       expect(tapped, isTrue);
     });
   });
+
+  group('Liquid Glass surfaces', () {
+    testWidgets('GlassSurface renders specular rim and Lightweight skips blur', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        host(
+          const Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              GlassSurface(
+                blurSigma: 20,
+                child: SizedBox(width: 80, height: 40),
+              ),
+              LightweightGlassSurface(
+                child: SizedBox(width: 80, height: 40),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      // Only the full GlassSurface emits a BackdropFilter; LightweightGlassSurface
+      // intentionally omits the saveLayer blur for scrolling lists.
+      expect(find.byType(BackdropFilter), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is CustomPaint && w.painter is LiquidGlassRimPainter,
+        ),
+        findsNWidgets(2),
+      );
+    });
+  });
 }

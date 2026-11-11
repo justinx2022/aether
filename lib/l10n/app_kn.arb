@@ -510,6 +510,20 @@
   "selectBufferDuration": "ಬಫರ್ ಅವಧಿಯನ್ನು ಆಯ್ಕೆಮಾಡಿ",
   "playerQualityAndSources": "ಗುಣಮಟ್ಟ ಮತ್ತು ಮೂಲಗಳು",
   "playerAutoAdaptive": "ಸ್ವಯಂ (ಹೊಂದಾಣಿಕೆ)",
-  "aiNeuralEngine": "ಎಐ ನ್ಯೂರಲ್ ಎಂಜಿನ್"
+  "aiNeuralEngine": "ಎಐ ನ್ಯೂರಲ್ ಎಂಜಿನ್",
+  "liquidGlassAnd120Hz": "ಲಿಕ್ವಿಡ್ ಗ್ಲಾಸ್ ಮತ್ತು 120Hz",
+  "liquidGlassTheme": "ಲಿಕ್ವಿಡ್ ಗ್ಲಾಸ್ ಥೀಮ್",
+  "liquidGlassThemeSubtitle": "Apple ಶೈಲಿಯ ಫ್ರಾಸ್ಟೆಡ್ ಬ್ಲರ್, ವೈಬ್ರೆನ್ಸಿ ಮತ್ತು ಹೊಳಪಿನ ಅಂಚುಗಳು",
+  "glassFrostPerformance": "ಗ್ಲಾಸ್ ಫ್ರಾಸ್ಟ್ ಕಾರ್ಯಕ್ಷಮತೆ",
+  "glassFrostPerformanceSubtitle": "ಹಳೆಯ GPU ಗಳಿಗೆ ಹಗುರವಾದ ಬ್ಲರ್ ಮೋಡ್",
+  "highRefreshMode": "120Hz ಅಲ್ಟ್ರಾ-ಸ್ಮೂತ್ ಮೋಡ್",
+  "highRefreshModeSubtitle": "ಸ್ಥಳೀಯ 120Hz / 144Hz ಔಟ್‌ಪುಟ್ ವಿನಂತಿಸುತ್ತದೆ",
+  "highRefreshActiveDetail": "{currentHz}Hz ಸಕ್ರಿಯ · ಗರಿಷ್ಠ {maxHz}Hz",
+  "highRefreshEnabledBadge": "120Hz ಸ್ಮೂತ್",
+  "liquidGlassShort": "ಲಿಕ್ವಿಡ್ ಗ್ಲಾಸ್",
+  "backdropLiquidMesh": "ಲಿಕ್ವಿಡ್ ಮೆಶ್ (Apple)",
+  "highRefreshStandardSubtitle": "ಪ್ರಮಾಣಿತ 60Hz ಡಿಸ್‌ಪ್ಲೇ ವೇಗ",
+  "highRefreshFallbackEnabled": "ಅಲ್ಟ್ರಾ-ಸ್ಮೂತ್ 120Hz / ಹೆಚ್ಚಿನ ರಿಫ್ರೆಶ್ ದರ ಸಕ್ರಿಯ",
+  "highRefreshStatusLabel": "ಅಲ್ಟ್ರಾ-ಸ್ಮೂತ್ ಸಕ್ರಿಯ ({badge} / ಗರಿಷ್ಠ {maxHz}Hz)"
 }
 

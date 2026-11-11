@@ -262,6 +262,33 @@ class StorageService {
     return _settingsBox.get('theme_backdrop') as String?;
   }
 
+  Future<void> saveLiquidGlassEnabled(bool enabled) async {
+    await _settingsBox.put('theme_liquid_glass', enabled);
+  }
+
+  bool getLiquidGlassEnabled() {
+    if (!_settingsOpen) return true;
+    return _settingsBox.get('theme_liquid_glass', defaultValue: true) as bool? ?? true;
+  }
+
+  Future<void> saveGlassPerformanceMode(bool enabled) async {
+    await _settingsBox.put('theme_glass_performance', enabled);
+  }
+
+  bool getGlassPerformanceMode() {
+    if (!_settingsOpen) return false;
+    return _settingsBox.get('theme_glass_performance', defaultValue: false) as bool? ?? false;
+  }
+
+  Future<void> saveHighRefreshRateEnabled(bool enabled) async {
+    await _settingsBox.put('display_high_refresh_rate', enabled);
+  }
+
+  bool getHighRefreshRateEnabled() {
+    if (!_settingsOpen) return true;
+    return _settingsBox.get('display_high_refresh_rate', defaultValue: true) as bool? ?? true;
+  }
+
   // --- Sidebar State ---
   Future<void> setSidebarExpanded(bool expanded) async {
     await _settingsBox.put('sidebar_expanded', expanded);

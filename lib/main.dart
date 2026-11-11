@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter_displaymode/flutter_displaymode.dart';
+import 'core/services/display_refresh_service.dart';
+import 'shared/widgets/no_scrollbar_behavior.dart';
 import 'package:flutter/material.dart';
 
 import 'features/player/presentation/player_debug_flags.dart'
@@ -26,7 +27,6 @@ import 'package:dynamic_color/dynamic_color.dart';
 
 import 'core/utils/app_utils.dart';
 import 'features/extensions/providers/extensions_controller.dart';
-import 'core/addons/data/addon_repository.dart';
 import 'core/models/extension_update_report.dart';
 import 'core/nuvio/data/nuvio_repository.dart';
 import 'features/extensions/widgets/extensions_sync_bridge.dart';
@@ -146,12 +146,9 @@ class _AppRootState extends State<AppRoot> {
       // Refresh-rate handoff is a platform round trip the first frame does not
       // depend on. Off the launch path, the launch screen is up that much
       // sooner and the switch happens behind it.
-      if (Platform.isAndroid) {
-        unawaited(
-          FlutterDisplayMode.setHighRefreshRate().catchError((Object e) {
-            if (kDebugMode) debugPrint("Error setting high refresh rate: $e");
-          }),
-        );
+      if (!kIsWeb && (Platform.isAndroid || Platform.isWindows)) {
+        final highRefresh = _storageService.getHighRefreshRateEnabled();
+        unawaited(DisplayRefreshService.instance.apply(highRefresh));
       }
       unawaited(LanSyncService.instance.start(_storageService));
 
@@ -487,6 +484,8 @@ class _MyAppState extends ConsumerState<MyApp> {
             surface: customization.surface,
             backdrop: customization.backdrop,
             world: world,
+            liquidGlass: customization.liquidGlass,
+            glassPerformance: customization.glassPerformance,
           ),
           darkTheme: AppTheme.createDarkTheme(
             darkScheme,
@@ -494,7 +493,10 @@ class _MyAppState extends ConsumerState<MyApp> {
             surface: customization.surface,
             backdrop: customization.backdrop,
             world: world,
+            liquidGlass: customization.liquidGlass,
+            glassPerformance: customization.glassPerformance,
           ),
+          scrollBehavior: const NoScrollbarBehavior(),
           routerConfig: appRouter,
           locale: locale,
           localizationsDelegates: const [

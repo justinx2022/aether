@@ -1924,4 +1924,53 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get aiNeuralEngine => 'AI Neural Engine';
+
+  @override
+  String get liquidGlassAnd120Hz => 'Liquid Glass & 120Hz';
+
+  @override
+  String get liquidGlassTheme => 'Liquid Glass Theme';
+
+  @override
+  String get liquidGlassThemeSubtitle =>
+      'Apple-style frosted blur, vibrancy & specular rims';
+
+  @override
+  String get glassFrostPerformance => 'Glass Frost Performance';
+
+  @override
+  String get glassFrostPerformanceSubtitle =>
+      'Lighter blur pass for older GPUs';
+
+  @override
+  String get highRefreshMode => '120Hz Ultra-Smooth Mode';
+
+  @override
+  String get highRefreshModeSubtitle => 'Requests native 120Hz / 144Hz output';
+
+  @override
+  String highRefreshActiveDetail(int currentHz, int maxHz) {
+    return '${currentHz}Hz active · Max ${maxHz}Hz';
+  }
+
+  @override
+  String get highRefreshEnabledBadge => '120Hz Smooth';
+
+  @override
+  String get liquidGlassShort => 'Liquid Glass';
+
+  @override
+  String get backdropLiquidMesh => 'Liquid Mesh (Apple)';
+
+  @override
+  String get highRefreshStandardSubtitle => 'Standard 60Hz display pacing';
+
+  @override
+  String get highRefreshFallbackEnabled =>
+      'Ultra-Smooth 120Hz / high refresh rate enabled';
+
+  @override
+  String highRefreshStatusLabel(String badge, int maxHz) {
+    return 'Ultra-Smooth active ($badge / Max ${maxHz}Hz)';
+  }
 }

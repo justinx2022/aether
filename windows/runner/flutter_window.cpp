@@ -4,6 +4,13 @@
 
 #include "flutter/generated_plugin_registrant.h"
 
+#include <flutter/standard_method_codec.h>
+#include <mmsystem.h>
+
+#include <algorithm>
+#include <set>
+#include <vector>
+
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
     : project_(project) {}
 
@@ -25,6 +32,8 @@ bool FlutterWindow::OnCreate() {
     return false;
   }
   RegisterPlugins(flutter_controller_->engine());
+  SetupDisplayChannel();
+  SetHighRefreshMode(true);
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
@@ -40,7 +49,113 @@ bool FlutterWindow::OnCreate() {
   return true;
 }
 
+void FlutterWindow::SetupDisplayChannel() {
+  if (!flutter_controller_ || !flutter_controller_->engine()) return;
+  display_channel_ =
+      std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+          flutter_controller_->engine()->messenger(),
+          "dev.akash.skystream/display",
+          &flutter::StandardMethodCodec::GetInstance());
+
+  display_channel_->SetMethodCallHandler(
+      [this](const flutter::MethodCall<flutter::EncodableValue>& call,
+             std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>>
+                 result) {
+        if (call.method_name() == "setHighRefreshRate") {
+          bool enabled = true;
+          if (const auto* args =
+                  std::get_if<flutter::EncodableMap>(call.arguments())) {
+            const auto it = args->find(flutter::EncodableValue("enabled"));
+            if (it != args->end()) {
+              if (const auto* flag = std::get_if<bool>(&it->second)) {
+                enabled = *flag;
+              }
+            }
+          }
+          SetHighRefreshMode(enabled);
+          result->Success(flutter::EncodableValue(QueryDisplayInfo()));
+        } else if (call.method_name() == "getDisplayInfo") {
+          result->Success(flutter::EncodableValue(QueryDisplayInfo()));
+        } else {
+          result->NotImplemented();
+        }
+      });
+}
+
+void FlutterWindow::SetHighRefreshMode(bool enabled) {
+  high_refresh_enabled_ = enabled;
+  if (enabled && !timer_period_active_) {
+    if (timeBeginPeriod(1) == TIMERR_NOERROR) {
+      timer_period_active_ = true;
+    }
+  } else if (!enabled && timer_period_active_) {
+    timeEndPeriod(1);
+    timer_period_active_ = false;
+  }
+}
+
+flutter::EncodableMap FlutterWindow::QueryDisplayInfo() const {
+  double current_hz = 60.0;
+  std::set<DWORD> rates;
+
+  HWND hwnd = GetHandle();
+  HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+  MONITORINFOEXW mi = {};
+  mi.cbSize = sizeof(MONITORINFOEXW);
+
+  const wchar_t* device_name = nullptr;
+  if (monitor != nullptr && GetMonitorInfoW(monitor, &mi)) {
+    device_name = mi.szDevice;
+  }
+
+  DEVMODEW cur_mode = {};
+  cur_mode.dmSize = sizeof(DEVMODEW);
+  if (EnumDisplaySettingsW(device_name, ENUM_CURRENT_SETTINGS, &cur_mode) &&
+      cur_mode.dmDisplayFrequency >= 48 &&
+      cur_mode.dmDisplayFrequency <= 500) {
+    current_hz = static_cast<double>(cur_mode.dmDisplayFrequency);
+    rates.insert(cur_mode.dmDisplayFrequency);
+  }
+
+  DEVMODEW mode = {};
+  mode.dmSize = sizeof(DEVMODEW);
+  for (DWORD idx = 0;
+       idx < 2048 && EnumDisplaySettingsW(device_name, idx, &mode); ++idx) {
+    const bool same_res =
+        cur_mode.dmPelsWidth == 0 ||
+        (mode.dmPelsWidth == cur_mode.dmPelsWidth &&
+         mode.dmPelsHeight == cur_mode.dmPelsHeight);
+    if (same_res && mode.dmDisplayFrequency >= 48 &&
+        mode.dmDisplayFrequency <= 500) {
+      rates.insert(mode.dmDisplayFrequency);
+    }
+    mode.dmSize = sizeof(DEVMODEW);
+  }
+
+  flutter::EncodableList supported;
+  for (DWORD r : rates) {
+    supported.push_back(flutter::EncodableValue(static_cast<double>(r)));
+  }
+  const double max_hz =
+      rates.empty() ? current_hz : static_cast<double>(*rates.rbegin());
+
+  flutter::EncodableMap info;
+  info[flutter::EncodableValue("currentHz")] =
+      flutter::EncodableValue(current_hz);
+  info[flutter::EncodableValue("maxHz")] = flutter::EncodableValue(max_hz);
+  info[flutter::EncodableValue("supportedHz")] =
+      flutter::EncodableValue(supported);
+  info[flutter::EncodableValue("enabled")] =
+      flutter::EncodableValue(high_refresh_enabled_);
+  return info;
+}
+
 void FlutterWindow::OnDestroy() {
+  display_channel_.reset();
+  if (timer_period_active_) {
+    timeEndPeriod(1);
+    timer_period_active_ = false;
+  }
   if (flutter_controller_) {
     flutter_controller_ = nullptr;
   }

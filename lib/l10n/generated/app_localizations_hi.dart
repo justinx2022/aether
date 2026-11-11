@@ -1928,4 +1928,54 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get aiNeuralEngine => 'एआई न्यूरल इंजन';
+
+  @override
+  String get liquidGlassAnd120Hz => 'लिक्विड ग्लास और 120Hz';
+
+  @override
+  String get liquidGlassTheme => 'लिक्विड ग्लास थीम';
+
+  @override
+  String get liquidGlassThemeSubtitle =>
+      'Apple जैसा फ्रॉस्टेड ब्लर, वाइब्रेंसी और स्पेक्युलर किनारे';
+
+  @override
+  String get glassFrostPerformance => 'ग्लास फ्रॉस्ट परफ़ॉर्मेंस';
+
+  @override
+  String get glassFrostPerformanceSubtitle =>
+      'पुराने GPU के लिए हल्का ब्लर पास';
+
+  @override
+  String get highRefreshMode => '120Hz अल्ट्रा-स्मूथ मोड';
+
+  @override
+  String get highRefreshModeSubtitle =>
+      'नेटिव 120Hz / 144Hz आउटपुट का अनुरोध करता है';
+
+  @override
+  String highRefreshActiveDetail(int currentHz, int maxHz) {
+    return '${currentHz}Hz सक्रिय · अधिकतम ${maxHz}Hz';
+  }
+
+  @override
+  String get highRefreshEnabledBadge => '120Hz स्मूथ';
+
+  @override
+  String get liquidGlassShort => 'लिक्विड ग्लास';
+
+  @override
+  String get backdropLiquidMesh => 'लिक्विड मेश (Apple)';
+
+  @override
+  String get highRefreshStandardSubtitle => 'मानक 60Hz डिस्प्ले पेसिंग';
+
+  @override
+  String get highRefreshFallbackEnabled =>
+      'अल्ट्रा-स्मूथ 120Hz / उच्च रिफ्रेश दर सक्षम';
+
+  @override
+  String highRefreshStatusLabel(String badge, int maxHz) {
+    return 'अल्ट्रा-स्मूथ सक्रिय ($badge / अधिकतम ${maxHz}Hz)';
+  }
 }

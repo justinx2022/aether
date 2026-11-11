@@ -8,6 +8,7 @@ import '../../../../core/utils/layout_constants.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../../shared/widgets/cards_wrapper.dart';
 import '../../../../shared/widgets/desktop_scroll_wrapper.dart';
+import '../../../../shared/widgets/glass_surface.dart';
 import '../../../../shared/widgets/multimedia_card.dart';
 import '../../../../shared/widgets/shimmer_placeholder.dart';
 import '../data/genre_catalog_provider.dart';
@@ -85,11 +86,20 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
 
     return Scaffold(
       backgroundColor: Colors.transparent,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         systemOverlayStyle: overlayStyle,
         forceMaterialTransparency: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
+        flexibleSpace: const GlassSurface(
+          borderRadius: BorderRadius.zero,
+          padding: EdgeInsets.zero,
+          blurSigma: 18,
+          shadow: false,
+          rimStrength: 0.4,
+          child: SizedBox.expand(),
+        ),
         title: Row(
           children: [
             Container(
@@ -152,22 +162,21 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                 );
               },
               borderRadius: BorderRadius.circular(50),
-              child: Container(
-                width: 36,
-                height: 36,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.black.withValues(alpha: 0.35),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    width: 0.75,
+              child: GlassSurface(
+                borderRadius: BorderRadius.circular(18),
+                padding: EdgeInsets.zero,
+                blurSigma: 14,
+                shadow: false,
+                child: SizedBox(
+                  width: 36,
+                  height: 36,
+                  child: Center(
+                    child: Icon(
+                      Icons.search_rounded,
+                      color: Theme.of(context).colorScheme.onSurface,
+                      size: 18,
+                    ),
                   ),
-                ),
-                child: const Icon(
-                  Icons.search,
-                  color: Colors.white,
-                  size: 18,
                 ),
               ),
             ),
@@ -186,6 +195,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
               parent: BouncingScrollPhysics(),
             ),
             slivers: [
+              SliverPadding(
+                padding: EdgeInsets.only(
+                  top: MediaQuery.paddingOf(context).top + kToolbarHeight + 8,
+                ),
+              ),
               // 1. Strict Genre Selection Rail
               SliverToBoxAdapter(
                 child: _buildGenreRail(context, selectedGenre),
@@ -318,49 +332,57 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
       ('movie', 'Movies'),
       ('series', 'Series'),
     ];
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final activePillColor = isDark
+        ? Colors.white.withValues(alpha: 0.18)
+        : Colors.white.withValues(alpha: 0.80);
+    final activeTextColor = isDark ? Colors.white : Colors.black;
+    final inactiveTextColor = isDark
+        ? Colors.white.withValues(alpha: 0.68)
+        : Colors.black.withValues(alpha: 0.60);
 
-    return Container(
-      height: 34,
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.15),
-          width: 0.75,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: types.map((t) {
-          final isSelected = selectedType == t.$1;
-          return CardsWrapper(
-            onTap: () {
-              ref.read(selectedTypeProvider.notifier).state = t.$1;
-            },
-            borderRadius: BorderRadius.circular(16),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? Theme.of(context).colorScheme.primary
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(
-                t.$2,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected
-                      ? Colors.white
-                      : Colors.white.withValues(alpha: 0.7),
+    return GlassSurface(
+      borderRadius: BorderRadius.circular(20),
+      padding: const EdgeInsets.all(3),
+      blurSigma: 14,
+      shadow: false,
+      child: SizedBox(
+        height: 28,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: types.map((t) {
+            final isSelected = selectedType == t.$1;
+            return CardsWrapper(
+              onTap: () {
+                ref.read(selectedTypeProvider.notifier).state = t.$1;
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOutCubic,
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isSelected ? activePillColor : Colors.transparent,
+                  borderRadius: BorderRadius.circular(16),
+                  border: isSelected
+                      ? Border.all(
+                          color: Colors.white.withValues(alpha: isDark ? 0.22 : 0.85),
+                          width: 0.75,
+                        )
+                      : null,
+                ),
+                child: Text(
+                  t.$2,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    color: isSelected ? activeTextColor : inactiveTextColor,
+                  ),
                 ),
               ),
-            ),
-          );
-        }).toList(),
+            );
+          }).toList(),
+        ),
       ),
     );
   }
@@ -383,33 +405,16 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
               ref.read(selectedGenreProvider.notifier).state = genre.id;
             },
             borderRadius: BorderRadius.circular(22),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
+            child: LightweightGlassSurface(
+              borderRadius: BorderRadius.circular(22),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? Theme.of(context).colorScheme.primary
-                    : Colors.black.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(
-                  color: isSelected
-                      ? Colors.white.withValues(alpha: 0.3)
-                      : Colors.white.withValues(alpha: 0.12),
-                  width: isSelected ? 1.0 : 0.75,
-                ),
-                boxShadow: isSelected
-                    ? [
-                        BoxShadow(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .primary
-                              .withValues(alpha: 0.4),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
-                        ),
-                      ]
-                    : null,
-              ),
+              shadow: isSelected,
+              rimStrength: isSelected ? 1.2 : 0.75,
+              fill: isSelected
+                  ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.85)
+                  : Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : Colors.white.withValues(alpha: 0.62),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -418,18 +423,17 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                     size: 15,
                     color: isSelected
                         ? Colors.white
-                        : Colors.white.withValues(alpha: 0.8),
+                        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.85),
                   ),
                   const SizedBox(width: 6),
                   Text(
                     genre.label,
                     style: TextStyle(
                       fontSize: 12,
-                      fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.w500,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                       color: isSelected
                           ? Colors.white
-                          : Colors.white.withValues(alpha: 0.85),
+                          : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.9),
                     ),
                   ),
                 ],

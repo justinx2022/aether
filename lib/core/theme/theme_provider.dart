@@ -1,6 +1,9 @@
+import 'dart:async' show unawaited;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../services/display_refresh_service.dart';
 import '../storage/settings_repository.dart';
 import 'theme_presets.dart';
 
@@ -71,6 +74,9 @@ class ThemeCustomizationController extends Notifier<ThemeCustomization> {
       palette: AppPalette.fromStorage(_repository.getThemePalette()),
       surface: AppSurfaceStyle.fromStorage(_repository.getThemeSurface()),
       backdrop: AppBackdrop.fromStorage(_repository.getThemeBackdrop()),
+      liquidGlass: _repository.getLiquidGlassEnabled(),
+      glassPerformance: _repository.getGlassPerformanceMode(),
+      highRefreshRate: _repository.getHighRefreshRateEnabled(),
     );
   }
 
@@ -90,5 +96,24 @@ class ThemeCustomizationController extends Notifier<ThemeCustomization> {
     if (backdrop == state.backdrop) return;
     state = state.copyWith(backdrop: backdrop);
     await _repository.saveThemeBackdrop(backdrop.name);
+  }
+
+  Future<void> setLiquidGlass(bool enabled) async {
+    if (enabled == state.liquidGlass) return;
+    state = state.copyWith(liquidGlass: enabled);
+    await _repository.saveLiquidGlassEnabled(enabled);
+  }
+
+  Future<void> setGlassPerformance(bool enabled) async {
+    if (enabled == state.glassPerformance) return;
+    state = state.copyWith(glassPerformance: enabled);
+    await _repository.saveGlassPerformanceMode(enabled);
+  }
+
+  Future<void> setHighRefreshRate(bool enabled) async {
+    if (enabled == state.highRefreshRate) return;
+    state = state.copyWith(highRefreshRate: enabled);
+    await _repository.saveHighRefreshRateEnabled(enabled);
+    unawaited(DisplayRefreshService.instance.apply(enabled));
   }
 }

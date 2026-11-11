@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../shared/widgets/custom_widgets.dart';
+import '../../../../core/services/display_refresh_service.dart';
 import '../../../../core/services/external_player_service.dart';
 import '../../../../core/config/tmdb_config.dart';
 import '../../../../core/network/dio_client_provider.dart';
@@ -1471,6 +1472,84 @@ class _ThemePickerBodyState extends ConsumerState<_ThemePickerBody> {
             ],
           ),
         ),
+        _AppearanceSection(
+          label: l10n.liquidGlassAnd120Hz,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SwitchListTile.adaptive(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  l10n.liquidGlassTheme,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13.5,
+                  ),
+                ),
+                subtitle: Text(
+                  l10n.liquidGlassThemeSubtitle,
+                  style: const TextStyle(fontSize: 11.5),
+                ),
+                value: customization.liquidGlass,
+                onChanged: (value) => ref
+                    .read(themeCustomizationProvider.notifier)
+                    .setLiquidGlass(value),
+              ),
+              SwitchListTile.adaptive(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  l10n.glassFrostPerformance,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13.5,
+                  ),
+                ),
+                subtitle: Text(
+                  l10n.glassFrostPerformanceSubtitle,
+                  style: const TextStyle(fontSize: 11.5),
+                ),
+                value: customization.glassPerformance,
+                onChanged: customization.liquidGlass
+                    ? (value) => ref
+                          .read(themeCustomizationProvider.notifier)
+                          .setGlassPerformance(value)
+                    : null,
+              ),
+              ValueListenableBuilder<DisplayRefreshInfo?>(
+                valueListenable: DisplayRefreshService.instance.infoNotifier,
+                builder: (context, info, _) {
+                  final hzLabel = info != null
+                      ? l10n.highRefreshActiveDetail(
+                          info.currentHz.round(),
+                          info.maxHz.round(),
+                        )
+                      : l10n.highRefreshModeSubtitle;
+                  return SwitchListTile.adaptive(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      l10n.highRefreshMode,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13.5,
+                      ),
+                    ),
+                    subtitle: Text(
+                      hzLabel,
+                      style: const TextStyle(fontSize: 11.5),
+                    ),
+                    value: customization.highRefreshRate,
+                    onChanged: (value) => ref
+                        .read(themeCustomizationProvider.notifier)
+                        .setHighRefreshRate(value),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -1571,6 +1650,8 @@ String appearanceBackdropLabel(AppBackdrop backdrop, AppLocalizations l10n) {
   switch (backdrop) {
     case AppBackdrop.none:
       return l10n.none;
+    case AppBackdrop.liquidMesh:
+      return l10n.backdropLiquidMesh;
     case AppBackdrop.nebula:
       return 'Nebula (Cosmic)';
     case AppBackdrop.blackhole:

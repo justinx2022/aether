@@ -3518,6 +3518,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'AI Neural Engine'**
   String get aiNeuralEngine;
+
+  /// Appearance picker section header for the Liquid Glass theme and 120Hz refresh rate controls.
+  ///
+  /// In en, this message translates to:
+  /// **'Liquid Glass & 120Hz'**
+  String get liquidGlassAnd120Hz;
+
+  /// Toggle label for enabling the frosted Apple-style Liquid Glass appearance.
+  ///
+  /// In en, this message translates to:
+  /// **'Liquid Glass Theme'**
+  String get liquidGlassTheme;
+
+  /// Subtitle explaining the Liquid Glass theme switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Apple-style frosted blur, vibrancy & specular rims'**
+  String get liquidGlassThemeSubtitle;
+
+  /// Toggle label for switching glass panels to a lighter, lower-GPU mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Glass Frost Performance'**
+  String get glassFrostPerformance;
+
+  /// Subtitle explaining Glass Frost Performance mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Lighter blur pass for older GPUs'**
+  String get glassFrostPerformanceSubtitle;
+
+  /// Toggle title for enabling high display refresh rate (120Hz/144Hz) mode.
+  ///
+  /// In en, this message translates to:
+  /// **'120Hz Ultra-Smooth Mode'**
+  String get highRefreshMode;
+
+  /// Fallback subtitle for the high refresh rate toggle when hardware hz info is unavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Requests native 120Hz / 144Hz output'**
+  String get highRefreshModeSubtitle;
+
+  /// Live refresh rate readout inside the Theme picker.
+  ///
+  /// In en, this message translates to:
+  /// **'{currentHz}Hz active · Max {maxHz}Hz'**
+  String highRefreshActiveDetail(int currentHz, int maxHz);
+
+  /// Compact badge shown in the Theme summary row when Ultra-Smooth mode is on.
+  ///
+  /// In en, this message translates to:
+  /// **'120Hz Smooth'**
+  String get highRefreshEnabledBadge;
+
+  /// Compact label shown in the Theme summary row when Liquid Glass is active.
+  ///
+  /// In en, this message translates to:
+  /// **'Liquid Glass'**
+  String get liquidGlassShort;
+
+  /// Name of the chromatic ambient mesh backdrop preset.
+  ///
+  /// In en, this message translates to:
+  /// **'Liquid Mesh (Apple)'**
+  String get backdropLiquidMesh;
+
+  /// Settings row subtitle when 120Hz Ultra-Smooth Mode is switched off.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard 60Hz display pacing'**
+  String get highRefreshStandardSubtitle;
+
+  /// Settings row subtitle when 120Hz Ultra-Smooth Mode is on without live display readout.
+  ///
+  /// In en, this message translates to:
+  /// **'Ultra-Smooth 120Hz / high refresh rate enabled'**
+  String get highRefreshFallbackEnabled;
+
+  /// Live Settings row subtitle showing active and max refresh rates.
+  ///
+  /// In en, this message translates to:
+  /// **'Ultra-Smooth active ({badge} / Max {maxHz}Hz)'**
+  String highRefreshStatusLabel(String badge, int maxHz);
 }
 
 class _AppLocalizationsDelegate

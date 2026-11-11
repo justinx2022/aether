@@ -450,8 +450,14 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),
           style: IconButton.styleFrom(
-            backgroundColor: isDark ? Colors.black45 : Colors.white54,
+            backgroundColor: isDark
+                ? Colors.white.withValues(alpha: 0.14)
+                : Colors.white.withValues(alpha: 0.72),
             foregroundColor: textColor,
+            side: BorderSide(
+              color: Colors.white.withValues(alpha: isDark ? 0.24 : 0.85),
+              width: 0.8,
+            ),
           ),
         ),
         actions: [
@@ -473,8 +479,14 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
               }
             },
             style: IconButton.styleFrom(
-              backgroundColor: isDark ? Colors.black45 : Colors.white54,
+              backgroundColor: isDark
+                  ? Colors.white.withValues(alpha: 0.14)
+                  : Colors.white.withValues(alpha: 0.72),
               foregroundColor: textColor,
+              side: BorderSide(
+                color: Colors.white.withValues(alpha: isDark ? 0.24 : 0.85),
+                width: 0.8,
+              ),
             ),
           ),
           const SizedBox(width: 8),

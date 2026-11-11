@@ -1940,4 +1940,54 @@ class AppLocalizationsKn extends AppLocalizations {
 
   @override
   String get aiNeuralEngine => 'ಎಐ ನ್ಯೂರಲ್ ಎಂಜಿನ್';
+
+  @override
+  String get liquidGlassAnd120Hz => 'ಲಿಕ್ವಿಡ್ ಗ್ಲಾಸ್ ಮತ್ತು 120Hz';
+
+  @override
+  String get liquidGlassTheme => 'ಲಿಕ್ವಿಡ್ ಗ್ಲಾಸ್ ಥೀಮ್';
+
+  @override
+  String get liquidGlassThemeSubtitle =>
+      'Apple ಶೈಲಿಯ ಫ್ರಾಸ್ಟೆಡ್ ಬ್ಲರ್, ವೈಬ್ರೆನ್ಸಿ ಮತ್ತು ಹೊಳಪಿನ ಅಂಚುಗಳು';
+
+  @override
+  String get glassFrostPerformance => 'ಗ್ಲಾಸ್ ಫ್ರಾಸ್ಟ್ ಕಾರ್ಯಕ್ಷಮತೆ';
+
+  @override
+  String get glassFrostPerformanceSubtitle =>
+      'ಹಳೆಯ GPU ಗಳಿಗೆ ಹಗುರವಾದ ಬ್ಲರ್ ಮೋಡ್';
+
+  @override
+  String get highRefreshMode => '120Hz ಅಲ್ಟ್ರಾ-ಸ್ಮೂತ್ ಮೋಡ್';
+
+  @override
+  String get highRefreshModeSubtitle =>
+      'ಸ್ಥಳೀಯ 120Hz / 144Hz ಔಟ್‌ಪುಟ್ ವಿನಂತಿಸುತ್ತದೆ';
+
+  @override
+  String highRefreshActiveDetail(int currentHz, int maxHz) {
+    return '${currentHz}Hz ಸಕ್ರಿಯ · ಗರಿಷ್ಠ ${maxHz}Hz';
+  }
+
+  @override
+  String get highRefreshEnabledBadge => '120Hz ಸ್ಮೂತ್';
+
+  @override
+  String get liquidGlassShort => 'ಲಿಕ್ವಿಡ್ ಗ್ಲಾಸ್';
+
+  @override
+  String get backdropLiquidMesh => 'ಲಿಕ್ವಿಡ್ ಮೆಶ್ (Apple)';
+
+  @override
+  String get highRefreshStandardSubtitle => 'ಪ್ರಮಾಣಿತ 60Hz ಡಿಸ್‌ಪ್ಲೇ ವೇಗ';
+
+  @override
+  String get highRefreshFallbackEnabled =>
+      'ಅಲ್ಟ್ರಾ-ಸ್ಮೂತ್ 120Hz / ಹೆಚ್ಚಿನ ರಿಫ್ರೆಶ್ ದರ ಸಕ್ರಿಯ';
+
+  @override
+  String highRefreshStatusLabel(String badge, int maxHz) {
+    return 'ಅಲ್ಟ್ರಾ-ಸ್ಮೂತ್ ಸಕ್ರಿಯ ($badge / ಗರಿಷ್ಠ ${maxHz}Hz)';
+  }
 }

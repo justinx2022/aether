@@ -9,6 +9,7 @@ import 'widgets/bookmarks_tab.dart';
 import 'widgets/downloads_tab.dart';
 import 'widgets/history_tab.dart';
 import '../../../shared/focus/app_focus.dart';
+import '../../../shared/widgets/glass_surface.dart';
 import '../../../core/theme/app_world.dart';
 
 class LibraryScreen extends ConsumerStatefulWidget {
@@ -120,6 +121,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         title: Text(AppLocalizations.of(context)!.library),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        flexibleSpace: const GlassSurface(
+          borderRadius: BorderRadius.zero,
+          padding: EdgeInsets.zero,
+          blurSigma: 16,
+          shadow: false,
+          rimStrength: 0.35,
+          child: SizedBox.expand(),
+        ),
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: world.accent,
@@ -241,42 +250,70 @@ class _TabChipState extends State<_TabChip> {
           scale: scale,
           duration: const Duration(milliseconds: 150),
           curve: Curves.easeOut,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: widget.selected
-                  ? accent.withValues(alpha: 0.16)
-                  : world.textPrimary.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
-              border: showHighlight
-                  ? AppFocus.border(context, focused: true)
-                  : (widget.selected
-                        ? Border.all(color: accent.withValues(alpha: 0.35))
-                        : Border.all(color: Colors.transparent, width: 1)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  widget.icon,
-                  size: 16,
-                  color: widget.selected ? accent : world.textSecondary,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  widget.label,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: widget.selected
-                        ? FontWeight.w600
-                        : FontWeight.normal,
-                    color: widget.selected ? accent : world.textSecondary,
+          child: showHighlight
+              ? AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: widget.selected
+                        ? accent.withValues(alpha: 0.22)
+                        : world.textPrimary.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
+                    border: AppFocus.border(context, focused: true),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        widget.icon,
+                        size: 16,
+                        color: widget.selected ? accent : world.textSecondary,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        widget.label,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight:
+                              widget.selected ? FontWeight.w600 : FontWeight.normal,
+                          color: widget.selected ? accent : world.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : LightweightGlassSurface(
+                  borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  rimStrength: widget.selected ? 1.15 : 0.70,
+                  fill: widget.selected
+                      ? accent.withValues(alpha: world.isDark ? 0.24 : 0.18)
+                      : world.textPrimary.withValues(alpha: world.isDark ? 0.06 : 0.04),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        widget.icon,
+                        size: 16,
+                        color: widget.selected
+                            ? (world.isDark ? Colors.white : accent)
+                            : world.textSecondary,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        widget.label,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight:
+                              widget.selected ? FontWeight.w600 : FontWeight.normal,
+                          color: widget.selected
+                              ? (world.isDark ? Colors.white : accent)
+                              : world.textSecondary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ),
         ),
       ),
     );
