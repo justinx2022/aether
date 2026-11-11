@@ -33,7 +33,7 @@ class FlutterWindow : public Win32Window {
 
   void SetupDisplayChannel();
   void SetHighRefreshMode(bool enabled);
-  flutter::EncodableMap QueryDisplayInfo() const;
+  flutter::EncodableMap QueryDisplayInfo();
 
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> display_channel_;
   bool high_refresh_enabled_ = true;

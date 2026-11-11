@@ -7,9 +7,8 @@
 #include <flutter/standard_method_codec.h>
 #include <mmsystem.h>
 
-#include <algorithm>
 #include <set>
-#include <vector>
+#include <variant>
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
     : project_(project) {}
@@ -94,7 +93,7 @@ void FlutterWindow::SetHighRefreshMode(bool enabled) {
   }
 }
 
-flutter::EncodableMap FlutterWindow::QueryDisplayInfo() const {
+flutter::EncodableMap FlutterWindow::QueryDisplayInfo() {
   double current_hz = 60.0;
   std::set<DWORD> rates;
 
@@ -111,22 +110,22 @@ flutter::EncodableMap FlutterWindow::QueryDisplayInfo() const {
   DEVMODEW cur_mode = {};
   cur_mode.dmSize = sizeof(DEVMODEW);
   if (EnumDisplaySettingsW(device_name, ENUM_CURRENT_SETTINGS, &cur_mode) &&
-      cur_mode.dmDisplayFrequency >= 48 &&
-      cur_mode.dmDisplayFrequency <= 500) {
+      cur_mode.dmDisplayFrequency >= 48u &&
+      cur_mode.dmDisplayFrequency <= 500u) {
     current_hz = static_cast<double>(cur_mode.dmDisplayFrequency);
     rates.insert(cur_mode.dmDisplayFrequency);
   }
 
   DEVMODEW mode = {};
   mode.dmSize = sizeof(DEVMODEW);
-  for (DWORD idx = 0;
-       idx < 2048 && EnumDisplaySettingsW(device_name, idx, &mode); ++idx) {
+  for (DWORD idx = 0u;
+       idx < 2048u && EnumDisplaySettingsW(device_name, idx, &mode); ++idx) {
     const bool same_res =
-        cur_mode.dmPelsWidth == 0 ||
+        cur_mode.dmPelsWidth == 0u ||
         (mode.dmPelsWidth == cur_mode.dmPelsWidth &&
          mode.dmPelsHeight == cur_mode.dmPelsHeight);
-    if (same_res && mode.dmDisplayFrequency >= 48 &&
-        mode.dmDisplayFrequency <= 500) {
+    if (same_res && mode.dmDisplayFrequency >= 48u &&
+        mode.dmDisplayFrequency <= 500u) {
       rates.insert(mode.dmDisplayFrequency);
     }
     mode.dmSize = sizeof(DEVMODEW);
@@ -151,7 +150,10 @@ flutter::EncodableMap FlutterWindow::QueryDisplayInfo() const {
 }
 
 void FlutterWindow::OnDestroy() {
-  display_channel_.reset();
+  if (display_channel_) {
+    display_channel_->SetMethodCallHandler(nullptr);
+    display_channel_.reset();
+  }
   if (timer_period_active_) {
     timeEndPeriod(1);
     timer_period_active_ = false;
