@@ -49,18 +49,51 @@ class AppBackdropLayer extends StatelessWidget {
 
     final backdrop = tokens?.backdrop ?? AppBackdrop.liquidMesh;
 
-    return RepaintBoundary(
-      child: DecoratedBox(
-        decoration: BoxDecoration(gradient: gradient),
-        child: CustomPaint(
-          painter: SpaceBackdropPainter(
-            backdrop: backdrop,
-            brightness: theme.brightness,
-            accent: theme.colorScheme.primary,
+    late final Widget effectiveChild;
+    if (theme.platform == TargetPlatform.windows &&
+        tokens != null &&
+        !tokens.glassPerformance) {
+      final updatedExtensions = theme.extensions.values
+          .where((ext) => ext is! AppSurfaceTokens)
+          .toList(growable: true)
+        ..add(tokens.copyWith(glassPerformance: true));
+      effectiveChild = Theme(
+        data: theme.copyWith(extensions: updatedExtensions),
+        child: child,
+      );
+    } else {
+      effectiveChild = child;
+    }
+
+    // Paint the ambient gradient + nebula orbs in an isolated cached layer so
+    // animations, hovers, and scrolling inside [child] never force a
+    // full-window shader repaint. On Windows Skia/ANGLE, also promote the
+    // shell to zero-BackdropFilter glass performance mode so persistent chrome
+    // renders at native frame rates instead of stalling on D3D11 saveLayers.
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Positioned.fill(
+          child: RepaintBoundary(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(gradient: gradient),
+                child: CustomPaint(
+                  painter: SpaceBackdropPainter(
+                    backdrop: backdrop,
+                    brightness: theme.brightness,
+                    accent: theme.colorScheme.primary,
+                  ),
+                  child: const SizedBox.expand(),
+                ),
+              ),
+            ),
           ),
-          child: child,
         ),
-      ),
+        Positioned.fill(
+          child: RepaintBoundary(child: effectiveChild),
+        ),
+      ],
     );
   }
 }

@@ -206,21 +206,27 @@ class GlassSurface extends StatelessWidget {
       child: paintedContent,
     );
 
-    if (blurSigma > 0 && !reduce) {
-      // Single-pass blur kept bounded (12 max in default Liquid Glass, 8 in
-      // perf mode) with RepaintBoundary isolation so 60Hz displays never stall on
-      // stacked blur saveLayers or double-pass ColorFilter image composition.
+    if (blurSigma > 0 && !reduce && !glassPerf) {
+      // Single-pass blur kept bounded (12 max in Liquid Glass) with
+      // TileMode.clamp and RepaintBoundary isolation so GPU frame times stay
+      // fast. When Performance Mode (or desktop Skia glassPerf) is active,
+      // skip BackdropFilter completely so Skia/ANGLE never allocates D3D11
+      // offscreen saveLayers.
       final effectiveSigma = !liquidGlass
           ? blurSigma
-          : glassPerf
-              ? math.min(blurSigma, 8.0)
-              : math.min(math.max(blurSigma, 10.0), 12.0);
+          : math.min(math.max(blurSigma, 10.0), 12.0);
       final blurFilter = ImageFilter.blur(
         sigmaX: effectiveSigma,
         sigmaY: effectiveSigma,
-        tileMode: TileMode.mirror,
+        tileMode: TileMode.clamp,
       );
-      final filter = (liquidGlass && useVibrancy && !glassPerf && effectiveSigma <= 10.0)
+      final platform = Theme.of(context).platform;
+      final useSinglePassBlur =
+          platform == TargetPlatform.windows || platform == TargetPlatform.linux;
+      final filter = (liquidGlass &&
+              useVibrancy &&
+              !useSinglePassBlur &&
+              effectiveSigma <= 10.0)
           ? ImageFilter.compose(
               outer: ColorFilter.matrix(_vibrancyColorMatrix(1.24)),
               inner: blurFilter,

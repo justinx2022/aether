@@ -81,7 +81,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
     final selectedType = ref.watch(selectedTypeProvider);
     final contentAsync = ref.watch(genreContentProvider);
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final isWindows = theme.platform == TargetPlatform.windows;
     final overlayStyle = isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark;
 
     return Scaffold(
@@ -92,15 +94,18 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
         forceMaterialTransparency: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        flexibleSpace: const RepaintBoundary(
+        flexibleSpace: RepaintBoundary(
           child: GlassSurface(
             borderRadius: BorderRadius.zero,
             padding: EdgeInsets.zero,
-            blurSigma: 12,
+            blurSigma: isWindows ? 0 : 12,
             shadow: false,
             useVibrancy: false,
             rimStrength: 0.4,
-            child: SizedBox.expand(),
+            fill: isWindows
+                ? theme.colorScheme.surface.withValues(alpha: isDark ? 0.86 : 0.90)
+                : null,
+            child: const SizedBox.expand(),
           ),
         ),
         title: Row(

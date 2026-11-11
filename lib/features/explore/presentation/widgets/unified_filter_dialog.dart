@@ -38,9 +38,7 @@ class _UnifiedFilterDialogState extends ConsumerState<UnifiedFilterDialog>
   Widget build(BuildContext context) {
     final isAnime = ref.watch(exploreModeProvider) == ExploreModeType.anime;
 
-    return BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-      child: Dialog(
+    final dialog = Dialog(
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.all(20),
         child: Container(
@@ -283,8 +281,13 @@ class _UnifiedFilterDialogState extends ConsumerState<UnifiedFilterDialog>
             ),
           ),
         ),
-      ),
-    );
+      );
+    return Theme.of(context).platform == TargetPlatform.windows
+        ? dialog
+        : BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: dialog,
+          );
   }
 }
 

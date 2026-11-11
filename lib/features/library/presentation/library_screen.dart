@@ -113,6 +113,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     }
 
     final world = AppWorldTokens.colorsOf(context);
+    final theme = Theme.of(context);
+    final isWindows = theme.platform == TargetPlatform.windows;
 
     // Mobile layout: existing AppBar with TabBar
     return Scaffold(
@@ -121,13 +123,16 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         title: Text(AppLocalizations.of(context)!.library),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        flexibleSpace: const GlassSurface(
+        flexibleSpace: GlassSurface(
           borderRadius: BorderRadius.zero,
           padding: EdgeInsets.zero,
-          blurSigma: 16,
+          blurSigma: isWindows ? 0 : 16,
           shadow: false,
           rimStrength: 0.35,
-          child: SizedBox.expand(),
+          fill: isWindows
+              ? theme.colorScheme.surface.withValues(alpha: 0.86)
+              : null,
+          child: const SizedBox.expand(),
         ),
         bottom: TabBar(
           controller: _tabController,

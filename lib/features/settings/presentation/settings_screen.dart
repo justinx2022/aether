@@ -32,6 +32,9 @@ class SettingsScreen extends ConsumerWidget {
     final themeMode = ref.watch(appThemeModeProvider);
     final generalSettings = ref.watch(generalSettingsProvider);
 
+    final theme = Theme.of(context);
+    final isWindows = theme.platform == TargetPlatform.windows;
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       extendBodyBehindAppBar: true,
@@ -39,13 +42,16 @@ class SettingsScreen extends ConsumerWidget {
         title: Text(l10n.settings),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        flexibleSpace: const GlassSurface(
+        flexibleSpace: GlassSurface(
           borderRadius: BorderRadius.zero,
           padding: EdgeInsets.zero,
-          blurSigma: 18,
+          blurSigma: isWindows ? 0 : 18,
           shadow: false,
           rimStrength: 0.35,
-          child: SizedBox.expand(),
+          fill: isWindows
+              ? theme.colorScheme.surface.withValues(alpha: 0.86)
+              : null,
+          child: const SizedBox.expand(),
         ),
       ),
       body: Center(

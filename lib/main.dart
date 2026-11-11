@@ -485,7 +485,7 @@ class _MyAppState extends ConsumerState<MyApp> {
             backdrop: customization.backdrop,
             world: world,
             liquidGlass: customization.liquidGlass,
-            glassPerformance: customization.glassPerformance,
+            glassPerformance: customization.glassPerformance || Platform.isWindows,
           ),
           darkTheme: AppTheme.createDarkTheme(
             darkScheme,
@@ -494,7 +494,7 @@ class _MyAppState extends ConsumerState<MyApp> {
             backdrop: customization.backdrop,
             world: world,
             liquidGlass: customization.liquidGlass,
-            glassPerformance: customization.glassPerformance,
+            glassPerformance: customization.glassPerformance || Platform.isWindows,
           ),
           scrollBehavior: const NoScrollbarBehavior(),
           routerConfig: appRouter,

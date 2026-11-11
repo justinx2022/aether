@@ -356,9 +356,10 @@ class _M3ToastCardState extends State<_M3ToastCard>
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(22),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                      child: Padding(
+                    child: () {
+                      final isWindows =
+                          theme.platform == TargetPlatform.windows;
+                      final content = Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 12,
@@ -470,8 +471,21 @@ class _M3ToastCardState extends State<_M3ToastCard>
                             ],
                           ],
                         ),
-                      ),
-                    ),
+                      );
+                      return isWindows
+                          ? DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: surfaceColor.withValues(
+                                  alpha: isDark ? 0.94 : 0.96,
+                                ),
+                              ),
+                              child: content,
+                            )
+                          : BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                              child: content,
+                            );
+                    }(),
                   ),
                 ),
               ),

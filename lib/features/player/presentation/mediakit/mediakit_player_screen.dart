@@ -1059,9 +1059,14 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
           await native.setProperty('tone-mapping-compute-peak', 'no');
 
           // Direct Decoder Rendering into surface & Smart Frame Dropping
-          await native.setProperty('vd-lavc-dr', 'yes');
-          await native.setProperty('framedrop', 'vo');
-          await native.setProperty('video-sync', 'display-resample');
+          // Match media_kit_video's native Windows ANGLE/D3D11 video_output
+          // contract: avoid vd-lavc-dr (stalls ANGLE glFinish texture upload)
+          // and avoid video-sync=display-resample + framedrop=vo (causes heavy
+          // frame drops when Flutter owns the DXGI swapchain).
+          await native.setProperty('vd-lavc-dr', 'no');
+          await native.setProperty('framedrop', 'yes');
+          await native.setProperty('video-sync', 'audio');
+          await native.setProperty('video-timing-offset', '0');
 
           // High-throughput caching for instant start + full network line speed utilization
           await native.setProperty('cache', 'yes');
@@ -1336,7 +1341,10 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     _subscriptions.add(
       _player.stream.buffer.listen((buf) {
         if (_disposed || !mounted) return;
-        setState(() => _buffer = buf);
+        _buffer = buf;
+        if (_controlsVisible || _isDragging) {
+          setState(() {});
+        }
       }),
     );
 
@@ -3578,7 +3586,11 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                     ),
 
                   // BitChord Liquid Glass Player Controls Layer (Center sphere + Top & Bottom HUDs)
-                  if (!_inPip && !_isLoading && _error.isEmpty && !_isScreenLocked)
+                  if (!_inPip &&
+                      !_isLoading &&
+                      _error.isEmpty &&
+                      !_isScreenLocked &&
+                      (_controlsVisible || !_playing))
                     AnimatedOpacity(
                       opacity: (_controlsVisible || !_playing) ? 1.0 : 0.0,
                       duration: const Duration(milliseconds: 200),
@@ -3588,7 +3600,9 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                         child: Stack(
                           children: [
                             if (_controlsVisible) _buildTopBar(),
-                            if (!_isLoading && !_isSwitching)
+                            if (!_isLoading &&
+                                !_isSwitching &&
+                                (_controlsVisible || !_playing))
                               Center(
                                 child: LiquidGlassCenterTransport(
                                   isPlaying: _playing,

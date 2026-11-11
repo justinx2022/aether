@@ -69,18 +69,21 @@ class LiquidPlayerCapsule extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isWindows = Theme.of(context).platform == TargetPlatform.windows;
+    final baseAlpha = isWindows ? 0.78 : 0.50;
+    final accentBlendAlpha = isWindows ? 0.82 : 0.54;
     final fill = activeAccent != null
         ? Color.alphaBlend(
-            activeAccent!.withValues(alpha: 0.24),
-            const Color(0xFF0E1422).withValues(alpha: 0.54),
+            activeAccent!.withValues(alpha: isWindows ? 0.28 : 0.24),
+            const Color(0xFF0E1422).withValues(alpha: accentBlendAlpha),
           )
-        : const Color(0xFF0E1422).withValues(alpha: 0.50);
+        : const Color(0xFF0E1422).withValues(alpha: baseAlpha);
 
     return RepaintBoundary(
       child: GlassSurface(
         borderRadius: borderRadius,
         padding: padding,
-        blurSigma: blurSigma,
+        blurSigma: isWindows ? 0 : blurSigma,
         useVibrancy: false,
         shadow: false,
         rimStrength: activeAccent != null ? math.max(1.25, rimStrength) : rimStrength,
