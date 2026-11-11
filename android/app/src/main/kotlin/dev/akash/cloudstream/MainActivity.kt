@@ -24,6 +24,7 @@ class MainActivity : FlutterActivity() {
     private var highRefreshRateEnabled: Boolean = true
 
     private var isPlaying = false
+    private var autoEnterPip = false
 
     /// The shape of the video currently playing, as the PiP window should be
     /// shaped. Null until Dart has decoded a frame and told us. Held as a
@@ -70,6 +71,10 @@ class MainActivity : FlutterActivity() {
                     // used, so a 2.39:1 film is letterboxed inside a window
                     // that is already small.
                     pipAspectRatio?.let { builder.setAspectRatio(it) }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        builder.setAutoEnterEnabled(autoEnterPip && isPlaying)
+                        builder.setSeamlessResizeEnabled(true)
+                    }
                     // Returns false when the user has PiP switched off for
                     // this app: no exception, and no onPictureInPictureModeChanged
                     // either. Dart needs the answer to undo its own optimism.
@@ -87,6 +92,18 @@ class MainActivity : FlutterActivity() {
                 // Always update state and force refresh actions
                 // The user reported sync issues, so we shouldn't skip update if values match
                 this.isPlaying = playing
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    updatePipActions()
+                }
+                result.success(null)
+            } else if (call.method == "setAutoEnterPip") {
+                autoEnterPip = call.argument<Boolean>("enabled") ?: false
+                val playing = call.argument<Boolean>("isPlaying") ?: isPlaying
+                this.isPlaying = playing
+                aspectRatioOf(
+                    call.argument<Int>("videoWidth"),
+                    call.argument<Int>("videoHeight"),
+                )?.let { pipAspectRatio = it }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     updatePipActions()
                 }
@@ -316,7 +333,31 @@ class MainActivity : FlutterActivity() {
             val builder = PictureInPictureParams.Builder()
                 .setActions(createPipActions())
             pipAspectRatio?.let { builder.setAspectRatio(it) }
-            setPictureInPictureParams(builder.build())
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                builder.setAutoEnterEnabled(autoEnterPip && isPlaying)
+                builder.setSeamlessResizeEnabled(true)
+            }
+            try {
+                setPictureInPictureParams(builder.build())
+            } catch (_: Exception) {}
+        }
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.S &&
+            autoEnterPip &&
+            isPlaying &&
+            !isInPictureInPictureMode
+        ) {
+            updatePipActions()
+            val builder = PictureInPictureParams.Builder()
+                .setActions(createPipActions())
+            pipAspectRatio?.let { builder.setAspectRatio(it) }
+            try {
+                enterPictureInPictureMode(builder.build())
+            } catch (_: Exception) {}
         }
     }
 

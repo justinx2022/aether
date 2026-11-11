@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:collection/collection.dart';
 import 'package:file_picker/file_picker.dart';
@@ -11,6 +12,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart'
     show ProviderListenable;
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:screen_brightness/screen_brightness.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -33,15 +35,20 @@ import '../../../settings/presentation/player_settings_provider.dart';
 import '../../domain/episode_navigator.dart';
 import '../../domain/hls_video_length.dart';
 import '../../domain/network_buffer.dart';
+import '../../domain/night_audio.dart';
 import '../../domain/playback_progress.dart';
 import '../../domain/playback_tracker.dart';
 import '../../domain/side_car_subtitles.dart';
 import '../../domain/skip_segments.dart';
 import '../../../skip/data/skip_service.dart';
 import '../../domain/stream_resolver.dart';
+import '../../domain/subtitle_auto_sync.dart';
+import '../../domain/subtitle_cues.dart';
 import '../../domain/subtitle_search_target.dart';
+import '../../domain/volume_routing.dart';
 import '../player_platform_service.dart';
 import '../subtitle_search_provider.dart' show subtitleLanguageProvider;
+import '../system_volume.dart';
 import '../vlc/next_episode_countdown.dart';
 import '../vlc/panel/player_panel_metrics.dart';
 import '../vlc/panel/player_panel_row.dart';
@@ -50,10 +57,8 @@ import '../vlc/panel/player_subtitle_search_page.dart';
 import '../vlc/player_startup_view.dart';
 import '../vlc/side_car_fetch.dart';
 import '../vlc/side_car_subtitle_view.dart';
-import '../widgets/hotstar_player_style.dart';
-import '../widgets/player_control_components.dart';
 import '../widgets/player_sheet_header.dart';
-import '../widgets/player_stream_widgets.dart';
+import 'liquid_glass_player_chrome.dart';
 import 'mediakit_more_sheet.dart';
 import 'mediakit_subtitle_sheet.dart';
 import 'mpv_subtitle_playback.dart';
@@ -274,40 +279,515 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   NativePlayer? get _native =>
       _player.platform is NativePlayer ? _player.platform as NativePlayer : null;
 
-  Future<void> _toggleDialogueBoost() async {
+  // PiP & Platform integration
+  final PlayerPlatformService _platform = PlayerPlatformService();
+  bool _inPip = false;
+  Size? _videoSize;
+
+  bool get _pipEligible => !kIsWeb && Platform.isAndroid && !_isTv;
+
+  // Multi-stage Night Audio + Auto-Sync Subtitle acoustic graph
+  int _nightAudioTierIndex = 0;
+  bool _silenceDetectListening = false;
+  bool _afErrorObservedSinceApply = false;
+
+  final ValueNotifier<bool> _autoSyncListening = ValueNotifier<bool>(false);
+  final ValueNotifier<String?> _autoSyncStatus = ValueNotifier<String?>(null);
+  final ValueNotifier<bool> _canUndoSync = ValueNotifier<bool>(false);
+  Duration? _delayBeforeAutoSync;
+  final List<double> _detectedSpeechOnsets = <double>[];
+  final List<SubtitleCue> _observedEmbeddedCues = <SubtitleCue>[];
+  Timer? _autoSyncTimer;
+  DateTime? _autoSyncStartedAt;
+
+  // Touch Gestures (Android Left = Volume, Right = Brightness, Swipe Seek, 2x Hold)
+  SystemVolume? _systemVolume;
+  StreamSubscription<double>? _systemVolumeSub;
+  int _volume = 100;
+  int _appliedEngineVolume = 100;
+  double? _systemVolLevel;
+  double _brightness = 0.5;
+  bool _brightnessOverridden = false;
+  double _verticalDragStartValue = 0.0;
+  PlayerGesture? _activeVerticalGesture;
+  bool _verticalDragOnLeft = true;
+  Widget? _activeEdgeRail;
+  Timer? _edgeRailHideTimer;
+
+  double? _horizDragStartX;
+  Duration? _horizDragStartPos;
+  Duration? _horizDragTarget;
+  String? _horizSeekHudLabel;
+
+  bool _holdingBoostSpeed = false;
+  double _speedBeforeHold = 1.0;
+
+  int? _doubleTapSeekDelta;
+  bool _doubleTapOnLeft = false;
+  Timer? _doubleTapBadgeTimer;
+  bool _showRemainingTime = false;
+
+  int get _maxVolumePercent =>
+      (_settings?.maxVolumePercent ?? 200).clamp(100, 300);
+
+  VolumeRouting get _volumeRouting => VolumeRouting.of(_form);
+
+  List<SubtitleCue> get _activeSubtitleCues {
+    if (_sideCars.active != null) {
+      return _sideCars.timeline.cues;
+    }
+    return _observedEmbeddedCues;
+  }
+
+  Future<void> _applyAudioFilterGraph() async {
     final native = _native;
     if (native == null) return;
-    setState(() => _isDialogueBoostEnabled = !_isDialogueBoostEnabled);
-    if (_isDialogueBoostEnabled) {
-      await native.setProperty('af', 'lavfi=[dynaudnorm=f=75:g=25:p=0.55]');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Dialogue Boost (Night Mode) Enabled'),
-            duration: Duration(seconds: 2),
-          ),
-        );
+    final candidates = NightAudioComposer.buildFilterCandidates(
+      nightAudioEnabled: _isDialogueBoostEnabled,
+      silenceDetectEnabled: _silenceDetectListening,
+    );
+    if (candidates.isEmpty) return;
+    final idx = _nightAudioTierIndex.clamp(0, candidates.length - 1);
+    _afErrorObservedSinceApply = false;
+    try {
+      if (_silenceDetectListening) {
+        await native.setProperty('msg-level', 'ffmpeg=info,lavfi=info,af=info');
       }
-    } else {
-      await native.setProperty('af', '');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Dialogue Boost Disabled'),
-            duration: Duration(seconds: 2),
+      await native.setProperty('af', candidates[idx]);
+    } catch (_) {}
+  }
+
+  Future<void> _toggleDialogueBoost() async {
+    if (_native == null) return;
+    final next = !_isDialogueBoostEnabled;
+    setState(() => _isDialogueBoostEnabled = next);
+    _nightAudioTierIndex = 0;
+    try {
+      await _read(playerSettingsProvider.notifier).setNightAudioEnabled(next);
+    } catch (_) {}
+    await _applyAudioFilterGraph();
+    if (mounted) {
+      final l10n = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            next
+                ? '${l10n?.playerNightAudio ?? 'Night Audio'} — ${l10n?.on ?? 'On'}'
+                : '${l10n?.playerNightAudio ?? 'Night Audio'} — ${l10n?.off ?? 'Off'}',
           ),
-        );
-      }
+          duration: const Duration(seconds: 2),
+        ),
+      );
     }
   }
 
-  void _showSleepTimerDialog() {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: const Color(0xFF0D0F18),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+  static String _fmtSignedSeconds(double sec) {
+    final sign = sec < 0 ? '-' : '+';
+    final abs = sec.abs();
+    if (abs < 1.0) return '$sign${(abs * 1000).round()}ms';
+    return '$sign${abs.toStringAsFixed(1)}s';
+  }
+
+  Future<void> _startOrToggleAutoSync() async {
+    final l10n = AppLocalizations.of(context);
+    if (_silenceDetectListening) {
+      await _stopAutoSyncListening();
+      return;
+    }
+
+    final cues = _activeSubtitleCues;
+    if (cues.isEmpty) {
+      _autoSyncStatus.value =
+          l10n?.autoSyncNeedCues ?? 'Load a subtitle track first';
+      return;
+    }
+
+    // Immediate quick-check if recent speech onsets already match!
+    if (_detectedSpeechOnsets.length >= 2) {
+      final quick = SubtitleAutoSyncEngine.estimateAcousticOffset(
+        speechOnsetsSec: _detectedSpeechOnsets,
+        cues: cues,
+      );
+      if (quick != null && quick.confidence >= 0.50) {
+        _commitAutoSyncDelay(
+          Duration(milliseconds: (quick.offsetSeconds * 1000).round()),
+        );
+        return;
+      }
+    }
+
+    _detectedSpeechOnsets.clear();
+    _silenceDetectListening = true;
+    _autoSyncListening.value = true;
+    _autoSyncStartedAt = DateTime.now();
+    _autoSyncStatus.value =
+        l10n?.autoSyncListening ?? 'Listening to dialogue…';
+    await _applyAudioFilterGraph();
+
+    _autoSyncTimer?.cancel();
+    _autoSyncTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+      if (_disposed || !_silenceDetectListening) {
+        _autoSyncTimer?.cancel();
+        return;
+      }
+      final currentCues = _activeSubtitleCues;
+      if (_detectedSpeechOnsets.length >= 2 && currentCues.isNotEmpty) {
+        final est = SubtitleAutoSyncEngine.estimateAcousticOffset(
+          speechOnsetsSec: _detectedSpeechOnsets,
+          cues: currentCues,
+        );
+        if (est != null && est.confidence >= 0.45) {
+          _commitAutoSyncDelay(
+            Duration(milliseconds: (est.offsetSeconds * 1000).round()),
+          );
+          unawaited(_stopAutoSyncListening());
+          return;
+        }
+      }
+      final started = _autoSyncStartedAt;
+      if (started != null &&
+          DateTime.now().difference(started).inSeconds >= 28) {
+        _autoSyncStatus.value =
+            l10n?.autoSyncNoSpeechYet ?? 'Play dialogue for a moment to sync';
+        unawaited(_stopAutoSyncListening());
+      }
+    });
+  }
+
+  Future<void> _stopAutoSyncListening() async {
+    _autoSyncTimer?.cancel();
+    _autoSyncTimer = null;
+    if (!_silenceDetectListening) return;
+    _silenceDetectListening = false;
+    _autoSyncListening.value = false;
+    await _applyAudioFilterGraph();
+  }
+
+  void _commitAutoSyncDelay(Duration nextDelay) {
+    _delayBeforeAutoSync = _subtitlePlayback.delayListenable.value;
+    _canUndoSync.value = true;
+    _setSubtitleDelay(nextDelay);
+    final formatted = _fmtSignedSeconds(nextDelay.inMilliseconds / 1000.0);
+    final l10n = AppLocalizations.of(context);
+    _autoSyncStatus.value =
+        l10n?.autoSyncMatched(formatted) ?? 'Synced by $formatted';
+  }
+
+  void _snapSubtitleToVoiceNow() {
+    final l10n = AppLocalizations.of(context);
+    final cues = _activeSubtitleCues;
+    if (cues.isEmpty) {
+      _autoSyncStatus.value =
+          l10n?.autoSyncNeedCues ?? 'Load a subtitle track first';
+      return;
+    }
+    final currentDelaySec =
+        _subtitlePlayback.delayListenable.value.inMilliseconds / 1000.0;
+    final snap = SubtitleAutoSyncEngine.snapToVoiceNow(
+      playbackPosition: _position,
+      currentDelaySec: currentDelaySec,
+      cues: cues,
+    );
+    if (snap == null) {
+      _autoSyncStatus.value =
+          l10n?.autoSyncNoSpeechYet ?? 'Play dialogue for a moment to sync';
+      return;
+    }
+    _commitAutoSyncDelay(
+      Duration(milliseconds: (snap.offsetSeconds * 1000).round()),
+    );
+  }
+
+  void _nudgeFpsDrift({required double cueFps, required double videoFps}) {
+    final deltaSec = SubtitleAutoSyncEngine.driftDeltaForFps(
+      position: _position,
+      cueFps: cueFps,
+      videoFps: videoFps,
+    );
+    final current = _subtitlePlayback.delayListenable.value;
+    _commitAutoSyncDelay(
+      current + Duration(milliseconds: (deltaSec * 1000).round()),
+    );
+  }
+
+  void _undoAutoSync() {
+    final prev = _delayBeforeAutoSync;
+    if (prev == null) return;
+    _delayBeforeAutoSync = null;
+    _canUndoSync.value = false;
+    _setSubtitleDelay(prev);
+    _autoSyncStatus.value = null;
+  }
+
+  void _syncPlatformPipState() {
+    if (!_pipEligible) return;
+    _platform.syncPipState(_playing, videoSize: _videoSize);
+    _platform.syncAutoEnterPip(
+      enabled: _pipEligible,
+      isPlaying: _playing,
+      videoSize: _videoSize,
+    );
+  }
+
+  Future<void> _enterPip() async {
+    if (!_pipEligible) return;
+    final entered = await _platform.enterPip(
+      _playing,
+      videoSize: _videoSize,
+    );
+    if (entered && mounted) {
+      setState(() {
+        _inPip = true;
+        _controlsVisible = false;
+      });
+    }
+  }
+
+  void _onPipAction(PipAction action) {
+    if (_disposed || !mounted) return;
+    switch (action) {
+      case PipAction.play:
+        if (!_playing) _player.play();
+      case PipAction.pause:
+        if (_playing) _player.pause();
+      case PipAction.seekForward:
+        _seekRelative(_seekStep);
+      case PipAction.seekBackward:
+        _seekRelative(-_seekStep);
+    }
+  }
+
+  void _onPipModeChanged(bool inPip) {
+    if (_disposed || !mounted) return;
+    if (_inPip == inPip) return;
+    setState(() {
+      _inPip = inPip;
+      if (inPip) {
+        _controlsVisible = false;
+      } else {
+        _controlsVisible = true;
+        _startControlsTimer();
+      }
+    });
+  }
+
+  void _initTouchMediaControls() {
+    if (kIsWeb || !(Platform.isAndroid || Platform.isIOS)) return;
+    final system = PlatformSystemVolume();
+    _systemVolume = system;
+    unawaited(setSystemVolumeUiShown(false));
+    unawaited(
+      system.read().then((v) {
+        if (_disposed || v == null) return;
+        _systemVolLevel = v;
+        _volume = joinVolume(
+          routing: _volumeRouting,
+          engine: _appliedEngineVolume,
+          system: v,
+        );
+      }),
+    );
+    _systemVolumeSub = system.changes.listen((sysVol) {
+      if (_disposed) return;
+      _systemVolLevel = sysVol;
+      _volume = joinVolume(
+        routing: _volumeRouting,
+        engine: _appliedEngineVolume,
+        system: sysVol,
+      );
+    });
+    ScreenBrightness().application.then((b) {
+      if (!_disposed && b.isFinite) {
+        _brightness = b.clamp(0.0, 1.0);
+      }
+    }).catchError((_) {});
+  }
+
+  void _applyTouchVolume(int nextPercent) {
+    final routing = _volumeRouting;
+    final maxV = _maxVolumePercent;
+    final clamped = nextPercent.clamp(routing.minimum, maxV);
+    _volume = clamped;
+    final split = splitVolume(clamped, routing: routing);
+    _appliedEngineVolume = split.engine;
+    unawaited(_player.setVolume(split.engine.toDouble()));
+    if (split.system != null) {
+      _systemVolLevel = split.system!;
+      unawaited(_systemVolume?.write(split.system!) ?? Future<void>.value());
+    }
+    final l10n = AppLocalizations.of(context);
+    _showEdgeRail(
+      LiquidGlassEdgeRail(
+        icon: clamped == 0
+            ? Icons.volume_off_rounded
+            : (clamped > 100
+                  ? Icons.volume_up_rounded
+                  : Icons.volume_down_rounded),
+        fraction: clamped / math.max(100, maxV),
+        percentLabel: '$clamped%',
+        titleLabel: l10n?.playerVolumeLabel ?? 'Volume',
+        onLeft: _verticalDragOnLeft,
+        boosted: clamped > 100,
       ),
+    );
+  }
+
+  void _applyTouchBrightness(double nextBrightness) {
+    final clamped = nextBrightness.clamp(0.01, 1.0);
+    _brightness = clamped;
+    _brightnessOverridden = true;
+    unawaited(
+      ScreenBrightness()
+          .setApplicationScreenBrightness(clamped)
+          .catchError((_) {}),
+    );
+    final l10n = AppLocalizations.of(context);
+    _showEdgeRail(
+      LiquidGlassEdgeRail(
+        icon: clamped < 0.35
+            ? Icons.brightness_low_rounded
+            : (clamped < 0.72
+                  ? Icons.brightness_medium_rounded
+                  : Icons.brightness_high_rounded),
+        fraction: clamped,
+        percentLabel: '${(clamped * 100).round()}%',
+        titleLabel: l10n?.playerBrightnessLabel ?? 'Brightness',
+        onLeft: _verticalDragOnLeft,
+      ),
+    );
+  }
+
+  void _showEdgeRail(Widget rail, {bool persist = false}) {
+    _edgeRailHideTimer?.cancel();
+    setState(() => _activeEdgeRail = rail);
+    if (!persist) {
+      _edgeRailHideTimer = Timer(const Duration(milliseconds: 900), () {
+        if (mounted) setState(() => _activeEdgeRail = null);
+      });
+    }
+  }
+
+  Future<void> _onVerticalDragStart(DragStartDetails d) async {
+    if (_isScreenLocked || _isTv || kIsWeb) return;
+    if (!(Platform.isAndroid || Platform.isIOS)) return;
+    final width = context.size?.width ?? 0;
+    if (width <= 0) return;
+    final isLeft = d.localPosition.dx < width / 2;
+    final settings = _settings ?? const PlayerSettings();
+    final gesture = isLeft ? settings.leftGesture : settings.rightGesture;
+    if (gesture == PlayerGesture.none) {
+      _activeVerticalGesture = null;
+      return;
+    }
+    _verticalDragOnLeft = isLeft;
+    _activeVerticalGesture = gesture;
+    if (gesture == PlayerGesture.volume) {
+      _volume = joinVolume(
+        routing: _volumeRouting,
+        engine: _appliedEngineVolume,
+        system: _systemVolLevel,
+      );
+      _verticalDragStartValue = _volume.toDouble();
+    } else {
+      try {
+        final b = await ScreenBrightness().application;
+        if (b.isFinite) _brightness = b.clamp(0.0, 1.0);
+      } catch (_) {}
+      _verticalDragStartValue = _brightness;
+    }
+  }
+
+  void _onVerticalDragUpdate(DragUpdateDetails d) {
+    final gesture = _activeVerticalGesture;
+    if (gesture == null || _isScreenLocked) return;
+    final height = context.size?.height ?? 0;
+    if (height <= 0) return;
+    final travel = -(d.primaryDelta ?? 0.0) / height;
+    if (gesture == PlayerGesture.volume) {
+      final minV = _volumeRouting.minimum.toDouble();
+      final maxV = _maxVolumePercent.toDouble();
+      _verticalDragStartValue =
+          (_verticalDragStartValue + travel * maxV).clamp(minV, maxV);
+      _applyTouchVolume(_verticalDragStartValue.round());
+    } else if (gesture == PlayerGesture.brightness) {
+      _verticalDragStartValue =
+          (_verticalDragStartValue + travel).clamp(0.01, 1.0);
+      _applyTouchBrightness(_verticalDragStartValue);
+    }
+  }
+
+  void _onVerticalDragEnd(DragEndDetails _) {
+    _activeVerticalGesture = null;
+    if (_activeEdgeRail != null) {
+      _edgeRailHideTimer?.cancel();
+      _edgeRailHideTimer = Timer(const Duration(milliseconds: 850), () {
+        if (mounted) setState(() => _activeEdgeRail = null);
+      });
+    }
+  }
+
+  void _onHorizontalSwipeStart(DragStartDetails d) {
+    if (_isScreenLocked || _isTv || _inPip) return;
+    if (!(_settings?.swipeSeekEnabled ?? true)) return;
+    if (isLiveSource(_item, _currentVideoUrl) || _duration <= Duration.zero) {
+      return;
+    }
+    _horizDragStartX = d.globalPosition.dx;
+    _horizDragStartPos = _position;
+    _horizDragTarget = _position;
+  }
+
+  void _onHorizontalSwipeUpdate(DragUpdateDetails d) {
+    final startX = _horizDragStartX;
+    final startPos = _horizDragStartPos;
+    if (startX == null || startPos == null) return;
+    final width = MediaQuery.sizeOf(context).width;
+    if (width <= 0) return;
+    final frac = (d.globalPosition.dx - startX) / width;
+    final delta = Duration(milliseconds: (frac * 90000).round());
+    var target = startPos + delta;
+    if (target < Duration.zero) target = Duration.zero;
+    if (_duration > Duration.zero && target > _duration) target = _duration;
+    _horizDragTarget = target;
+    final diffSec = (target - startPos).inSeconds;
+    final sign = diffSec >= 0 ? '+' : '';
+    final m = target.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = target.inSeconds.remainder(60).toString().padLeft(2, '0');
+    final h = target.inHours;
+    final clock = h > 0 ? '$h:$m:$s' : '$m:$s';
+    setState(() {
+      _horizSeekHudLabel = '$sign${diffSec}s · $clock';
+    });
+  }
+
+  void _onHorizontalSwipeEnd(DragEndDetails _) {
+    final target = _horizDragTarget;
+    _horizDragStartX = null;
+    _horizDragStartPos = null;
+    _horizDragTarget = null;
+    if (target != null) {
+      _player.seek(target);
+      _onUserActivity();
+    }
+    if (_horizSeekHudLabel != null) {
+      setState(() => _horizSeekHudLabel = null);
+    }
+  }
+
+  void _triggerDoubleTapRipple(int deltaSec, {required bool left}) {
+    _doubleTapBadgeTimer?.cancel();
+    setState(() {
+      _doubleTapSeekDelta = deltaSec;
+      _doubleTapOnLeft = left;
+    });
+    _doubleTapBadgeTimer = Timer(const Duration(milliseconds: 650), () {
+      if (mounted) setState(() => _doubleTapSeekDelta = null);
+    });
+  }
+
+  void _showSleepTimerDialog() {
+    showLiquidGlassPlayerSheet<void>(
+      context: context,
       builder: (ctx) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -440,6 +920,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     _currentVideoUrl = widget.videoUrl;
     _settings = _read(playerSettingsProvider).asData?.value;
     _fit = _fitFromSettings(_settings?.defaultResizeMode ?? 'Fit');
+    _isDialogueBoostEnabled = _settings?.nightAudioEnabled ?? false;
     _currentEpisode =
         widget.episode ??
         _item.episodes?.firstWhereOrNull((e) {
@@ -474,6 +955,13 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     _sideCars.addListener(_onSideCars);
 
     _mpvConfig = _applyMpvOptimizations();
+    _initTouchMediaControls();
+    if (!kIsWeb && Platform.isAndroid) {
+      _platform.attachPipListener(
+        onAction: _onPipAction,
+        onModeChanged: _onPipModeChanged,
+      );
+    }
     _listenPlayerStreams();
     _startPlayback();
     _startControlsTimer();
@@ -487,17 +975,23 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (_disposed) return;
     if (state == AppLifecycleState.resumed) {
-      if (!kIsWeb && Platform.isAndroid) unawaited(WakelockPlus.enable());
+      if (!kIsWeb && Platform.isAndroid) {
+        unawaited(WakelockPlus.enable());
+        _syncPlatformPipState();
+      }
       return;
     }
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden ||
         state == AppLifecycleState.inactive) {
       _flushProgress();
-      // `inactive` also means a PiP transition or a permission dialog, so the
-      // screen flag only goes with the app actually leaving the foreground.
+      if (state == AppLifecycleState.inactive && _playing && _pipEligible) {
+        _syncPlatformPipState();
+      }
+      // Keep screen awake during active PiP window; release when backgrounded outside PiP.
       if ((state == AppLifecycleState.paused ||
               state == AppLifecycleState.hidden) &&
+          !_inPip &&
           !kIsWeb &&
           Platform.isAndroid) {
         unawaited(WakelockPlus.disable());
@@ -670,17 +1164,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     return lookup.next;
   }
 
-  Episode? get _previousEpisode {
-    final cur = _effectiveCurrentEpisode;
-    return previousEpisodeFor(
-      item: _item,
-      current: cur,
-      videoUrl: _currentVideoUrl,
-    );
-  }
-
   bool get _hasNextEpisode => _nextEpisode != null;
-  bool get _hasPreviousEpisode => _previousEpisode != null;
 
   /// Moves to the next episode once.
   ///
@@ -730,6 +1214,12 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     // source's did, and the next episode's sheet starts unopened.
     _sideCars.clear();
     _viewerChoseSubtitle = false;
+    _detectedSpeechOnsets.clear();
+    _observedEmbeddedCues.clear();
+    _autoSyncStatus.value = null;
+    _canUndoSync.value = false;
+    _delayBeforeAutoSync = null;
+    unawaited(_stopAutoSyncListening());
 
     setState(() {
       _currentEpisode = next;
@@ -829,6 +1319,9 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
         final openedAt = _attemptOpenedAt!;
         final elapsed = DateTime.now().difference(openedAt);
         _attemptHasVideoTrack = true;
+        _videoSize = Size(params.w!.toDouble(), params.h!.toDouble());
+        _platform.applyVideoOrientation(_form, renderedSize: _videoSize);
+        _syncPlatformPipState();
         _startupWatchdog?.cancel();
         _startupWatchdog = null;
         _trace?.lap(
@@ -860,6 +1353,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
             _hasPlayedOnce = true;
           }
         });
+        _syncPlatformPipState();
       }),
     );
 
@@ -904,6 +1398,37 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
             subtitle.id == 'no' || subtitle.id == 'auto' ? null : subtitle.id;
         _currentVideoTrack.value = track.video;
         _applySubtitleDefault(subtitle.id);
+        if (_isDialogueBoostEnabled || _silenceDetectListening) {
+          unawaited(_applyAudioFilterGraph());
+        }
+      }),
+    );
+
+    _subscriptions.add(
+      _player.stream.subtitle.listen((lines) {
+        if (_disposed || _sideCars.active != null) return;
+        final text = lines.map((e) => e.trim()).where((e) => e.isNotEmpty).join('\n');
+        if (text.isEmpty) return;
+        final curDelay = _subtitlePlayback.delayListenable.value;
+        final cueStart = _position - curDelay;
+        if (_observedEmbeddedCues.isNotEmpty) {
+          final last = _observedEmbeddedCues.last;
+          if (last.text == text ||
+              (cueStart - last.start).inMilliseconds.abs() < 250) {
+            return;
+          }
+        }
+        _observedEmbeddedCues.add(
+          SubtitleCue(
+            start: cueStart < Duration.zero ? Duration.zero : cueStart,
+            end: (cueStart < Duration.zero ? Duration.zero : cueStart) +
+                const Duration(seconds: 3),
+            spans: <SubtitleSpan>[SubtitleSpan(text)],
+          ),
+        );
+        if (_observedEmbeddedCues.length > 120) {
+          _observedEmbeddedCues.removeAt(0);
+        }
       }),
     );
 
@@ -959,6 +1484,34 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
         final text = line.text.trim();
         if (text.isEmpty) return;
         _rememberMpvLine('${line.level}|${line.prefix}|$text');
+
+        if (_silenceDetectListening) {
+          final onset = SubtitleAutoSyncEngine.parseSilenceEndSeconds(text);
+          if (onset != null) {
+            _detectedSpeechOnsets.add(onset);
+            if (_detectedSpeechOnsets.length > 48) {
+              _detectedSpeechOnsets.removeAt(0);
+            }
+          }
+        }
+
+        if (_isDialogueBoostEnabled &&
+            !_afErrorObservedSinceApply &&
+            (line.level == 'error' || line.level == 'fatal') &&
+            (line.prefix == 'af' ||
+                line.prefix == 'lavfi' ||
+                text.contains('No such filter') ||
+                text.contains('Disabling filter'))) {
+          final maxTiers = NightAudioComposer.buildFilterCandidates(
+            nightAudioEnabled: true,
+            silenceDetectEnabled: _silenceDetectListening,
+          ).length;
+          if (_nightAudioTierIndex + 1 < maxTiers) {
+            _afErrorObservedSinceApply = true;
+            _nightAudioTierIndex++;
+            unawaited(_applyAudioFilterGraph());
+          }
+        }
       }),
     );
 
@@ -1240,22 +1793,6 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     } catch (_) {}
   }
 
-  double get _bufferRatio {
-    if (_duration.inMilliseconds <= 0) return 0.0;
-    // mpv reports buffer either as forward duration ahead or absolute timestamp
-    Duration bufferedEnd = _buffer;
-    if (_buffer < _position) {
-      bufferedEnd = _position + _buffer;
-    }
-    if (bufferedEnd < _position) {
-      bufferedEnd = _position;
-    }
-    return (bufferedEnd.inMilliseconds / _duration.inMilliseconds).clamp(
-      0.0,
-      1.0,
-    );
-  }
-
   Future<void> _startPlayback() async {
     _trace = PlaybackTrace('mediakit');
     setState(() {
@@ -1470,6 +2007,9 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
         Media(url, httpHeaders: headers, start: at),
         play: true,
       );
+      if (_isDialogueBoostEnabled || _silenceDetectListening) {
+        unawaited(_applyAudioFilterGraph());
+      }
       if (_disposed || !mounted || token != _openToken) return;
       _armStartupWatchdog(token);
       setState(() {
@@ -1911,13 +2451,8 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
         if (track.id != 'no' && track.id != 'auto') track,
     ];
     final current = _player.state.track.audio;
-    await showModalBottomSheet<void>(
+    await showLiquidGlassPlayerSheet<void>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: HotstarPlayerStyle.panelElevated,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
       builder: (sheetContext) {
         return PlayerPanelMetricsScope(
           metrics: PlayerPanelMetrics.forTv(_isTv),
@@ -1980,13 +2515,20 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     _viewerChoseSubtitle = true;
     _subtitlesOffPending = false;
     _subtitleOffAsked = null;
-    await showModalBottomSheet<void>(
+    final introHint = SubtitleAutoSyncEngine.suggestIntroAlignment(
+      segments: _skipSegments,
+      cues: _activeSubtitleCues,
+    );
+    final l10n = AppLocalizations.of(context);
+    final introHintLabel = introHint != null
+        ? (l10n?.autoSyncIntroOffset(
+                _fmtSignedSeconds(introHint.offsetSeconds),
+              ) ??
+              'Skip intro sync (${_fmtSignedSeconds(introHint.offsetSeconds)})')
+        : null;
+
+    await showLiquidGlassPlayerSheet<void>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: HotstarPlayerStyle.panelElevated,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
       builder: (context) => MediaKitSubtitleSheet(
         sideCars: _sideCars,
         delay: _subtitlePlayback.delayListenable,
@@ -1999,6 +2541,20 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
         onDelay: _setSubtitleDelay,
         onLoadFile: () => unawaited(_loadSubtitleFile()),
         onSearch: () => unawaited(_openSubtitleSearch()),
+        autoSyncListening: _autoSyncListening,
+        autoSyncStatus: _autoSyncStatus,
+        canUndoSync: _canUndoSync,
+        onAutoSync: () => unawaited(_startOrToggleAutoSync()),
+        onSnapToVoice: _snapSubtitleToVoiceNow,
+        onPalNudge: () => _nudgeFpsDrift(cueFps: 23.976, videoFps: 25.0),
+        onFilmNudge: () => _nudgeFpsDrift(cueFps: 25.0, videoFps: 23.976),
+        onUndoSync: _undoAutoSync,
+        introHintLabel: introHintLabel,
+        onApplyIntroHint: introHint == null
+            ? null
+            : () => _commitAutoSyncDelay(
+                Duration(milliseconds: (introHint.offsetSeconds * 1000).round()),
+              ),
       ),
     );
   }
@@ -2137,13 +2693,8 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     final videoTracks = _videoTracks.value;
     final activeTrack = _currentVideoTrack.value;
 
-    showModalBottomSheet<void>(
+    showLiquidGlassPlayerSheet<void>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: HotstarPlayerStyle.panelElevated,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
       builder: (sheetContext) {
         final l10n = AppLocalizations.of(sheetContext)!;
         return PlayerPanelMetricsScope(
@@ -2406,19 +2957,19 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     try {
       _player.stop();
     } catch (_) {}
+    if (_systemVolume != null) {
+      unawaited(setSystemVolumeUiShown(true));
+    }
     if (!kIsWeb && Platform.isAndroid) {
+      _platform.syncAutoEnterPip(enabled: false, isPlaying: false);
+      _platform.detachPipListener();
       try {
         WakelockPlus.disable();
         SystemChrome.setEnabledSystemUIMode(
           SystemUiMode.manual,
           overlays: SystemUiOverlay.values,
         );
-        SystemChrome.setPreferredOrientations([
-          DeviceOrientation.portraitUp,
-          DeviceOrientation.portraitDown,
-          DeviceOrientation.landscapeLeft,
-          DeviceOrientation.landscapeRight,
-        ]);
+        _platform.restoreOrientation(_form);
       } catch (_) {}
     }
     if (!kIsWeb &&
@@ -2450,10 +3001,29 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     _hideControlsTimer?.cancel();
     _sleepTimer?.cancel();
     _unlockButtonTimer?.cancel();
+    _autoSyncTimer?.cancel();
+    _edgeRailHideTimer?.cancel();
+    _doubleTapBadgeTimer?.cancel();
     _errorRecoveryTimer?.cancel();
     _trackSwitchWatchdog?.cancel();
     _startupWatchdog?.cancel();
     _midstreamStallWatchdog?.cancel();
+    try {
+      _systemVolumeSub?.cancel();
+      _systemVolume?.dispose();
+    } catch (_) {}
+    if (_brightnessOverridden) {
+      unawaited(
+        ScreenBrightness().resetApplicationScreenBrightness().catchError(
+          (_) {},
+        ),
+      );
+    }
+    try {
+      _autoSyncListening.dispose();
+      _autoSyncStatus.dispose();
+      _canUndoSync.dispose();
+    } catch (_) {}
     for (final s in _subscriptions) {
       try {
         s.cancel();
@@ -2573,6 +3143,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () {
+                if (_inPip) return;
                 if (_isScreenLocked) {
                   setState(() => _showUnlockButton = true);
                   _unlockButtonTimer?.cancel();
@@ -2584,7 +3155,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                 _toggleControlsVisibility();
               },
               onDoubleTapDown: (details) {
-                if (_isScreenLocked) return;
+                if (_isScreenLocked || _inPip) return;
                 if (!kIsWeb &&
                     (Platform.isWindows ||
                         Platform.isLinux ||
@@ -2592,13 +3163,36 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                   _toggleFullscreen();
                 } else {
                   final screenWidth = MediaQuery.of(context).size.width;
-                  if (details.localPosition.dx < screenWidth / 2) {
-                    _seekRelative(-_seekStep);
-                  } else {
-                    _seekRelative(_seekStep);
-                  }
+                  final onLeft = details.localPosition.dx < screenWidth / 2;
+                  final delta = onLeft ? -_seekStep : _seekStep;
+                  _seekRelative(delta);
+                  _triggerDoubleTapRipple(delta, left: onLeft);
                 }
               },
+              onLongPressStart: (_) {
+                if (_isScreenLocked || _isTv || _inPip || _isLoading) return;
+                if (isLiveSource(_item, _currentVideoUrl)) return;
+                _speedBeforeHold = _playbackSpeed;
+                setState(() => _holdingBoostSpeed = true);
+                unawaited(_player.setRate(2.0));
+                HapticFeedback.selectionClick();
+              },
+              onLongPressEnd: (_) {
+                if (!_holdingBoostSpeed) return;
+                setState(() => _holdingBoostSpeed = false);
+                unawaited(_player.setRate(_speedBeforeHold));
+              },
+              onLongPressCancel: () {
+                if (!_holdingBoostSpeed) return;
+                setState(() => _holdingBoostSpeed = false);
+                unawaited(_player.setRate(_speedBeforeHold));
+              },
+              onVerticalDragStart: _onVerticalDragStart,
+              onVerticalDragUpdate: _onVerticalDragUpdate,
+              onVerticalDragEnd: _onVerticalDragEnd,
+              onHorizontalDragStart: _onHorizontalSwipeStart,
+              onHorizontalDragUpdate: _onHorizontalSwipeUpdate,
+              onHorizontalDragEnd: _onHorizontalSwipeEnd,
               child: Stack(
                 children: [
                   // Video Surface (Direct3D 11 / MediaCodec GPU)
@@ -2628,20 +3222,17 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                           playback: _subtitlePlayback,
                           subtitles: _sideCars,
                           settings: settings,
-                          // Lifted over the bar while it is up, by the same
-                          // clearance every other overlay in the player uses.
-                          bottomInset: _controlsVisible
-                              ? HotstarPlayerStyle.bottomChromeHeightFor(
-                                  isTv: _isTv,
-                                )
+                          bottomInset: (!_inPip && _controlsVisible)
+                              ? 122
                               : 0,
                         );
                       },
                     ),
                   ),
 
-                  // Subtle Buffering Indicator
-                  if (_isBuffering &&
+                  // Subtle Buffering Indicator (hidden in native PiP to stay crisp)
+                  if (!_inPip &&
+                      _isBuffering &&
                       !_isLoading &&
                       !_isSwitching &&
                       _error.isEmpty)
@@ -2656,19 +3247,14 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                       ),
                     ),
 
-                  // Mid-session source change: the picture stays up, so this
-                  // says what is happening without replacing the frame with
-                  // the full startup screen.
-                  if (_isSwitching && _error.isEmpty)
+                  // Mid-session source change in Liquid Glass Pill
+                  if (!_inPip && _isSwitching && _error.isEmpty)
                     Center(
-                      child: Container(
+                      child: LiquidPlayerCapsule(
+                        borderRadius: BorderRadius.circular(24),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black54,
-                          borderRadius: BorderRadius.circular(24),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -2678,7 +3264,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                               height: 18,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.white,
+                                color: Color(0xFF7DD3FC),
                               ),
                             ),
                             const SizedBox(width: 10),
@@ -2689,7 +3275,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 13,
-                                fontWeight: FontWeight.w500,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
@@ -2776,25 +3362,121 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                       ),
                     ),
 
-                  // A paused frame offers the one press it is waiting for, in
-                  // the middle of the picture. While the film runs the bar's
-                  // transport is enough - a cluster over the picture is chrome
-                  // on a face, and it was the same four buttons twice.
-                  if (!_playing &&
-                      !_isBuffering &&
-                      !_isLoading &&
-                      _error.isEmpty &&
-                      !_isScreenLocked)
-                    Center(
-                      child: PlayerCenterPlayButton(
-                        playing: false,
-                        label: AppLocalizations.of(context)?.play ?? 'Play',
-                        onPressed: _togglePlayPause,
+                  // BitChord Liquid Glass Floating HUD Badges (2x Hold, Swipe Seek, Double-Tap Seek, Edge Volume/Brightness Rail)
+                  if (!_inPip && _holdingBoostSpeed)
+                    Positioned(
+                      top: math.max(18.0, MediaQuery.paddingOf(context).top + 12),
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: LiquidPlayerCapsule(
+                          borderRadius: BorderRadius.circular(20),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 7,
+                          ),
+                          activeAccent: const Color(0xFF818CF8),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.fast_forward_rounded,
+                                color: Color(0xFFA5B4FC),
+                                size: 18,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                AppLocalizations.of(context)?.playerHoldSpeedBadge ??
+                                    '2.0x Hold',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
 
-                  // Skip Intro / Outro / Recap Floating Pill Button
-                  if (!_isScreenLocked &&
+                  if (!_inPip && _horizSeekHudLabel != null)
+                    Center(
+                      child: LiquidPlayerCapsule(
+                        borderRadius: BorderRadius.circular(22),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 10,
+                        ),
+                        activeAccent: const Color(0xFF38BDF8),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.swap_horiz_rounded,
+                              color: Color(0xFF7DD3FC),
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              _horizSeekHudLabel!,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                fontFeatures: [FontFeature.tabularFigures()],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                  if (!_inPip && _doubleTapSeekDelta != null)
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: Align(
+                          alignment: _doubleTapOnLeft
+                              ? const Alignment(-0.55, 0)
+                              : const Alignment(0.55, 0),
+                          child: LiquidPlayerCapsule(
+                            borderRadius: BorderRadius.circular(26),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                            activeAccent: const Color(0xFF818CF8),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  _doubleTapOnLeft
+                                      ? Icons.fast_rewind_rounded
+                                      : Icons.fast_forward_rounded,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  '${_doubleTapSeekDelta! > 0 ? '+' : ''}${_doubleTapSeekDelta}s',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  if (!_inPip && _activeEdgeRail != null) _activeEdgeRail!,
+
+                  // Skip Intro / Outro / Recap Floating Liquid Glass Pill Button
+                  if (!_inPip &&
+                      !_isScreenLocked &&
                       _currentSkipSegment != null &&
                       !_isLoading &&
                       _error.isEmpty)
@@ -2808,58 +3490,42 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                                 ? (l10n?.skipOutro ?? 'Skip Outro')
                                 : (l10n?.skipRecap ?? 'Skip Recap'));
                         return Positioned(
-                          bottom: _controlsVisible ? 90 : 36,
-                          right: 24,
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
+                          bottom: _controlsVisible ? 116 : 36,
+                          right: 22,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {
+                              final target = Duration(
+                                milliseconds: (seg.endTime * 1000).round(),
+                              );
+                              _player.seek(target);
+                              _onUserActivity();
+                            },
+                            child: LiquidPlayerCapsule(
                               borderRadius: BorderRadius.circular(24),
-                              onTap: () {
-                                final target = Duration(
-                                  milliseconds: (seg.endTime * 1000).round(),
-                                );
-                                _player.seek(target);
-                                _onUserActivity();
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 18,
-                                  vertical: 10,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.85),
-                                  borderRadius: BorderRadius.circular(24),
-                                  border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.35),
-                                    width: 1.2,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                              activeAccent: const Color(0xFFF59E0B),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.fast_forward_rounded,
+                                    color: Colors.white,
+                                    size: 19,
                                   ),
-                                  boxShadow: const [
-                                    BoxShadow(
-                                      color: Colors.black45,
-                                      blurRadius: 12,
-                                      offset: Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(
-                                      Icons.fast_forward_rounded,
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    label,
+                                    style: const TextStyle(
                                       color: Colors.white,
-                                      size: 20,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 13,
                                     ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      label,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
@@ -2867,74 +3533,75 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                       },
                     ),
 
-                  // Floating Unlock Button when Screen is Locked
-                  if (_isScreenLocked && _showUnlockButton)
+                  // Floating Liquid Glass Unlock Button when Screen is Locked
+                  if (!_inPip && _isScreenLocked && _showUnlockButton)
                     Center(
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(30),
-                          onTap: () {
-                            setState(() {
-                              _isScreenLocked = false;
-                              _showUnlockButton = false;
-                              _controlsVisible = true;
-                            });
-                            _startControlsTimer();
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 14,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.9),
-                              borderRadius: BorderRadius.circular(30),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.3),
-                                width: 1.5,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          setState(() {
+                            _isScreenLocked = false;
+                            _showUnlockButton = false;
+                            _controlsVisible = true;
+                          });
+                          _startControlsTimer();
+                        },
+                        child: LiquidPlayerCapsule(
+                          borderRadius: BorderRadius.circular(28),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 22,
+                            vertical: 13,
+                          ),
+                          activeAccent: const Color(0xFF818CF8),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.lock_open_rounded,
+                                color: Colors.white,
+                                size: 20,
                               ),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Colors.black54,
-                                  blurRadius: 16,
-                                  spreadRadius: 2,
-                                ),
-                              ],
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.lock_open_rounded,
+                              const SizedBox(width: 10),
+                              Text(
+                                AppLocalizations.of(context)?.playerTapToUnlock ??
+                                    'Tap Unlock to show controls',
+                                style: const TextStyle(
                                   color: Colors.white,
-                                  size: 22,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13.5,
                                 ),
-                                SizedBox(width: 10),
-                                Text(
-                                  'Screen Locked. Tap to Unlock',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
 
-                  // Player Controls Layer (Top & Bottom Bars)
-                  if (!_isLoading && _error.isEmpty && !_isScreenLocked)
+                  // BitChord Liquid Glass Player Controls Layer (Center sphere + Top & Bottom HUDs)
+                  if (!_inPip && !_isLoading && _error.isEmpty && !_isScreenLocked)
                     AnimatedOpacity(
-                      opacity: _controlsVisible ? 1.0 : 0.0,
+                      opacity: (_controlsVisible || !_playing) ? 1.0 : 0.0,
                       duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOutCubic,
                       child: IgnorePointer(
-                        ignoring: !_controlsVisible,
+                        ignoring: !_controlsVisible && _playing,
                         child: Stack(
-                          children: [_buildTopBar(), _buildBottomBar()],
+                          children: [
+                            if (_controlsVisible) _buildTopBar(),
+                            if (!_isLoading && !_isSwitching)
+                              Center(
+                                child: LiquidGlassCenterTransport(
+                                  isPlaying: _playing,
+                                  isBuffering: _isBuffering,
+                                  seekStepSeconds: _seekStep,
+                                  isLive: isLiveSource(_item, _currentVideoUrl),
+                                  onPlayPause: _togglePlayPause,
+                                  onSeekBackward: () => _seekRelative(-_seekStep),
+                                  onSeekForward: () => _seekRelative(_seekStep),
+                                ),
+                              ),
+                            if (_controlsVisible) _buildBottomBar(),
+                          ],
                         ),
                       ),
                     ),
@@ -2947,22 +3614,16 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     );
   }
 
-  /// The top zone: Back, what is playing, and the one press worth having while
-  /// an episode is queued.
-  ///
-  /// No engine badge. What decodes the picture is a fact about this device,
-  /// not a control, and it sat where a viewer looks for a title.
+  /// BitChord Apple Liquid Glass Top HUD capsule bar.
   Widget _buildTopBar() {
-    final l10n = AppLocalizations.of(context);
     final ep = _effectiveCurrentEpisode;
-    final next = _nextEpisode;
     final String? epText = ep != null
         ? (ep.name.isNotEmpty
               ? (ep.season > 0
-                    ? 'S${ep.season} E${ep.episode} — ${ep.name}'
-                    : 'Episode ${ep.episode} — ${ep.name}')
+                    ? 'S${ep.season} E${ep.episode} · ${ep.name}'
+                    : 'Ep ${ep.episode} · ${ep.name}')
               : (ep.season > 0
-                    ? 'Season ${ep.season} Episode ${ep.episode}'
+                    ? 'S${ep.season} E${ep.episode}'
                     : 'Episode ${ep.episode}'))
         : null;
 
@@ -2970,247 +3631,91 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
       top: 0,
       left: 0,
       right: 0,
-      child: PlayerTopBar(
+      child: LiquidGlassTopHud(
         title: _item.title,
-        subtitle: epText,
+        subtitleTag: epText,
+        qualityBadge: _currentQualityLabel != 'Sources' ? _currentQualityLabel : null,
         onBack: _exitPlayer,
+        nightAudioEnabled: _isDialogueBoostEnabled,
+        onToggleNightAudio: _native != null ? _toggleDialogueBoost : null,
+        showPipButton: _pipEligible && (_settings?.showPip ?? true),
+        onEnterPip: _enterPip,
+        sleepTimerMinutes: _sleepTimerMinutes,
+        onOpenSleepTimer: _showSleepTimerDialog,
+        isLocked: _isScreenLocked,
+        onLockScreen: () {
+          setState(() {
+            _isScreenLocked = true;
+            _controlsVisible = false;
+            _showUnlockButton = false;
+          });
+        },
         isTv: _isTv,
-        trailing: next == null
-            ? null
-            : Padding(
-                padding: const EdgeInsets.only(left: 12),
-                child: PlayerActionButton(
-                  icon: Icons.skip_next_rounded,
-                  label: next.episode > 0
-                      ? '${l10n?.next ?? 'Next'} E${next.episode}'
-                      : (l10n?.next ?? 'Next'),
-                  isTv: _isTv,
-                  onTap: () {
-                    _onUserActivity();
-                    unawaited(_advance());
-                  },
-                ),
-              ),
       ),
     );
   }
 
-  /// The bottom zone: scrubber, transport, clock, then the three controls a
-  /// viewer reaches for while watching. Everything else is one press away in
-  /// [MediaKitMoreSheet].
+  /// BitChord Apple Liquid Glass Bottom Scrubber & Action Capsule Dock.
   Widget _buildBottomBar() {
-    final l10n = AppLocalizations.of(context);
-    final String speedLabel =
-        '${_playbackSpeed == 1.0 ? '1' : _playbackSpeed.toString()}x';
-    final String fitTooltip = '${l10n?.fit ?? 'Fit'}: ${_fitLabel(_fit)}';
-    final displayPos = _isDragging && _dragPosition != null
-        ? _dragPosition!
-        : _position;
-    // A feed's clock has no end to count towards, so the label reads LIVE
-    // instead of `00:12:04 / --:--` - the same rule, and the same helper, as
-    // libVLC's bar.
     final live = isLiveSource(_item, _currentVideoUrl);
+    final episodes = _item.episodes ?? widget.item.episodes ?? const <Episode>[];
+    final isDesktop = !kIsWeb &&
+        (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
+
     return Positioned(
       bottom: 0,
       left: 0,
       right: 0,
-      child: PlayerBottomBar(
-        isTv: _isTv,
-        // Everything but a television can drag the strip, so everything but a
-        // television gets one line.
-        scrollingActions: !_isTv,
-        // Its own boundary: the scrubber repaints on every position tick,
-        // which would otherwise repaint the bar, its scrim and every button.
-        progressBar: RepaintBoundary(
-          child: PlayerScrubber(
-            position: displayPos,
+      child: ValueListenableBuilder<Duration>(
+        valueListenable: _subtitlePlayback.delayListenable,
+        builder: (context, subDelay, _) => ListenableBuilder(
+          listenable: Listenable.merge(<Listenable>[_sideCars, _activeEmbeddedSubtitle]),
+          builder: (context, _) => LiquidGlassBottomDock(
+            position: _isDragging && _dragPosition != null ? _dragPosition! : _position,
             duration: _duration,
-            hasDuration: _duration > Duration.zero,
-            bufferRatio: _bufferRatio,
-            canSeek: !live && _duration > Duration.zero,
-            isTv: _isTv,
-            onChangeStart: (ms) {
+            buffer: _buffer,
+            showRemainingTime: _showRemainingTime,
+            onToggleRemainingTime: () {
+              _onUserActivity();
+              setState(() => _showRemainingTime = !_showRemainingTime);
+            },
+            onSeekStart: () {
               _onUserActivity();
               setState(() {
                 _isDragging = true;
-                _dragPosition = Duration(milliseconds: ms.round());
+                _dragPosition = _position;
               });
             },
-            onChanged: (ms) {
+            onSeekUpdate: (target) {
               _onUserActivity();
-              setState(() {
-                _dragPosition = Duration(milliseconds: ms.round());
-              });
+              setState(() => _dragPosition = target);
             },
-            onChangeEnd: (ms) {
+            onSeekEnd: (target) {
               _onUserActivity();
-              final target = Duration(milliseconds: ms.round());
               setState(() {
                 _isDragging = false;
                 _dragPosition = null;
               });
               _player.seek(target);
             },
+            hasEpisodes: episodes.isNotEmpty,
+            onOpenEpisodes: _showEpisodesDialog,
+            onOpenAudio: _showAudioTrackDialog,
+            onOpenSubtitles: _showSubtitleTrackDialog,
+            subtitlesActive:
+                _sideCars.active != null || _activeEmbeddedSubtitle.value != null,
+            subtitleDelay: subDelay,
+            playbackSpeed: _playbackSpeed,
+            onCycleSpeed: _cyclePlaybackSpeed,
+            onOpenSources: _showQualityAndSourcesDialog,
+            onOpenMore: _showMoreSheet,
+            skipSegments: _skipSegments,
+            isTv: _isTv,
+            isLive: live,
+            onToggleFullscreen: isDesktop ? _toggleFullscreen : null,
+            isFullscreen: _isFullscreen,
           ),
         ),
-        leading: [
-          PlayerIconButton(
-            icon: _playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
-            tooltip: _playing
-                ? (l10n?.pause ?? 'Pause')
-                : (l10n?.play ?? 'Play'),
-            isTv: _isTv,
-            iconSize: _isTv ? 34 : 30,
-            // A remote starts on the press it makes most often.
-            autofocus: _isTv,
-            onPressed: _togglePlayPause,
-          ),
-          if (_hasPreviousEpisode)
-            PlayerIconButton(
-              icon: Icons.skip_previous_rounded,
-              tooltip: l10n?.previous ?? 'Previous',
-              isTv: _isTv,
-              onPressed: () {
-                _onUserActivity();
-                final prev = _previousEpisode;
-                if (prev != null) unawaited(_startEpisode(prev));
-              },
-            ),
-          if (_hasNextEpisode)
-            PlayerIconButton(
-              icon: Icons.skip_next_rounded,
-              tooltip: l10n?.next ?? 'Next',
-              isTv: _isTv,
-              onPressed: () {
-                _onUserActivity();
-                unawaited(_advance());
-              },
-            ),
-          // Nothing to step through on a feed: there is no recorded past to
-          // skip back into and no future to skip ahead to.
-          if (!live)
-            PlayerIconButton(
-              icon: Icons.replay_10_rounded,
-              tooltip: l10n?.playerRewindSeconds(10) ?? 'Rewind 10s',
-              isTv: _isTv,
-              onPressed: () => _seekRelative(-10),
-            ),
-          if (!live)
-            PlayerIconButton(
-              icon: Icons.forward_10_rounded,
-              tooltip: l10n?.playerForwardSeconds(10) ?? 'Forward 10s',
-              isTv: _isTv,
-              onPressed: () => _seekRelative(10),
-            ),
-          Padding(
-            padding: const EdgeInsets.only(left: 8, right: 4),
-            child: RepaintBoundary(
-              child: PlayerTimeLabel(
-                position: displayPos,
-                duration: _duration,
-                hasDuration: _duration > Duration.zero,
-                isLive: live,
-              ),
-            ),
-          ),
-        ],
-        actions: [
-          if ((_item.episodes ?? widget.item.episodes)?.isNotEmpty ?? false)
-            PlayerIconButton(
-              icon: Icons.video_library_rounded,
-              tooltip: l10n?.episodes ?? 'Episodes',
-              isTv: _isTv,
-              onPressed: _showEpisodesDialog,
-            ),
-          PlayerActionButton(
-            label: speedLabel,
-            icon: Icons.speed_rounded,
-            isTv: _isTv,
-            onTap: _cyclePlaybackSpeed,
-          ),
-          PlayerIconButton(
-            icon: Icons.aspect_ratio_rounded,
-            tooltip: fitTooltip,
-            isTv: _isTv,
-            onPressed: _cycleFit,
-          ),
-          ListenableBuilder(
-            listenable: Listenable.merge([_videoTracks, _currentVideoTrack]),
-            builder: (context, _) => PlayerActionButton(
-              label: _currentQualityLabel,
-              icon: Icons.high_quality_rounded,
-              isTv: _isTv,
-              onTap: _showQualityAndSourcesDialog,
-            ),
-          ),
-          PlayerIconButton(
-            icon: Icons.audiotrack_rounded,
-            tooltip: l10n?.audioTracks ?? 'Audio',
-            isTv: _isTv,
-            onPressed: _showAudioTrackDialog,
-          ),
-          ListenableBuilder(
-            listenable: Listenable.merge([_sideCars, _activeEmbeddedSubtitle]),
-            builder: (context, _) => PlayerIconButton(
-              icon: Icons.subtitles_rounded,
-              tooltip: l10n?.subtitles ?? 'Subtitles',
-              isTv: _isTv,
-              highlight:
-                  _sideCars.active != null ||
-                  _activeEmbeddedSubtitle.value != null,
-              onPressed: _showSubtitleTrackDialog,
-            ),
-          ),
-          if (!kIsWeb &&
-              (Platform.isWindows || Platform.isLinux || Platform.isMacOS))
-            PlayerIconButton(
-              icon: _isFullscreen
-                  ? Icons.fullscreen_exit_rounded
-                  : Icons.fullscreen_rounded,
-              tooltip: _isFullscreen ? 'Exit Fullscreen' : 'Fullscreen',
-              isTv: _isTv,
-              onPressed: _toggleFullscreen,
-            ),
-          PlayerIconButton(
-            icon: _isDialogueBoostEnabled
-                ? Icons.graphic_eq_rounded
-                : Icons.equalizer_rounded,
-            tooltip:
-                'Dialogue Boost (${_isDialogueBoostEnabled ? "On" : "Off"})',
-            highlight: _isDialogueBoostEnabled,
-            isTv: _isTv,
-            onPressed: _toggleDialogueBoost,
-          ),
-          PlayerIconButton(
-            icon: _sleepTimerMinutes != null
-                ? Icons.alarm_on_rounded
-                : Icons.bedtime_outlined,
-            tooltip: _sleepTimerMinutes != null
-                ? 'Sleep Timer: $_sleepTimerMinutes m'
-                : 'Sleep Timer',
-            highlight: _sleepTimerMinutes != null,
-            isTv: _isTv,
-            onPressed: _showSleepTimerDialog,
-          ),
-          PlayerIconButton(
-            icon: Icons.lock_outline_rounded,
-            tooltip: 'Lock Screen',
-            isTv: _isTv,
-            onPressed: () {
-              setState(() {
-                _isScreenLocked = true;
-                _controlsVisible = false;
-                _showUnlockButton = false;
-              });
-            },
-          ),
-          PlayerIconButton(
-            icon: Icons.tune_rounded,
-            tooltip: l10n?.options ?? 'Options',
-            isTv: _isTv,
-            onPressed: _showMoreSheet,
-          ),
-        ],
       ),
     );
   }
@@ -3228,33 +3733,12 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     _setPlaybackSpeed(speeds[nextIdx]);
   }
 
-  void _cycleFit() {
-    _onUserActivity();
-    final next = switch (_fit) {
-      BoxFit.contain => BoxFit.cover,
-      BoxFit.cover => BoxFit.fill,
-      _ => BoxFit.contain,
-    };
-    setState(() => _fit = next);
-  }
-
-  String _fitLabel(BoxFit fit) => switch (fit) {
-    BoxFit.cover => 'Zoom',
-    BoxFit.fill => 'Stretch',
-    _ => 'Fit',
-  };
-
   Future<void> _showEpisodesDialog() async {
     _onUserActivity();
     final episodes = _item.episodes ?? widget.item.episodes ?? [];
     if (episodes.isEmpty) return;
-    await showModalBottomSheet<void>(
+    await showLiquidGlassPlayerSheet<void>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: HotstarPlayerStyle.panelElevated,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
       builder: (sheetContext) => PlayerPanelMetricsScope(
         metrics: PlayerPanelMetrics.forTv(_isTv),
         child: SafeArea(
@@ -3292,13 +3776,8 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   /// how the film is played rather than what is playing.
   Future<void> _showMoreSheet() async {
     _onUserActivity();
-    await showModalBottomSheet<void>(
+    await showLiquidGlassPlayerSheet<void>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: HotstarPlayerStyle.panelElevated,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
       builder: (sheetContext) => MediaKitMoreSheet(
         speed: _playbackSpeed,
         fit: _fit,
@@ -3312,6 +3791,17 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
         onSources: () {
           Navigator.of(sheetContext).maybePop();
           _showSourcesDialog();
+        },
+        nightAudioEnabled: _isDialogueBoostEnabled,
+        onToggleNightAudio: (_) => unawaited(_toggleDialogueBoost()),
+        onAutoSyncSubtitles: () {
+          Navigator.of(sheetContext).maybePop();
+          unawaited(_showSubtitleTrackDialog());
+        },
+        sleepTimerMinutes: _sleepTimerMinutes,
+        onOpenSleepTimer: () {
+          Navigator.of(sheetContext).maybePop();
+          _showSleepTimerDialog();
         },
       ),
     );

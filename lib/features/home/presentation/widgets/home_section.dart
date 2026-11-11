@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:skystream/core/utils/responsive_breakpoints.dart';
 import 'package:skystream/core/router/app_router.dart';
 import 'package:skystream/core/utils/image_fallbacks.dart';
@@ -70,6 +71,7 @@ class _HomeSectionState extends ConsumerState<HomeSection> {
 
                 return ListView.builder(
                   controller: _scrollController,
+                  scrollCacheExtent: const ScrollCacheExtent.pixels(600),
                   padding: const EdgeInsets.symmetric(
                     horizontal: LayoutConstants.spacingMd,
                     vertical: LayoutConstants.spacingXs,

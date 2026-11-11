@@ -49,15 +49,17 @@ class AppBackdropLayer extends StatelessWidget {
 
     final backdrop = tokens?.backdrop ?? AppBackdrop.liquidMesh;
 
-    return DecoratedBox(
-      decoration: BoxDecoration(gradient: gradient),
-      child: CustomPaint(
-        painter: SpaceBackdropPainter(
-          backdrop: backdrop,
-          brightness: theme.brightness,
-          accent: theme.colorScheme.primary,
+    return RepaintBoundary(
+      child: DecoratedBox(
+        decoration: BoxDecoration(gradient: gradient),
+        child: CustomPaint(
+          painter: SpaceBackdropPainter(
+            backdrop: backdrop,
+            brightness: theme.brightness,
+            accent: theme.colorScheme.primary,
+          ),
+          child: child,
         ),
-        child: child,
       ),
     );
   }

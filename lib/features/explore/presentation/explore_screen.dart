@@ -92,13 +92,16 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
         forceMaterialTransparency: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        flexibleSpace: const GlassSurface(
-          borderRadius: BorderRadius.zero,
-          padding: EdgeInsets.zero,
-          blurSigma: 18,
-          shadow: false,
-          rimStrength: 0.4,
-          child: SizedBox.expand(),
+        flexibleSpace: const RepaintBoundary(
+          child: GlassSurface(
+            borderRadius: BorderRadius.zero,
+            padding: EdgeInsets.zero,
+            blurSigma: 12,
+            shadow: false,
+            useVibrancy: false,
+            rimStrength: 0.4,
+            child: SizedBox.expand(),
+          ),
         ),
         title: Row(
           children: [

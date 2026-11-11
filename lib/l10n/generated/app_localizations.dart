@@ -3602,6 +3602,228 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Ultra-Smooth active ({badge} / Max {maxHz}Hz)'**
   String highRefreshStatusLabel(String badge, int maxHz);
+
+  /// Toggle title for multi-stage Night Mode dialogue clarity and dynamic range compression.
+  ///
+  /// In en, this message translates to:
+  /// **'Night Audio'**
+  String get playerNightAudio;
+
+  /// Subtitle explaining what Night Audio mode does.
+  ///
+  /// In en, this message translates to:
+  /// **'Boosts quiet dialogue & tames sudden explosions'**
+  String get playerNightAudioSubtitle;
+
+  /// Button label starting automatic speech-based subtitle synchronization.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-Sync Subtitles'**
+  String get autoSyncSubtitles;
+
+  /// Subtitle describing acoustic speech-onset subtitle sync.
+  ///
+  /// In en, this message translates to:
+  /// **'Aligns subtitles automatically using live speech detection'**
+  String get autoSyncSubtitlesSubtitle;
+
+  /// One-tap button snapping the nearest upcoming subtitle cue to the current playback position.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync to Voice Now'**
+  String get syncToVoiceNow;
+
+  /// Status message while analyzing audio speech onsets for subtitle sync.
+  ///
+  /// In en, this message translates to:
+  /// **'Listening to dialogue…'**
+  String get autoSyncListening;
+
+  /// Status badge shown after subtitles are automatically aligned.
+  ///
+  /// In en, this message translates to:
+  /// **'Synced by {offset}'**
+  String autoSyncMatched(String offset);
+
+  /// Hint shown when user taps Auto-Sync with no loaded timed subtitles.
+  ///
+  /// In en, this message translates to:
+  /// **'Load a subtitle track first'**
+  String get autoSyncNeedCues;
+
+  /// Hint shown when no speech onset or pause boundary has been detected yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Play dialogue for a moment to sync'**
+  String get autoSyncNoSpeechYet;
+
+  /// Suggested subtitle offset derived from skip intro boundaries.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip intro sync ({offset})'**
+  String autoSyncIntroOffset(String offset);
+
+  /// Quick drift preset when video is 25fps and subtitles are 23.976fps.
+  ///
+  /// In en, this message translates to:
+  /// **'23.976→25 fps'**
+  String get autoSyncPalNudge;
+
+  /// Quick drift preset when video is 23.976fps and subtitles are 25fps.
+  ///
+  /// In en, this message translates to:
+  /// **'25→23.976 fps'**
+  String get autoSyncFilmNudge;
+
+  /// Reverts the last automatic subtitle delay change.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get autoSyncUndo;
+
+  /// Displays the current subtitle synchronization offset.
+  ///
+  /// In en, this message translates to:
+  /// **'Offset: {offset}'**
+  String subDelayLabel(String offset);
+
+  /// Badge shown when player screen lock is enabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Controls Locked'**
+  String get playerLocked;
+
+  /// Toast hint when tapping while player screen lock is active.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap Unlock to show controls'**
+  String get playerTapToUnlock;
+
+  /// Tooltip/label for screen lock toggle in player.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock'**
+  String get playerLockControls;
+
+  /// Compact playback speed label in player controls.
+  ///
+  /// In en, this message translates to:
+  /// **'{speed}x'**
+  String playerSpeedPill(String speed);
+
+  /// Floating Liquid Glass HUD pill shown while holding down for 2x speed.
+  ///
+  /// In en, this message translates to:
+  /// **'2.0x Hold'**
+  String get playerHoldSpeedBadge;
+
+  /// Label for vertical edge volume gesture rail.
+  ///
+  /// In en, this message translates to:
+  /// **'Volume'**
+  String get playerVolumeLabel;
+
+  /// Label for vertical edge brightness gesture rail.
+  ///
+  /// In en, this message translates to:
+  /// **'Brightness'**
+  String get playerBrightnessLabel;
+
+  /// Toggle label for entering miniplayer automatically when leaving app.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto Miniplayer'**
+  String get playerAutoPip;
+
+  /// Subtitle for Auto Miniplayer setting.
+  ///
+  /// In en, this message translates to:
+  /// **'Shrink into miniplayer automatically when leaving app'**
+  String get playerAutoPipSubtitle;
+
+  /// Label for overflow menu button in player bottom dock.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get playerMoreControls;
+
+  /// Compact label for playback speed action in player dock.
+  ///
+  /// In en, this message translates to:
+  /// **'Speed'**
+  String get playerPlaybackSpeed;
+
+  /// Compact label for video aspect/resize cycle button in player dock.
+  ///
+  /// In en, this message translates to:
+  /// **'Fit'**
+  String get playerAspectResize;
+
+  /// Tooltip and menu label for the player sleep timer action.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep Timer'**
+  String get playerSleepTimer;
+
+  /// Global Top 10 recommendation rail title.
+  ///
+  /// In en, this message translates to:
+  /// **'Top 10 in the World Today'**
+  String get discoverTop10World;
+
+  /// Kenya regional Top 10 recommendation rail title.
+  ///
+  /// In en, this message translates to:
+  /// **'Top 10 in Kenya Today'**
+  String get discoverTop10Kenya;
+
+  /// Local country Top 10 recommendation rail title.
+  ///
+  /// In en, this message translates to:
+  /// **'Top 10 in {country} Today'**
+  String discoverTop10Local(String country);
+
+  /// Global trending TV series rail title.
+  ///
+  /// In en, this message translates to:
+  /// **'Trending Series Worldwide'**
+  String get discoverTrendingSeries;
+
+  /// High-rated critically acclaimed rail title.
+  ///
+  /// In en, this message translates to:
+  /// **'Critically Acclaimed'**
+  String get discoverCriticallyAcclaimed;
+
+  /// Curated African & Kenyan spotlight rail title.
+  ///
+  /// In en, this message translates to:
+  /// **'Kenyan & African Spotlight'**
+  String get discoverAfricanSpotlight;
+
+  /// Personalized multi-signal recommendation rail title.
+  ///
+  /// In en, this message translates to:
+  /// **'Picked For You Today'**
+  String get discoverFreshForYou;
+
+  /// Underrated curated picks rail title.
+  ///
+  /// In en, this message translates to:
+  /// **'Hidden Gems to Explore'**
+  String get discoverHiddenGems;
+
+  /// Popular movies rail title.
+  ///
+  /// In en, this message translates to:
+  /// **'Popular Movies Right Now'**
+  String get discoverPopularToday;
+
+  /// Recommendation shelf based on a previously watched title.
+  ///
+  /// In en, this message translates to:
+  /// **'Because you watched {title}'**
+  String discoverBecauseYouWatched(String title);
 }
 
 class _AppLocalizationsDelegate

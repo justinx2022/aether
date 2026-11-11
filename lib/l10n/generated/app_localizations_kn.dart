@@ -1990,4 +1990,130 @@ class AppLocalizationsKn extends AppLocalizations {
   String highRefreshStatusLabel(String badge, int maxHz) {
     return 'ಅಲ್ಟ್ರಾ-ಸ್ಮೂತ್ ಸಕ್ರಿಯ ($badge / ಗರಿಷ್ಠ ${maxHz}Hz)';
   }
+
+  @override
+  String get playerNightAudio => 'ನೈಟ್ ಆಡಿಯೋ';
+
+  @override
+  String get playerNightAudioSubtitle =>
+      'ಮೆಲ್ಲನೆಯ ಸಂಭಾಷಣೆ ಹೆಚ್ಚಿಸಿ ದೊಡ್ಡ ಶಬ್ದಗಳನ್ನು ನಿಯಂತ್ರಿಸುತ್ತದೆ';
+
+  @override
+  String get autoSyncSubtitles => 'ಸ್ವಯಂ-ಸಿಂಕ್ ಉಪಶೀರ್ಷಿಕೆ';
+
+  @override
+  String get autoSyncSubtitlesSubtitle =>
+      'ಲೈವ್ ಧ್ವನಿ ಗುರುತಿಸಿ ಉಪಶೀರ್ಷಿಕೆಗಳನ್ನು ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಹೊಂದಿಸುತ್ತದೆ';
+
+  @override
+  String get syncToVoiceNow => 'ಈಗಲೇ ಧ್ವನಿಗೆ ಹೊಂದಿಸಿ';
+
+  @override
+  String get autoSyncListening => 'ಸಂಭಾಷಣೆ ಕೇಳುತ್ತಿದೆ…';
+
+  @override
+  String autoSyncMatched(String offset) {
+    return '$offset ಗೆ ಹೊಂದಿಸಲಾಗಿದೆ';
+  }
+
+  @override
+  String get autoSyncNeedCues => 'ಮೊದಲು ಉಪಶೀರ್ಷಿಕೆ ಟ್ರ್ಯಾಕ್ ಆಯ್ಕೆಮಾಡಿ';
+
+  @override
+  String get autoSyncNoSpeechYet => 'ಹೊಂದಿಸಲು ಸ್ವಲ್ಪ ಸಂಭಾಷಣೆ ಪ್ಲೇ ಆಗಲು ಬಿಡಿ';
+
+  @override
+  String autoSyncIntroOffset(String offset) {
+    return 'ಇಂಟ್ರೋ ಸ್ಕಿಪ್ ಸಿಂಕ್ ($offset)';
+  }
+
+  @override
+  String get autoSyncPalNudge => '23.976→25 fps';
+
+  @override
+  String get autoSyncFilmNudge => '25→23.976 fps';
+
+  @override
+  String get autoSyncUndo => 'ರದ್ದುಮಾಡು';
+
+  @override
+  String subDelayLabel(String offset) {
+    return 'ಆಫ್‌ಸೆಟ್: $offset';
+  }
+
+  @override
+  String get playerLocked => 'ನಿಯಂತ್ರಣಗಳು ಲಾಕ್ ಆಗಿವೆ';
+
+  @override
+  String get playerTapToUnlock => 'ತೋರಿಸಲು ಅನ್‌ಲಾಕ್ ಟ್ಯಾಪ್ ಮಾಡಿ';
+
+  @override
+  String get playerLockControls => 'ಲಾಕ್';
+
+  @override
+  String playerSpeedPill(String speed) {
+    return '${speed}x';
+  }
+
+  @override
+  String get playerHoldSpeedBadge => '2.0x ಹೋಲ್ಡ್';
+
+  @override
+  String get playerVolumeLabel => 'ವಾಲ್ಯೂಮ್';
+
+  @override
+  String get playerBrightnessLabel => 'ಪ್ರಕಾಶ';
+
+  @override
+  String get playerAutoPip => 'ಸ್ವಯಂ ಮಿನಿಪ್ಲೇಯರ್';
+
+  @override
+  String get playerAutoPipSubtitle =>
+      'ಆ್ಯಪ್ ಬಿಡುವಾಗ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಮಿನಿಪ್ಲೇಯರ್‌ಗೆ ಕುಗ್ಗಿಸಿ';
+
+  @override
+  String get playerMoreControls => 'ಇನ್ನಷ್ಟು';
+
+  @override
+  String get playerPlaybackSpeed => 'ವೇಗ';
+
+  @override
+  String get playerAspectResize => 'ಫಿಟ್';
+
+  @override
+  String get playerSleepTimer => 'ಸ್ಲೀಪ್ ಟೈಮರ್';
+
+  @override
+  String get discoverTop10World => 'ಇಂದು ವಿಶ್ವದ ಟಾಪ್ 10';
+
+  @override
+  String get discoverTop10Kenya => 'ಇಂದು ಕೀನ್ಯಾದ ಟಾಪ್ 10';
+
+  @override
+  String discoverTop10Local(String country) {
+    return 'ಇಂದು $country ಟಾಪ್ 10';
+  }
+
+  @override
+  String get discoverTrendingSeries => 'ವಿಶ್ವಾದ್ಯಂತ ಟ್ರೆಂಡಿಂಗ್ ಸರಣಿಗಳು';
+
+  @override
+  String get discoverCriticallyAcclaimed => 'ವಿಮರ್ಶಕರಿಂದ ಮೆಚ್ಚುಗೆ ಪಡೆದವು';
+
+  @override
+  String get discoverAfricanSpotlight => 'ಕೀನ್ಯಾ ಮತ್ತು ಆಫ್ರಿಕನ್ ವಿಶೇಷ';
+
+  @override
+  String get discoverFreshForYou => 'ಇಂದು ನಿಮಗಾಗಿ ಆಯ್ದವು';
+
+  @override
+  String get discoverHiddenGems => 'ಅನ್ವೇಷಿಸಲು ಅಪರೂಪದ ರತ್ನಗಳು';
+
+  @override
+  String get discoverPopularToday => 'ಈಗ ಜನಪ್ರಿಯ ಚಲನಚಿತ್ರಗಳು';
+
+  @override
+  String discoverBecauseYouWatched(String title) {
+    return 'ನೀವು $title ನೋಡಿದ್ದರಿಂದ';
+  }
 }

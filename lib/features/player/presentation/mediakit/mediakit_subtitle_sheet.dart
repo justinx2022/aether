@@ -69,7 +69,7 @@ String _trackLabel(
   return l10n.playerTrackNumber(index + 1);
 }
 
-/// The subtitles menu.
+/// The subtitles menu with BitChord Liquid Glass Auto-Sync tools.
 class MediaKitSubtitleSheet extends StatelessWidget {
   const MediaKitSubtitleSheet({
     required this.sideCars,
@@ -83,6 +83,16 @@ class MediaKitSubtitleSheet extends StatelessWidget {
     required this.onDelay,
     required this.onLoadFile,
     required this.onSearch,
+    this.autoSyncListening,
+    this.autoSyncStatus,
+    this.canUndoSync,
+    this.onAutoSync,
+    this.onSnapToVoice,
+    this.onPalNudge,
+    this.onFilmNudge,
+    this.onUndoSync,
+    this.introHintLabel,
+    this.onApplyIntroHint,
     super.key,
   });
 
@@ -100,6 +110,15 @@ class MediaKitSubtitleSheet extends StatelessWidget {
   /// The track inside the video that is on, or null.
   final ValueListenable<String?> activeEmbeddedId;
 
+  /// Live listening flag while acoustic `silencedetect` collects speech onsets.
+  final ValueListenable<bool>? autoSyncListening;
+
+  /// Live feedback message for automatic subtitle alignment.
+  final ValueListenable<String?>? autoSyncStatus;
+
+  /// Whether an undo snapshot exists for the last auto-sync action.
+  final ValueListenable<bool>? canUndoSync;
+
   /// The ten-foot ramp for a television; the sheet is outside the side panel,
   /// which is the only thing that would otherwise have installed it.
   final bool isTv;
@@ -110,6 +129,13 @@ class MediaKitSubtitleSheet extends StatelessWidget {
   final ValueChanged<Duration> onDelay;
   final VoidCallback onLoadFile;
   final VoidCallback onSearch;
+  final VoidCallback? onAutoSync;
+  final VoidCallback? onSnapToVoice;
+  final VoidCallback? onPalNudge;
+  final VoidCallback? onFilmNudge;
+  final VoidCallback? onUndoSync;
+  final String? introHintLabel;
+  final VoidCallback? onApplyIntroHint;
 
   /// Every source the sheet reads, as one, so one list rebuild follows any of
   /// them: a file finishing its fetch, a track appearing, the delay moving.
@@ -118,6 +144,9 @@ class MediaKitSubtitleSheet extends StatelessWidget {
     delay,
     embeddedTracks,
     activeEmbeddedId,
+    ?autoSyncListening,
+    ?autoSyncStatus,
+    ?canUndoSync,
   ]);
 
   @override
@@ -203,6 +232,8 @@ class MediaKitSubtitleSheet extends StatelessWidget {
         icon: Icons.search_rounded,
         onTap: onSearch,
       ),
+      if (onAutoSync != null || onSnapToVoice != null)
+        _buildAutoSyncCard(l10n),
       PanelStepperRow(
         label: l10n.subtitleDelay,
         value: _delayLabel(delay.value),
@@ -213,5 +244,183 @@ class MediaKitSubtitleSheet extends StatelessWidget {
             : () => onDelay(Duration.zero),
       ),
     ];
+  }
+
+  Widget _buildAutoSyncCard(AppLocalizations l10n) {
+    final listening = autoSyncListening?.value ?? false;
+    final status = autoSyncStatus?.value;
+    final undoable = canUndoSync?.value ?? false;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: <Color>[
+              const Color(0xFF38BDF8).withValues(alpha: 0.14),
+              const Color(0xFF818CF8).withValues(alpha: 0.10),
+            ],
+          ),
+          border: Border.all(
+            color: listening
+                ? const Color(0xFF38BDF8).withValues(alpha: 0.72)
+                : Colors.white.withValues(alpha: 0.16),
+            width: 1.0,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Icon(
+                  listening ? Icons.graphic_eq_rounded : Icons.sync_rounded,
+                  size: 18,
+                  color: const Color(0xFF7DD3FC),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        l10n.autoSyncSubtitles,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        status ?? l10n.autoSyncSubtitlesSubtitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: status != null
+                              ? const Color(0xFFA5F3FC)
+                              : Colors.white.withValues(alpha: 0.68),
+                          fontSize: 11.5,
+                          fontWeight:
+                              status != null ? FontWeight.w600 : FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (undoable && onUndoSync != null)
+                  TextButton(
+                    onPressed: onUndoSync,
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFFFBBF24),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                    ),
+                    child: Text(l10n.autoSyncUndo),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: <Widget>[
+                if (onAutoSync != null)
+                  _SyncPillButton(
+                    icon: listening
+                        ? Icons.stop_circle_outlined
+                        : Icons.auto_fix_high_rounded,
+                    label: listening
+                        ? l10n.autoSyncListening
+                        : l10n.autoSyncSubtitles,
+                    primary: true,
+                    onTap: onAutoSync!,
+                  ),
+                if (onSnapToVoice != null)
+                  _SyncPillButton(
+                    icon: Icons.record_voice_over_rounded,
+                    label: l10n.syncToVoiceNow,
+                    onTap: onSnapToVoice!,
+                  ),
+                if (introHintLabel != null && onApplyIntroHint != null)
+                  _SyncPillButton(
+                    icon: Icons.fast_forward_rounded,
+                    label: introHintLabel!,
+                    onTap: onApplyIntroHint!,
+                  ),
+                if (onPalNudge != null)
+                  _SyncPillButton(
+                    icon: Icons.speed_rounded,
+                    label: l10n.autoSyncPalNudge,
+                    onTap: onPalNudge!,
+                  ),
+                if (onFilmNudge != null)
+                  _SyncPillButton(
+                    icon: Icons.speed_rounded,
+                    label: l10n.autoSyncFilmNudge,
+                    onTap: onFilmNudge!,
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SyncPillButton extends StatelessWidget {
+  const _SyncPillButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.primary = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool primary;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: primary
+          ? const Color(0xFF6366F1).withValues(alpha: 0.85)
+          : Colors.white.withValues(alpha: 0.11),
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: primary ? 0.35 : 0.18),
+              width: 0.8,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Icon(icon, size: 15, color: Colors.white),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

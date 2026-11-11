@@ -207,27 +207,32 @@ class GlassSurface extends StatelessWidget {
     );
 
     if (blurSigma > 0 && !reduce) {
+      // Single-pass blur kept bounded (12 max in default Liquid Glass, 8 in
+      // perf mode) with RepaintBoundary isolation so 60Hz displays never stall on
+      // stacked blur saveLayers or double-pass ColorFilter image composition.
       final effectiveSigma = !liquidGlass
           ? blurSigma
           : glassPerf
               ? math.min(blurSigma, 8.0)
-              : math.max(blurSigma, 14.0);
+              : math.min(math.max(blurSigma, 10.0), 12.0);
       final blurFilter = ImageFilter.blur(
         sigmaX: effectiveSigma,
         sigmaY: effectiveSigma,
         tileMode: TileMode.mirror,
       );
-      final filter = (liquidGlass && useVibrancy && !glassPerf)
+      final filter = (liquidGlass && useVibrancy && !glassPerf && effectiveSigma <= 10.0)
           ? ImageFilter.compose(
-              outer: ColorFilter.matrix(_vibrancyColorMatrix(1.40)),
+              outer: ColorFilter.matrix(_vibrancyColorMatrix(1.24)),
               inner: blurFilter,
             )
           : blurFilter;
 
-      panel = ClipRRect(
-        borderRadius: radius,
-        clipBehavior: clipBehavior,
-        child: BackdropFilter(filter: filter, child: panel),
+      panel = RepaintBoundary(
+        child: ClipRRect(
+          borderRadius: radius,
+          clipBehavior: clipBehavior,
+          child: BackdropFilter(filter: filter, child: panel),
+        ),
       );
     } else {
       panel = ClipRRect(

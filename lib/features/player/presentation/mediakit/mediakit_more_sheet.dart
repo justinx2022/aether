@@ -44,6 +44,11 @@ class MediaKitMoreSheet extends StatefulWidget {
     required this.onFit,
     required this.onFullscreen,
     required this.onSources,
+    this.nightAudioEnabled = false,
+    this.onToggleNightAudio,
+    this.onAutoSyncSubtitles,
+    this.sleepTimerMinutes,
+    this.onOpenSleepTimer,
     super.key,
   });
 
@@ -67,6 +72,11 @@ class MediaKitMoreSheet extends StatefulWidget {
   final ValueChanged<BoxFit> onFit;
   final VoidCallback onFullscreen;
   final VoidCallback onSources;
+  final bool nightAudioEnabled;
+  final ValueChanged<bool>? onToggleNightAudio;
+  final VoidCallback? onAutoSyncSubtitles;
+  final int? sleepTimerMinutes;
+  final VoidCallback? onOpenSleepTimer;
 
   @override
   State<MediaKitMoreSheet> createState() => _MediaKitMoreSheetState();
@@ -76,6 +86,7 @@ class _MediaKitMoreSheetState extends State<MediaKitMoreSheet> {
   late double _speed = widget.speed;
   late BoxFit _fit = widget.fit;
   late bool _fullscreen = widget.isFullscreen;
+  late bool _nightAudio = widget.nightAudioEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -128,6 +139,35 @@ class _MediaKitMoreSheetState extends State<MediaKitMoreSheet> {
                     // No subheader: these two are single rows, and a heading
                     // that only repeats the row's own label is furniture.
                     const SizedBox(height: 8),
+                    if (widget.onToggleNightAudio != null)
+                      PanelRow(
+                        label: l10n.playerNightAudio,
+                        detail: l10n.playerNightAudioSubtitle,
+                        icon: Icons.nightlight_round,
+                        selected: _nightAudio,
+                        onTap: () {
+                          final next = !_nightAudio;
+                          setState(() => _nightAudio = next);
+                          widget.onToggleNightAudio!(next);
+                        },
+                      ),
+                    if (widget.onAutoSyncSubtitles != null)
+                      PanelRow(
+                        label: l10n.autoSyncSubtitles,
+                        detail: l10n.autoSyncSubtitlesSubtitle,
+                        icon: Icons.sync_rounded,
+                        onTap: widget.onAutoSyncSubtitles!,
+                      ),
+                    if (widget.onOpenSleepTimer != null)
+                      PanelRow(
+                        label: l10n.playerSleepTimer,
+                        detail: widget.sleepTimerMinutes != null
+                            ? '${widget.sleepTimerMinutes}m'
+                            : l10n.off,
+                        icon: Icons.bedtime_outlined,
+                        selected: widget.sleepTimerMinutes != null,
+                        onTap: widget.onOpenSleepTimer!,
+                      ),
                     PanelRow(
                       label: l10n.playerQualityAndSources,
                       detail: widget.quality,

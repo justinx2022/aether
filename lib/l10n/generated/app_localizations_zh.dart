@@ -1925,6 +1925,132 @@ class AppLocalizationsZh extends AppLocalizations {
   String highRefreshStatusLabel(String badge, int maxHz) {
     return 'Ultra-Smooth active ($badge / Max ${maxHz}Hz)';
   }
+
+  @override
+  String get playerNightAudio => 'Night Audio';
+
+  @override
+  String get playerNightAudioSubtitle =>
+      'Boosts quiet dialogue & tames sudden explosions';
+
+  @override
+  String get autoSyncSubtitles => 'Auto-Sync Subtitles';
+
+  @override
+  String get autoSyncSubtitlesSubtitle =>
+      'Aligns subtitles automatically using live speech detection';
+
+  @override
+  String get syncToVoiceNow => 'Sync to Voice Now';
+
+  @override
+  String get autoSyncListening => 'Listening to dialogue…';
+
+  @override
+  String autoSyncMatched(String offset) {
+    return 'Synced by $offset';
+  }
+
+  @override
+  String get autoSyncNeedCues => 'Load a subtitle track first';
+
+  @override
+  String get autoSyncNoSpeechYet => 'Play dialogue for a moment to sync';
+
+  @override
+  String autoSyncIntroOffset(String offset) {
+    return 'Skip intro sync ($offset)';
+  }
+
+  @override
+  String get autoSyncPalNudge => '23.976→25 fps';
+
+  @override
+  String get autoSyncFilmNudge => '25→23.976 fps';
+
+  @override
+  String get autoSyncUndo => 'Undo';
+
+  @override
+  String subDelayLabel(String offset) {
+    return 'Offset: $offset';
+  }
+
+  @override
+  String get playerLocked => 'Controls Locked';
+
+  @override
+  String get playerTapToUnlock => 'Tap Unlock to show controls';
+
+  @override
+  String get playerLockControls => 'Lock';
+
+  @override
+  String playerSpeedPill(String speed) {
+    return '${speed}x';
+  }
+
+  @override
+  String get playerHoldSpeedBadge => '2.0x Hold';
+
+  @override
+  String get playerVolumeLabel => 'Volume';
+
+  @override
+  String get playerBrightnessLabel => 'Brightness';
+
+  @override
+  String get playerAutoPip => 'Auto Miniplayer';
+
+  @override
+  String get playerAutoPipSubtitle =>
+      'Shrink into miniplayer automatically when leaving app';
+
+  @override
+  String get playerMoreControls => 'More';
+
+  @override
+  String get playerPlaybackSpeed => 'Speed';
+
+  @override
+  String get playerAspectResize => 'Fit';
+
+  @override
+  String get playerSleepTimer => 'Sleep Timer';
+
+  @override
+  String get discoverTop10World => 'Top 10 in the World Today';
+
+  @override
+  String get discoverTop10Kenya => 'Top 10 in Kenya Today';
+
+  @override
+  String discoverTop10Local(String country) {
+    return 'Top 10 in $country Today';
+  }
+
+  @override
+  String get discoverTrendingSeries => 'Trending Series Worldwide';
+
+  @override
+  String get discoverCriticallyAcclaimed => 'Critically Acclaimed';
+
+  @override
+  String get discoverAfricanSpotlight => 'Kenyan & African Spotlight';
+
+  @override
+  String get discoverFreshForYou => 'Picked For You Today';
+
+  @override
+  String get discoverHiddenGems => 'Hidden Gems to Explore';
+
+  @override
+  String get discoverPopularToday => 'Popular Movies Right Now';
+
+  @override
+  String discoverBecauseYouWatched(String title) {
+    return 'Because you watched $title';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).

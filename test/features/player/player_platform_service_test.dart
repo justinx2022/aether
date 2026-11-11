@@ -267,6 +267,33 @@ void main() {
         'videoHeight': 720,
       });
     });
+
+    test('syncAutoEnterPip arms and clears auto-PiP with video shape', () async {
+      PlayerPlatformService().syncAutoEnterPip(
+        enabled: true,
+        isPlaying: true,
+        videoSize: const Size(1920, 1080),
+      );
+      PlayerPlatformService().syncAutoEnterPip(
+        enabled: false,
+        isPlaying: false,
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(sent, hasLength(2));
+      expect(sent.first.method, 'setAutoEnterPip');
+      expect(sent.first.arguments, {
+        'enabled': true,
+        'isPlaying': true,
+        'videoWidth': 1920,
+        'videoHeight': 1080,
+      });
+      expect(sent.last.method, 'setAutoEnterPip');
+      expect(sent.last.arguments, {
+        'enabled': false,
+        'isPlaying': false,
+      });
+    });
   });
 
   /// One reading of the rendered picture's shape, as the screen feeds it:

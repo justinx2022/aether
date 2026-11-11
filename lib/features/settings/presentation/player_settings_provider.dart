@@ -188,6 +188,9 @@ class PlayerSettings {
   /// Whether to use high-performance media_kit (libmpv) on Windows.
   final bool useMediaKitOnWindows;
 
+  /// Whether Night Audio (multi-stage dialogue boost & dynamic range compression) is active.
+  final bool nightAudioEnabled;
+
   // Subtitle Accounts
   final String osUsername;
   final String osPassword;
@@ -198,8 +201,8 @@ class PlayerSettings {
   final String subsourceApiKey;
 
   const PlayerSettings({
-    this.leftGesture = PlayerGesture.brightness,
-    this.rightGesture = PlayerGesture.volume,
+    this.leftGesture = PlayerGesture.volume,
+    this.rightGesture = PlayerGesture.brightness,
     this.doubleTapEnabled = true,
     this.swipeSeekEnabled = true,
     this.seekDuration = 10,
@@ -230,6 +233,7 @@ class PlayerSettings {
     this.seamlessPlayback = true,
     this.lanSync = true,
     this.useMediaKitOnWindows = true,
+    this.nightAudioEnabled = false,
     this.osUsername = '',
     this.osPassword = '',
     this.osApiKey = '',
@@ -273,6 +277,7 @@ class PlayerSettings {
     bool? seamlessPlayback,
     bool? lanSync,
     bool? useMediaKitOnWindows,
+    bool? nightAudioEnabled,
     String? osUsername,
     String? osPassword,
     String? osApiKey,
@@ -322,6 +327,7 @@ class PlayerSettings {
       seamlessPlayback: seamlessPlayback ?? this.seamlessPlayback,
       lanSync: lanSync ?? this.lanSync,
       useMediaKitOnWindows: useMediaKitOnWindows ?? this.useMediaKitOnWindows,
+      nightAudioEnabled: nightAudioEnabled ?? this.nightAudioEnabled,
       osUsername: osUsername ?? this.osUsername,
       osPassword: osPassword ?? this.osPassword,
       osApiKey: osApiKey ?? this.osApiKey,
@@ -370,15 +376,15 @@ class PlayerSettingsNotifier extends _$PlayerSettingsNotifier {
     final l =
         storage.getPlayerSetting<String>(
           'player_gesture_left',
-          defaultValue: 'brightness',
-        ) ??
-        'brightness';
-    final r =
-        storage.getPlayerSetting<String>(
-          'player_gesture_right',
           defaultValue: 'volume',
         ) ??
         'volume';
+    final r =
+        storage.getPlayerSetting<String>(
+          'player_gesture_right',
+          defaultValue: 'brightness',
+        ) ??
+        'brightness';
     final dt =
         storage.getPlayerSetting<bool>(
           'player_double_tap',
@@ -539,6 +545,12 @@ class PlayerSettingsNotifier extends _$PlayerSettingsNotifier {
           defaultValue: true,
         ) ??
         true;
+    final nightAudio =
+        storage.getPlayerSetting<bool>(
+          'player_night_audio',
+          defaultValue: false,
+        ) ??
+        false;
 
     SegmentPrefetchManager.instance.enabled = booster;
     LanSyncService.instance.enabled = lan;
@@ -578,6 +590,7 @@ class PlayerSettingsNotifier extends _$PlayerSettingsNotifier {
       seamlessPlayback: seamless,
       lanSync: lan,
       useMediaKitOnWindows: mediaKitWin,
+      nightAudioEnabled: nightAudio,
       osUsername: osUser,
       osApiKey: osKey,
       subdlEmail: dlEmail,
@@ -954,6 +967,11 @@ class PlayerSettingsNotifier extends _$PlayerSettingsNotifier {
   Future<void> setUseMediaKitOnWindows(bool enabled) async {
     await _repository.setPlayerSetting('player_use_mediakit_windows', enabled);
     _update((PlayerSettings c) => c.copyWith(useMediaKitOnWindows: enabled));
+  }
+
+  Future<void> setNightAudioEnabled(bool enabled) async {
+    await _repository.setPlayerSetting('player_night_audio', enabled);
+    _update((PlayerSettings c) => c.copyWith(nightAudioEnabled: enabled));
   }
 
   PlayerGesture _parse(String s) {

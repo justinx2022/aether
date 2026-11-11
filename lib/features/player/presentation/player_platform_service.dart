@@ -236,6 +236,32 @@ class PlayerPlatformService {
     );
   }
 
+  /// Registers or clears Android automatic miniplayer (Picture-in-Picture on
+  /// exiting/minimizing the app while playback is active).
+  ///
+  /// On Android 12+ this configures `setAutoEnterEnabled(enabled && isPlaying)`
+  /// in `MainActivity`; on Android 8–11 it arms `onUserLeaveHint()` fallback.
+  void syncAutoEnterPip({
+    required bool enabled,
+    required bool isPlaying,
+    Size? videoSize,
+  }) {
+    if (defaultTargetPlatform != TargetPlatform.android) return;
+    unawaited(
+      _pipChannel
+          .invokeMethod<void>('setAutoEnterPip', {
+            'enabled': enabled,
+            'isPlaying': isPlaying,
+            ..._videoSizeArgs(videoSize),
+          })
+          .catchError((Object e) {
+            if (kDebugMode) {
+              debugPrint('PlayerPlatformService.syncAutoEnterPip: $e');
+            }
+          }),
+    );
+  }
+
   /// Routes the PiP window's transport buttons and mode changes back to the
   /// screen.
   ///

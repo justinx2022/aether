@@ -1978,4 +1978,130 @@ class AppLocalizationsHi extends AppLocalizations {
   String highRefreshStatusLabel(String badge, int maxHz) {
     return 'अल्ट्रा-स्मूथ सक्रिय ($badge / अधिकतम ${maxHz}Hz)';
   }
+
+  @override
+  String get playerNightAudio => 'नाइट ऑडियो';
+
+  @override
+  String get playerNightAudioSubtitle =>
+      'धीमे संवाद बढ़ाता है और तेज़ धमाकों को संतुलित करता है';
+
+  @override
+  String get autoSyncSubtitles => 'ऑटो-सिंक उपशीर्षक';
+
+  @override
+  String get autoSyncSubtitlesSubtitle =>
+      'लाइव आवाज़ पहचान कर उपशीर्षक अपने आप मिलाता है';
+
+  @override
+  String get syncToVoiceNow => 'अभी आवाज़ से मिलाएँ';
+
+  @override
+  String get autoSyncListening => 'संवाद सुन रहा है…';
+
+  @override
+  String autoSyncMatched(String offset) {
+    return '$offset पर सिंक हुआ';
+  }
+
+  @override
+  String get autoSyncNeedCues => 'पहले उपशीर्षक ट्रैक चुनें';
+
+  @override
+  String get autoSyncNoSpeechYet => 'सिंक करने के लिए थोड़ा संवाद चलने दें';
+
+  @override
+  String autoSyncIntroOffset(String offset) {
+    return 'इंट्रो स्किप सिंक ($offset)';
+  }
+
+  @override
+  String get autoSyncPalNudge => '23.976→25 fps';
+
+  @override
+  String get autoSyncFilmNudge => '25→23.976 fps';
+
+  @override
+  String get autoSyncUndo => 'पूर्ववत करें';
+
+  @override
+  String subDelayLabel(String offset) {
+    return 'ऑफ़सेट: $offset';
+  }
+
+  @override
+  String get playerLocked => 'नियंत्रण लॉक हैं';
+
+  @override
+  String get playerTapToUnlock => 'दिखाने के लिए अनलॉक दबाएँ';
+
+  @override
+  String get playerLockControls => 'लॉक';
+
+  @override
+  String playerSpeedPill(String speed) {
+    return '${speed}x';
+  }
+
+  @override
+  String get playerHoldSpeedBadge => '2.0x होल्ड';
+
+  @override
+  String get playerVolumeLabel => 'वॉल्यूम';
+
+  @override
+  String get playerBrightnessLabel => 'चमक';
+
+  @override
+  String get playerAutoPip => 'ऑटो मिनीप्लेयर';
+
+  @override
+  String get playerAutoPipSubtitle =>
+      'ऐप छोड़ते समय अपने आप मिनीप्लेयर में छोटा करें';
+
+  @override
+  String get playerMoreControls => 'अधिक';
+
+  @override
+  String get playerPlaybackSpeed => 'गति';
+
+  @override
+  String get playerAspectResize => 'फ़िट';
+
+  @override
+  String get playerSleepTimer => 'स्लीप टाइमर';
+
+  @override
+  String get discoverTop10World => 'आज दुनिया में टॉप 10';
+
+  @override
+  String get discoverTop10Kenya => 'आज केन्या में टॉप 10';
+
+  @override
+  String discoverTop10Local(String country) {
+    return 'आज $country में टॉप 10';
+  }
+
+  @override
+  String get discoverTrendingSeries => 'दुनिया भर में ट्रेंडिंग सीरीज़';
+
+  @override
+  String get discoverCriticallyAcclaimed => 'समीक्षकों द्वारा सराही गई';
+
+  @override
+  String get discoverAfricanSpotlight => 'केन्या और अफ़्रीकी स्पॉटलाइट';
+
+  @override
+  String get discoverFreshForYou => 'आज आपके लिए चुनी गईं';
+
+  @override
+  String get discoverHiddenGems => 'छिपे हुए रत्न';
+
+  @override
+  String get discoverPopularToday => 'अभी लोकप्रिय फ़िल्में';
+
+  @override
+  String discoverBecauseYouWatched(String title) {
+    return 'क्योंकि आपने $title देखी';
+  }
 }

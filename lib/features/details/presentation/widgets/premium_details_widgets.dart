@@ -8,7 +8,7 @@ import 'package:skystream/shared/widgets/cards_wrapper.dart';
 import 'package:skystream/shared/widgets/shimmer_placeholder.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:skystream/shared/widgets/thumbnail_error_placeholder.dart';
-import 'package:skystream/core/recommendations/recommendations_service.dart';
+import 'package:skystream/core/recommendations/discovery_engine.dart';
 import 'package:skystream/core/router/app_router.dart';
 import 'package:skystream/core/utils/responsive_breakpoints.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -629,7 +629,7 @@ class AutoRecommendationsSection extends ConsumerWidget {
       );
     }
 
-    final similarAsync = ref.watch(similarItemsProvider(item));
+    final similarAsync = ref.watch(deepSimilarItemsProvider(item));
     return similarAsync.when(
       data: (items) {
         if (items.isEmpty) return const SizedBox.shrink();

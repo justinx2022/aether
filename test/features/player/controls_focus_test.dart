@@ -2636,7 +2636,7 @@ void main() {
         systemVolume: system,
       );
 
-      // The right half is the volume rail by default; a drag down lands
+      // The left half is the volume rail by default; a drag down lands
       // somewhere under unity. Where exactly does not matter - that M comes
       // back to exactly there does.
       //
@@ -2646,7 +2646,7 @@ void main() {
       // useless.
       final rect = tester.getRect(find.byType(VlcPlayerControls));
       await tester.dragFrom(
-        Offset(rect.right - 200, rect.center.dy),
+        Offset(rect.left + 200, rect.center.dy),
         const Offset(0, 400),
       );
       await tester.pump(const Duration(milliseconds: 600));

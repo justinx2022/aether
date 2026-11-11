@@ -1,6 +1,7 @@
 import 'dart:collection';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 
 import '../../../../core/router/app_router.dart';
 
@@ -25,6 +26,7 @@ class MediaHorizontalList extends StatefulWidget {
   final String? heroTagPrefix;
   final VoidCallback? onViewAll;
   final Future<List<MultimediaItem>?> Function(int page, int offset)? loadMore;
+  final bool ranked;
 
   const MediaHorizontalList({
     super.key,
@@ -36,6 +38,7 @@ class MediaHorizontalList extends StatefulWidget {
     this.heroTagPrefix,
     this.onViewAll,
     this.loadMore,
+    this.ranked = false,
   });
 
   @override
@@ -220,6 +223,7 @@ class _MediaHorizontalListState extends State<MediaHorizontalList> {
               return ListView.builder(
                 controller: _scrollController,
                 clipBehavior: Clip.none,
+                scrollCacheExtent: const ScrollCacheExtent.pixels(600),
                 padding: EdgeInsets.symmetric(
                   horizontal: isDesktop
                       ? LayoutConstants.dashboardContentPadding
@@ -236,27 +240,82 @@ class _MediaHorizontalListState extends State<MediaHorizontalList> {
                   final uniqueTag =
                       '${prefix}_${widget.title}_${item.id}_${itemTitle.hashCode}_$index';
 
+                  final card = MultimediaCard(
+                    imageUrl: imageUrl,
+                    title: itemTitle,
+                    heroTag: uniqueTag,
+                    isPortrait: _isPortrait,
+                    onTap: () {
+                      if (widget.onTap != null) {
+                        widget.onTap!(item);
+                      } else {
+                        TmdbDetailsRoute(
+                          movieId: item.id,
+                          mediaType: item.tmdbMediaType,
+                          heroTag: uniqueTag,
+                          placeholderPoster: imageUrl,
+                          source: item.source,
+                        ).push<void>(context);
+                      }
+                    },
+                  );
+
                   return Padding(
                     padding: EdgeInsets.only(right: spacing),
-                    child: MultimediaCard(
-                      imageUrl: imageUrl,
-                      title: itemTitle,
-                      heroTag: uniqueTag,
-                      isPortrait: _isPortrait,
-                      onTap: () {
-                        if (widget.onTap != null) {
-                          widget.onTap!(item);
-                        } else {
-                          TmdbDetailsRoute(
-                            movieId: item.id,
-                            mediaType: item.tmdbMediaType,
-                            heroTag: uniqueTag,
-                            placeholderPoster: imageUrl,
-                            source: item.source,
-                          ).push<void>(context);
-                        }
-                      },
-                    ),
+                    child: widget.ranked && index < 10
+                        ? Stack(
+                            clipBehavior: Clip.none,
+                            children: <Widget>[
+                              card,
+                              Positioned(
+                                top: 8,
+                                left: 8,
+                                child: IgnorePointer(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(10),
+                                      gradient: const LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: <Color>[
+                                          Color(0xD90E1628),
+                                          Color(0xB81E293B),
+                                        ],
+                                      ),
+                                      border: Border.all(
+                                        color: const Color(0x667DD3FC),
+                                        width: 0.9,
+                                      ),
+                                      boxShadow: const <BoxShadow>[
+                                        BoxShadow(
+                                          color: Color(0x55000000),
+                                          blurRadius: 8,
+                                          offset: Offset(0, 3),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Text(
+                                      '#${index + 1}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 0.2,
+                                        fontFeatures: <FontFeature>[
+                                          FontFeature.tabularFigures(),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : card,
                   );
                 },
               );

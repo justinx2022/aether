@@ -25,6 +25,7 @@ import '../../../shared/widgets/profile_app_bar_button.dart';
 
 import 'package:skystream/core/extensions/extension_manager.dart';
 import 'package:skystream/core/extensions/base_provider.dart';
+import 'package:skystream/core/recommendations/discovery_engine.dart';
 import 'package:skystream/core/router/app_router.dart';
 
 import 'delegates/home_search_delegate.dart';
@@ -174,23 +175,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         elevation: 0,
         flexibleSpace: ValueListenableBuilder<double>(
           valueListenable: _appBarOpacityNotifier,
-          // Apply the fade via the color's alpha channel rather than an
-          // Opacity widget. Opacity forces a saveLayer() every frame for as
-          // long as the AppBar is in the tree (even at opacity 1.0), which
-          // shows up on the perf overlay as a constant raster cost. Alpha
-          // blending on a Container fill costs ~0.
+          // Keep Opacity out of the tree (avoids saveLayer every frame) AND
+          // keep blurSigma constant when active so Impeller/Skia never
+          // recompiles blur shaders on every scroll delta on 60Hz panels.
           builder: (context, opacity, _) {
             if (opacity <= 0.02) return const SizedBox.shrink();
-            return GlassSurface(
-              borderRadius: BorderRadius.zero,
-              padding: EdgeInsets.zero,
-              blurSigma: 18 * opacity,
-              shadow: false,
-              rimStrength: 0.35 * opacity,
-              fill: Theme.of(
-                context,
-              ).scaffoldBackgroundColor.withValues(alpha: (0.46 * opacity).clamp(0.0, 0.52)),
-              child: const SizedBox.expand(),
+            final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
+            if (opacity < 0.18) {
+              return DecoratedBox(
+                decoration: BoxDecoration(
+                  color: scaffoldBg.withValues(alpha: (0.46 * opacity).clamp(0.0, 0.52)),
+                ),
+                child: const SizedBox.expand(),
+              );
+            }
+            return RepaintBoundary(
+              child: GlassSurface(
+                borderRadius: BorderRadius.zero,
+                padding: EdgeInsets.zero,
+                blurSigma: 10,
+                useVibrancy: false,
+                shadow: false,
+                rimStrength: 0.35 * opacity,
+                fill: scaffoldBg.withValues(alpha: (0.46 * opacity).clamp(0.0, 0.52)),
+                child: const SizedBox.expand(),
+              ),
             );
           },
         ),
@@ -296,6 +305,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final l10n = AppLocalizations.of(context)!;
     final isResolving = ref.watch(providerResolutionLoadingProvider);
     final activeProvider = ref.watch(activeProviderProvider);
+    final discoveryShelves =
+        ref.watch(smartDiscoveryProvider).asData?.value ??
+        const <DiscoveryShelf>[];
 
     if (isResolving) {
       return Center(
@@ -306,8 +318,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
 
     if (activeProvider == null) {
-      return _buildNoProviderState(context, l10n, isWidescreen: isWidescreen);
+      return _buildNoProviderState(
+        context,
+        l10n,
+        history: history,
+        watchHistoryEnabled: watchHistoryEnabled,
+        discoveryShelves: discoveryShelves,
+        isWidescreen: isWidescreen,
+      );
     }
+
+    final leadDiscoveryShelves = discoveryShelves.take(4).toList(growable: false);
+    final tailDiscoveryShelves = discoveryShelves.skip(4).toList(growable: false);
 
     return switch (state) {
       HomeLoading() => _withGradientEdgeHint(
@@ -324,13 +346,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       HomeNoProvider() => _buildNoProviderState(
         context,
         l10n,
+        history: history,
+        watchHistoryEnabled: watchHistoryEnabled,
+        discoveryShelves: discoveryShelves,
         isWidescreen: isWidescreen,
       ),
       HomeOffline() => _buildErrorState(context, l10n.noInternetError, ref),
       HomeError(:final message) => _buildErrorState(context, message, ref),
       HomeSuccess(:final data) => _withGradientEdgeHint(
         RefreshIndicator(
-          onRefresh: () async => ref.read(homeDataProvider.notifier).fetch(),
+          onRefresh: () async {
+            ref.invalidate(smartDiscoveryProvider);
+            await ref.read(homeDataProvider.notifier).fetch();
+          },
           child: CustomScrollView(
             controller: _scrollController,
             slivers: [
@@ -380,7 +408,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 ),
 
               if (watchHistoryEnabled && history.isNotEmpty) ...[
-                // Netflix-style: Render up to 5 distinct "Because you watched" recommendation shelves
+                // Keep personalized seed rows focused so rich multi-source
+                // discovery rails shine below without repetitive clutter.
                 for (final uniqueItem in history
                     .cast<HistoryItem>()
                     .map((h) => h.item)
@@ -393,7 +422,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       }
                       return list;
                     })
-                    .take(5))
+                    .take(2))
                   SliverToBoxAdapter(
                     key: ValueKey('because_watched_${uniqueItem.title}'),
                     child: BecauseYouWatchedSection(
@@ -401,6 +430,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     ),
                   ),
               ],
+
+              ..._buildDiscoverySlivers(context, l10n, leadDiscoveryShelves),
 
               SliverList(
                 delegate: SliverChildBuilderDelegate(
@@ -429,6 +460,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       .length,
                 ),
               ),
+
+              ..._buildDiscoverySlivers(context, l10n, tailDiscoveryShelves),
 
               SliverPadding(
                 padding: EdgeInsets.only(
@@ -484,20 +517,161 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
+  void _openDiscoveredItem(BuildContext context, MultimediaItem item) {
+    if (item.provider == 'TMDB' &&
+        (item.imdbId == null || item.imdbId!.isEmpty)) {
+      TmdbDetailsRoute(
+        movieId: item.id,
+        mediaType: item.tmdbMediaType,
+        placeholderPoster: item.posterImageUrl,
+        source: item.source,
+      ).push<void>(context);
+      return;
+    }
+    DetailsRoute($extra: DetailsRouteExtra(item: item)).push<void>(context);
+  }
+
+  List<Widget> _buildDiscoverySlivers(
+    BuildContext context,
+    AppLocalizations l10n,
+    List<DiscoveryShelf> shelves,
+  ) {
+    return shelves
+        .map(
+          (shelf) => SliverToBoxAdapter(
+            key: ValueKey('discover_${shelf.id}'),
+            child: MediaHorizontalList(
+              title: shelf.localizedTitle(l10n),
+              mediaList: shelf.items,
+              category: ViewAllCategory.providerContent,
+              ranked: shelf.ranked,
+              showViewAll: false,
+              heroTagPrefix: 'discover_${shelf.id}',
+              onTap: (item) => _openDiscoveredItem(context, item),
+            ),
+          ),
+        )
+        .toList(growable: false);
+  }
+
   Widget _buildNoProviderState(
     BuildContext context,
     AppLocalizations l10n, {
+    required List<dynamic> history,
+    required bool watchHistoryEnabled,
+    required List<DiscoveryShelf> discoveryShelves,
     bool isWidescreen = false,
   }) {
-    // One state for both layouts. The old mobile branch only told the viewer
-    // to tap an icon; a button is the same instruction, and on a television it
-    // is the only one a remote can follow.
-    return EmptyState(
-      icon: Icons.extension_off_rounded,
-      title: l10n.selectProviderToStart,
-      message: l10n.tapExtensionIcon,
-      actionLabel: l10n.selectProvider,
-      onAction: () => _showProviderSelector(context, ref),
+    final hasHistory = watchHistoryEnabled && history.isNotEmpty;
+    if (discoveryShelves.isEmpty && !hasHistory) {
+      return EmptyState(
+        icon: Icons.extension_off_rounded,
+        title: l10n.selectProviderToStart,
+        message: l10n.tapExtensionIcon,
+        actionLabel: l10n.selectProvider,
+        onAction: () => _showProviderSelector(context, ref),
+      );
+    }
+
+    final theme = Theme.of(context);
+    final topPad = isWidescreen
+        ? 16.0
+        : MediaQuery.paddingOf(context).top + kToolbarHeight + 8.0;
+
+    return _withGradientEdgeHint(
+      RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(smartDiscoveryProvider);
+        },
+        child: CustomScrollView(
+          controller: _scrollController,
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(16, topPad, 16, 16),
+                child: RepaintBoundary(
+                  child: GlassSurface(
+                    borderRadius: BorderRadius.circular(22),
+                    blurSigma: 12,
+                    useVibrancy: false,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 14,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.extension_rounded,
+                          color: theme.colorScheme.primary,
+                          size: 28,
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                l10n.selectProviderToStart,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                l10n.tapExtensionIcon,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        FilledButton.tonal(
+                          onPressed: () => _showProviderSelector(context, ref),
+                          child: Text(l10n.selectProvider),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            if (hasHistory)
+              SliverToBoxAdapter(
+                child: ContinueWatchingSection(
+                  title: l10n.continueWatching,
+                  items: history.cast<HistoryItem>(),
+                ),
+              ),
+            if (hasHistory) ...[
+              for (final uniqueItem in history
+                  .cast<HistoryItem>()
+                  .map((h) => h.item)
+                  .fold<List<MultimediaItem>>([], (list, it) {
+                    final title = it.title.trim().toLowerCase();
+                    if (title.isNotEmpty &&
+                        !list.any((existing) =>
+                            existing.title.trim().toLowerCase() == title)) {
+                      list.add(it);
+                    }
+                    return list;
+                  })
+                  .take(2))
+                SliverToBoxAdapter(
+                  key: ValueKey('no_prov_because_${uniqueItem.title}'),
+                  child: BecauseYouWatchedSection(item: uniqueItem),
+                ),
+            ],
+            ..._buildDiscoverySlivers(context, l10n, discoveryShelves),
+            SliverPadding(
+              padding: EdgeInsets.only(
+                bottom: LayoutConstants.shellBottomContentPadding(context),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

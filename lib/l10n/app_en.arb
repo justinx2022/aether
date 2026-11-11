@@ -1440,6 +1440,184 @@
         "type": "int"
       }
     }
+  },
+  "playerNightAudio": "Night Audio",
+  "@playerNightAudio": {
+    "description": "Toggle title for multi-stage Night Mode dialogue clarity and dynamic range compression."
+  },
+  "playerNightAudioSubtitle": "Boosts quiet dialogue & tames sudden explosions",
+  "@playerNightAudioSubtitle": {
+    "description": "Subtitle explaining what Night Audio mode does."
+  },
+  "autoSyncSubtitles": "Auto-Sync Subtitles",
+  "@autoSyncSubtitles": {
+    "description": "Button label starting automatic speech-based subtitle synchronization."
+  },
+  "autoSyncSubtitlesSubtitle": "Aligns subtitles automatically using live speech detection",
+  "@autoSyncSubtitlesSubtitle": {
+    "description": "Subtitle describing acoustic speech-onset subtitle sync."
+  },
+  "syncToVoiceNow": "Sync to Voice Now",
+  "@syncToVoiceNow": {
+    "description": "One-tap button snapping the nearest upcoming subtitle cue to the current playback position."
+  },
+  "autoSyncListening": "Listening to dialogue…",
+  "@autoSyncListening": {
+    "description": "Status message while analyzing audio speech onsets for subtitle sync."
+  },
+  "autoSyncMatched": "Synced by {offset}",
+  "@autoSyncMatched": {
+    "description": "Status badge shown after subtitles are automatically aligned.",
+    "placeholders": {
+      "offset": {
+        "type": "String"
+      }
+    }
+  },
+  "autoSyncNeedCues": "Load a subtitle track first",
+  "@autoSyncNeedCues": {
+    "description": "Hint shown when user taps Auto-Sync with no loaded timed subtitles."
+  },
+  "autoSyncNoSpeechYet": "Play dialogue for a moment to sync",
+  "@autoSyncNoSpeechYet": {
+    "description": "Hint shown when no speech onset or pause boundary has been detected yet."
+  },
+  "autoSyncIntroOffset": "Skip intro sync ({offset})",
+  "@autoSyncIntroOffset": {
+    "description": "Suggested subtitle offset derived from skip intro boundaries.",
+    "placeholders": {
+      "offset": {
+        "type": "String"
+      }
+    }
+  },
+  "autoSyncPalNudge": "23.976→25 fps",
+  "@autoSyncPalNudge": {
+    "description": "Quick drift preset when video is 25fps and subtitles are 23.976fps."
+  },
+  "autoSyncFilmNudge": "25→23.976 fps",
+  "@autoSyncFilmNudge": {
+    "description": "Quick drift preset when video is 23.976fps and subtitles are 25fps."
+  },
+  "autoSyncUndo": "Undo",
+  "@autoSyncUndo": {
+    "description": "Reverts the last automatic subtitle delay change."
+  },
+  "subDelayLabel": "Offset: {offset}",
+  "@subDelayLabel": {
+    "description": "Displays the current subtitle synchronization offset.",
+    "placeholders": {
+      "offset": {
+        "type": "String"
+      }
+    }
+  },
+  "playerLocked": "Controls Locked",
+  "@playerLocked": {
+    "description": "Badge shown when player screen lock is enabled."
+  },
+  "playerTapToUnlock": "Tap Unlock to show controls",
+  "@playerTapToUnlock": {
+    "description": "Toast hint when tapping while player screen lock is active."
+  },
+  "playerLockControls": "Lock",
+  "@playerLockControls": {
+    "description": "Tooltip/label for screen lock toggle in player."
+  },
+  "playerSpeedPill": "{speed}x",
+  "@playerSpeedPill": {
+    "description": "Compact playback speed label in player controls.",
+    "placeholders": {
+      "speed": {
+        "type": "String"
+      }
+    }
+  },
+  "playerHoldSpeedBadge": "2.0x Hold",
+  "@playerHoldSpeedBadge": {
+    "description": "Floating Liquid Glass HUD pill shown while holding down for 2x speed."
+  },
+  "playerVolumeLabel": "Volume",
+  "@playerVolumeLabel": {
+    "description": "Label for vertical edge volume gesture rail."
+  },
+  "playerBrightnessLabel": "Brightness",
+  "@playerBrightnessLabel": {
+    "description": "Label for vertical edge brightness gesture rail."
+  },
+  "playerAutoPip": "Auto Miniplayer",
+  "@playerAutoPip": {
+    "description": "Toggle label for entering miniplayer automatically when leaving app."
+  },
+  "playerAutoPipSubtitle": "Shrink into miniplayer automatically when leaving app",
+  "@playerAutoPipSubtitle": {
+    "description": "Subtitle for Auto Miniplayer setting."
+  },
+  "playerMoreControls": "More",
+  "@playerMoreControls": {
+    "description": "Label for overflow menu button in player bottom dock."
+  },
+  "playerPlaybackSpeed": "Speed",
+  "@playerPlaybackSpeed": {
+    "description": "Compact label for playback speed action in player dock."
+  },
+  "playerAspectResize": "Fit",
+  "@playerAspectResize": {
+    "description": "Compact label for video aspect/resize cycle button in player dock."
+  },
+  "playerSleepTimer": "Sleep Timer",
+  "@playerSleepTimer": {
+    "description": "Tooltip and menu label for the player sleep timer action."
+  },
+  "discoverTop10World": "Top 10 in the World Today",
+  "@discoverTop10World": {
+    "description": "Global Top 10 recommendation rail title."
+  },
+  "discoverTop10Kenya": "Top 10 in Kenya Today",
+  "@discoverTop10Kenya": {
+    "description": "Kenya regional Top 10 recommendation rail title."
+  },
+  "discoverTop10Local": "Top 10 in {country} Today",
+  "@discoverTop10Local": {
+    "description": "Local country Top 10 recommendation rail title.",
+    "placeholders": {
+      "country": {
+        "type": "String"
+      }
+    }
+  },
+  "discoverTrendingSeries": "Trending Series Worldwide",
+  "@discoverTrendingSeries": {
+    "description": "Global trending TV series rail title."
+  },
+  "discoverCriticallyAcclaimed": "Critically Acclaimed",
+  "@discoverCriticallyAcclaimed": {
+    "description": "High-rated critically acclaimed rail title."
+  },
+  "discoverAfricanSpotlight": "Kenyan & African Spotlight",
+  "@discoverAfricanSpotlight": {
+    "description": "Curated African & Kenyan spotlight rail title."
+  },
+  "discoverFreshForYou": "Picked For You Today",
+  "@discoverFreshForYou": {
+    "description": "Personalized multi-signal recommendation rail title."
+  },
+  "discoverHiddenGems": "Hidden Gems to Explore",
+  "@discoverHiddenGems": {
+    "description": "Underrated curated picks rail title."
+  },
+  "discoverPopularToday": "Popular Movies Right Now",
+  "@discoverPopularToday": {
+    "description": "Popular movies rail title."
+  },
+  "discoverBecauseYouWatched": "Because you watched {title}",
+  "@discoverBecauseYouWatched": {
+    "description": "Recommendation shelf based on a previously watched title.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
   }
 }
 

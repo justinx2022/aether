@@ -338,6 +338,7 @@ void main() {
 
       final rect = tester.getRect(find.byType(VlcPlayerControls));
       final centre = rect.center;
+      final left = Offset(rect.left + rect.width * 0.2, rect.center.dy);
       final right = Offset(rect.left + rect.width * 0.8, rect.center.dy);
 
       await _doubleTapAt(tester, right);
@@ -348,7 +349,7 @@ void main() {
       await tester.dragFrom(centre, const Offset(300, 0));
       await tester.pump(const Duration(milliseconds: 50));
 
-      await tester.dragFrom(right, const Offset(0, -100));
+      await tester.dragFrom(left, const Offset(0, -100));
       await tester.pump(const Duration(milliseconds: 50));
       expect(engine.callsTo('setVolume'), isNotEmpty);
 

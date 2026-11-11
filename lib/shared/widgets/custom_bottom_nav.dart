@@ -40,7 +40,6 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
   static const List<int> _mainBranches = <int>[0, 2, 3, 4];
 
   late final AnimationController _pillController;
-  double _pillPosition = 0.0;
   double _pillFrom = 0.0;
   double _pillTo = 0.0;
   bool _searchPressed = false;
@@ -48,16 +47,10 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
   @override
   void initState() {
     super.initState();
-    _pillPosition = _slotForBranch(widget.currentIndex).toDouble();
-    _pillFrom = _pillPosition;
-    _pillTo = _pillPosition;
-    _pillController = AnimationController.unbounded(vsync: this)
-      ..addListener(() {
-        if (!mounted) return;
-        setState(() {
-          _pillPosition = _pillController.value;
-        });
-      });
+    final initial = _slotForBranch(widget.currentIndex).toDouble();
+    _pillFrom = initial;
+    _pillTo = initial;
+    _pillController = AnimationController.unbounded(vsync: this, value: initial);
   }
 
   @override
@@ -71,11 +64,11 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
   }
 
   void _animatePillTo(double target) {
-    _pillFrom = _pillPosition;
+    _pillFrom = _pillController.value;
     _pillTo = target;
     _pillController.stop();
-    if ((_pillPosition - target).abs() < 0.001) {
-      setState(() => _pillPosition = target);
+    if ((_pillController.value - target).abs() < 0.001) {
+      _pillController.value = target;
       return;
     }
     const spring = SpringDescription(
@@ -83,7 +76,12 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
       stiffness: 340.0,
       damping: 24.0,
     );
-    final simulation = SpringSimulation(spring, _pillPosition, target, 0.0);
+    final simulation = SpringSimulation(
+      spring,
+      _pillController.value,
+      target,
+      0.0,
+    );
     _pillController.animateWith(simulation);
   }
 
@@ -157,11 +155,6 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
 
     final isMainTabSelected = widget.currentIndex != 1;
     final isSearchSelected = widget.currentIndex == 1;
-    final totalTravel = (_pillTo - _pillFrom).abs();
-    final flightProgress = totalTravel > 0.01
-        ? (1.0 - (((_pillPosition - _pillTo).abs()) / totalTravel).clamp(0.0, 1.0))
-        : 1.0;
-    final midFlightStretch = math.sin(flightProgress * math.pi).clamp(0.0, 1.0);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -171,11 +164,6 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
         final double pillWidth = math.max(200.0, maxW - orbSize - gap);
         final double innerWidth = (pillWidth - 10.0).clamp(180.0, 500.0);
         final double slotWidth = innerWidth / mainItems.length;
-        final double clampedPos = _pillPosition.clamp(
-          0.0,
-          (mainItems.length - 1).toDouble(),
-        );
-        final double indicatorLeft = clampedPos * slotWidth;
 
         final pillHighlightColor = isDark
             ? Colors.white.withValues(alpha: 0.16)
@@ -194,65 +182,93 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
                 SizedBox(
                   width: pillWidth,
                   height: CustomBottomNavBar.height,
-                  child: GlassSurface(
-                    borderRadius: BorderRadius.circular(CustomBottomNavBar.height / 2),
-                    padding: const EdgeInsets.all(5),
-                    blurSigma: 20,
-                    rimStrength: 1.15,
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        // Spring-physics Liquid Glass Selection Pill
-                        if (isMainTabSelected)
-                          Positioned(
-                            left: indicatorLeft,
-                            top: 0,
-                            bottom: 0,
-                            width: slotWidth,
-                            child: Transform.scale(
-                              scaleX: 1.0 + 0.06 * midFlightStretch,
-                              scaleY: 1.0 + 0.03 * midFlightStretch,
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(
-                                    (CustomBottomNavBar.height - 10) / 2,
-                                  ),
-                                  color: pillHighlightColor,
-                                  border: Border.all(
-                                    color: isDark
-                                        ? Colors.white.withValues(alpha: 0.20)
-                                        : Colors.white.withValues(alpha: 0.90),
-                                    width: 0.85,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: isDark ? 0.22 : 0.06,
+                  child: RepaintBoundary(
+                    child: GlassSurface(
+                      borderRadius: BorderRadius.circular(CustomBottomNavBar.height / 2),
+                      padding: const EdgeInsets.all(5),
+                      blurSigma: 12,
+                      useVibrancy: false,
+                      rimStrength: 1.15,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          // Spring-physics Liquid Glass Selection Pill animated without rebuilding GlassSurface
+                          if (isMainTabSelected)
+                            Positioned.fill(
+                              child: RepaintBoundary(
+                                child: AnimatedBuilder(
+                                  animation: _pillController,
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(
+                                        (CustomBottomNavBar.height - 10) / 2,
                                       ),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 2),
+                                      color: pillHighlightColor,
+                                      border: Border.all(
+                                        color: isDark
+                                            ? Colors.white.withValues(alpha: 0.20)
+                                            : Colors.white.withValues(alpha: 0.90),
+                                        width: 0.85,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(
+                                            alpha: isDark ? 0.22 : 0.06,
+                                          ),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        Row(
-                          children: [
-                            for (final item in mainItems)
-                              Expanded(
-                                child: _LiquidNavTabCell(
-                                  spec: item,
-                                  isSelected: item.branchIndex == widget.currentIndex,
-                                  onTap: () {
-                                    HapticFeedback.selectionClick();
-                                    widget.onTap(item.branchIndex);
+                                  ),
+                                  builder: (context, pillBox) {
+                                    final pos = _pillController.value;
+                                    final totalTravel = (_pillTo - _pillFrom).abs();
+                                    final flightProgress = totalTravel > 0.01
+                                        ? (1.0 - (((pos - _pillTo).abs()) / totalTravel).clamp(0.0, 1.0))
+                                        : 1.0;
+                                    final midFlightStretch = math.sin(flightProgress * math.pi).clamp(0.0, 1.0);
+                                    final clampedPos = pos.clamp(
+                                      0.0,
+                                      (mainItems.length - 1).toDouble(),
+                                    );
+                                    final indicatorLeft = clampedPos * slotWidth;
+                                    return Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Transform.translate(
+                                        offset: Offset(indicatorLeft, 0),
+                                        child: SizedBox(
+                                          width: slotWidth,
+                                          height: double.infinity,
+                                          child: Transform.scale(
+                                            scaleX: 1.0 + 0.06 * midFlightStretch,
+                                            scaleY: 1.0 + 0.03 * midFlightStretch,
+                                            child: pillBox,
+                                          ),
+                                        ),
+                                      ),
+                                    );
                                   },
                                 ),
                               ),
-                          ],
-                        ),
-                      ],
+                            ),
+                          Row(
+                            children: [
+                              for (final item in mainItems)
+                                Expanded(
+                                  child: _LiquidNavTabCell(
+                                    spec: item,
+                                    isSelected: item.branchIndex == widget.currentIndex,
+                                    onTap: () {
+                                      HapticFeedback.selectionClick();
+                                      widget.onTap(item.branchIndex);
+                                    },
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -261,19 +277,21 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
                 SizedBox(
                   width: orbSize,
                   height: orbSize,
-                  child: AnimatedScale(
-                    scale: _searchPressed ? 1.07 : 1.0,
-                    duration: const Duration(milliseconds: 140),
-                    curve: Curves.easeOutCubic,
-                    child: Semantics(
-                      selected: isSearchSelected,
-                      button: true,
-                      label: localizations.search,
-                      child: GlassSurface(
-                        borderRadius: BorderRadius.circular(orbSize / 2),
-                        padding: const EdgeInsets.all(5),
-                        blurSigma: 20,
-                        rimStrength: isSearchSelected ? 1.35 : 1.15,
+                  child: RepaintBoundary(
+                    child: AnimatedScale(
+                      scale: _searchPressed ? 1.07 : 1.0,
+                      duration: const Duration(milliseconds: 140),
+                      curve: Curves.easeOutCubic,
+                      child: Semantics(
+                        selected: isSearchSelected,
+                        button: true,
+                        label: localizations.search,
+                        child: GlassSurface(
+                          borderRadius: BorderRadius.circular(orbSize / 2),
+                          padding: const EdgeInsets.all(5),
+                          blurSigma: 12,
+                          useVibrancy: false,
+                          rimStrength: isSearchSelected ? 1.35 : 1.15,
                         child: Material(
                           color: Colors.transparent,
                           child: InkWell(
@@ -315,6 +333,7 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
                       ),
                     ),
                   ),
+                ),
                 ),
               ],
             ),
