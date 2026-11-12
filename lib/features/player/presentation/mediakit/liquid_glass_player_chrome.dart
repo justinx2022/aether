@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
 
@@ -20,6 +21,7 @@ Future<T?> showLiquidGlassPlayerSheet<T>({
     elevation: 0,
     builder: (ctx) {
       final bottomInset = MediaQuery.viewInsetsOf(ctx).bottom;
+      final isWindows = Theme.of(ctx).platform == TargetPlatform.windows;
       return Padding(
         padding: EdgeInsets.fromLTRB(12, 12, 12, 12 + bottomInset),
         child: Center(
@@ -33,11 +35,13 @@ Future<T?> showLiquidGlassPlayerSheet<T>({
               child: GlassSurface(
                 borderRadius: BorderRadius.circular(26),
                 padding: EdgeInsets.zero,
-                blurSigma: 14,
+                blurSigma: isWindows ? 0 : 14,
                 useVibrancy: false,
                 shadow: true,
                 rimStrength: 1.25,
-                fill: const Color(0xFF0B101B).withValues(alpha: 0.72),
+                fill: const Color(0xFF0B101B).withValues(
+                  alpha: isWindows ? 0.90 : 0.72,
+                ),
                 child: builder(ctx),
               ),
             ),
@@ -397,6 +401,7 @@ class LiquidGlassCenterTransport extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final isWindows = Theme.of(context).platform == TargetPlatform.windows;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
@@ -422,10 +427,12 @@ class LiquidGlassCenterTransport extends StatelessWidget {
                   child: GlassSurface(
                     borderRadius: BorderRadius.circular(39),
                     padding: EdgeInsets.zero,
-                    blurSigma: 14,
+                    blurSigma: isWindows ? 0 : 14,
                     useVibrancy: false,
                     rimStrength: 1.4,
-                    fill: const Color(0xFF101626).withValues(alpha: 0.48),
+                    fill: const Color(0xFF101626).withValues(
+                      alpha: isWindows ? 0.78 : 0.48,
+                    ),
                     child: Center(
                       child: AnimatedSwitcher(
                         duration: const Duration(milliseconds: 160),
@@ -534,6 +541,8 @@ class LiquidGlassBottomDock extends StatefulWidget {
     required this.position,
     required this.duration,
     required this.buffer,
+    this.positionListenable,
+    this.bufferListenable,
     required this.showRemainingTime,
     required this.onToggleRemainingTime,
     required this.onSeekStart,
@@ -560,6 +569,8 @@ class LiquidGlassBottomDock extends StatefulWidget {
   final Duration position;
   final Duration duration;
   final Duration buffer;
+  final ValueListenable<Duration>? positionListenable;
+  final ValueListenable<Duration>? bufferListenable;
   final bool showRemainingTime;
   final VoidCallback onToggleRemainingTime;
   final VoidCallback onSeekStart;
@@ -614,25 +625,38 @@ class _LiquidGlassBottomDockState extends State<LiquidGlassBottomDock> {
     }
   }
 
+  Widget _withPosition(Widget Function(Duration pos) builder) {
+    final listenable = widget.positionListenable;
+    if (listenable == null) return builder(widget.position);
+    return ValueListenableBuilder<Duration>(
+      valueListenable: listenable,
+      builder: (_, pos, _) => builder(pos),
+    );
+  }
+
+  Widget _withBuffer(Widget Function(Duration buf) builder) {
+    final listenable = widget.bufferListenable;
+    if (listenable == null) return builder(widget.buffer);
+    return ValueListenableBuilder<Duration>(
+      valueListenable: listenable,
+      builder: (_, buf, _) => builder(buf),
+    );
+  }
+
+  double _fractionFor(Duration value, int totalMs) {
+    if (totalMs <= 0) return 0.0;
+    return (value.inMilliseconds / totalMs).clamp(0.0, 1.0);
+  }
+
+  Duration _displayPosition(Duration livePosition, int totalMs) => _dragging
+      ? Duration(milliseconds: (totalMs * _dragFraction).round())
+      : livePosition;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final bottomPad = MediaQuery.paddingOf(context).bottom;
     final totalMs = widget.duration.inMilliseconds;
-    final liveFraction = totalMs > 0
-        ? (widget.position.inMilliseconds / totalMs).clamp(0.0, 1.0)
-        : 0.0;
-    final activeFraction = _dragging ? _dragFraction : liveFraction;
-    final bufferedFraction = totalMs > 0
-        ? (widget.buffer.inMilliseconds / totalMs).clamp(0.0, 1.0)
-        : 0.0;
-    final displayPos = _dragging
-        ? Duration(milliseconds: (totalMs * _dragFraction).round())
-        : widget.position;
-    final remaining = widget.duration - displayPos;
-    final rightLabel = widget.showRemainingTime && totalMs > 0
-        ? _fmtClock(-remaining)
-        : _fmtClock(widget.duration);
 
     final delayMs = widget.subtitleDelay.inMilliseconds;
     final delayText = delayMs == 0
@@ -667,12 +691,6 @@ class _LiquidGlassBottomDockState extends State<LiquidGlassBottomDock> {
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final trackWidth = constraints.maxWidth;
-                  final thumbX = (trackWidth * activeFraction).clamp(14.0, math.max(14.0, trackWidth - 14.0));
-                  final deltaFromNow = displayPos - widget.position;
-                  final deltaSec = deltaFromNow.inSeconds;
-                  final deltaTag = deltaSec.abs() >= 1
-                      ? ' ${deltaSec > 0 ? '+' : ''}${deltaSec}s'
-                      : '';
 
                   return MouseRegion(
                     onEnter: (_) => setState(() => _hovering = true),
@@ -709,34 +727,45 @@ class _LiquidGlassBottomDockState extends State<LiquidGlassBottomDock> {
                           children: <Widget>[
                             // Floating Liquid Glass scrub time pill during drag
                             if (_dragging && totalMs > 0)
-                              Positioned(
-                                left: (thumbX - 48)
-                                    .clamp(
-                                      0.0,
-                                      math.max(0.0, trackWidth - 96.0),
-                                    )
-                                    .toDouble(),
-                                top: -38,
-                                child: LiquidPlayerCapsule(
-                                  borderRadius: BorderRadius.circular(14),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 5,
-                                  ),
-                                  activeAccent: const Color(0xFF38BDF8),
-                                  child: Text(
-                                    '${_fmtClock(displayPos)}$deltaTag',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w800,
-                                      fontFeatures: <FontFeature>[
-                                        FontFeature.tabularFigures(),
-                                      ],
+                              _withPosition((pos) {
+                                final displayPos = _displayPosition(pos, totalMs);
+                                final thumbX = (trackWidth * _dragFraction).clamp(
+                                  14.0,
+                                  math.max(14.0, trackWidth - 14.0),
+                                );
+                                final deltaSec = (displayPos - pos).inSeconds;
+                                final deltaTag = deltaSec.abs() >= 1
+                                    ? ' ${deltaSec > 0 ? '+' : ''}${deltaSec}s'
+                                    : '';
+                                return Positioned(
+                                  left: (thumbX - 48)
+                                      .clamp(
+                                        0.0,
+                                        math.max(0.0, trackWidth - 96.0),
+                                      )
+                                      .toDouble(),
+                                  top: -38,
+                                  child: LiquidPlayerCapsule(
+                                    borderRadius: BorderRadius.circular(14),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 5,
+                                    ),
+                                    activeAccent: const Color(0xFF38BDF8),
+                                    child: Text(
+                                      '${_fmtClock(displayPos)}$deltaTag',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w800,
+                                        fontFeatures: <FontFeature>[
+                                          FontFeature.tabularFigures(),
+                                        ],
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ),
+                                );
+                              }),
                             // Track rail capsule
                             AnimatedContainer(
                               duration: const Duration(milliseconds: 120),
@@ -755,13 +784,15 @@ class _LiquidGlassBottomDockState extends State<LiquidGlassBottomDock> {
                                 child: Stack(
                                   fit: StackFit.expand,
                                   children: <Widget>[
-                                    // Buffered region
-                                    FractionallySizedBox(
-                                      alignment: Alignment.centerLeft,
-                                      widthFactor: bufferedFraction,
-                                      child: Container(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.24,
+                                    // Buffered region (only this bar rebuilds on buffer ticks)
+                                    _withBuffer(
+                                      (buf) => FractionallySizedBox(
+                                        alignment: Alignment.centerLeft,
+                                        widthFactor: _fractionFor(buf, totalMs),
+                                        child: Container(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.24,
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -787,52 +818,62 @@ class _LiquidGlassBottomDockState extends State<LiquidGlassBottomDock> {
                                                 .withValues(alpha: 0.65),
                                           ),
                                         ),
-                                    // Played luminous gradient fill
-                                    FractionallySizedBox(
-                                      alignment: Alignment.centerLeft,
-                                      widthFactor: activeFraction,
-                                      child: Container(
-                                        decoration: const BoxDecoration(
-                                          gradient: LinearGradient(
-                                            colors: <Color>[
-                                              Color(0xFF38BDF8),
-                                              Color(0xFF818CF8),
-                                              Color(0xFFC084FC),
-                                            ],
+                                    // Played luminous gradient fill (rebuilds only on position/drag)
+                                    _withPosition((pos) {
+                                      final activeFraction = _dragging
+                                          ? _dragFraction
+                                          : _fractionFor(pos, totalMs);
+                                      return FractionallySizedBox(
+                                        alignment: Alignment.centerLeft,
+                                        widthFactor: activeFraction,
+                                        child: Container(
+                                          decoration: const BoxDecoration(
+                                            gradient: LinearGradient(
+                                              colors: <Color>[
+                                                Color(0xFF38BDF8),
+                                                Color(0xFF818CF8),
+                                                Color(0xFFC084FC),
+                                              ],
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                    ),
+                                      );
+                                    }),
                                   ],
                                 ),
                               ),
                             ),
                             // Glowing optical glass scrubber thumb
-                            Positioned(
-                              left: math.max(
-                                0.0,
-                                (trackWidth * activeFraction) -
-                                    ((_dragging || _hovering) ? 9 : 6.5),
-                              ),
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 120),
-                                width: (_dragging || _hovering) ? 18 : 13,
-                                height: (_dragging || _hovering) ? 18 : 13,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.white,
-                                  boxShadow: <BoxShadow>[
-                                    BoxShadow(
-                                      color: const Color(0xFF818CF8)
-                                          .withValues(alpha: 0.65),
-                                      blurRadius:
-                                          (_dragging || _hovering) ? 12 : 6,
-                                      spreadRadius: 1,
-                                    ),
-                                  ],
+                            _withPosition((pos) {
+                              final activeFraction = _dragging
+                                  ? _dragFraction
+                                  : _fractionFor(pos, totalMs);
+                              return Positioned(
+                                left: math.max(
+                                  0.0,
+                                  (trackWidth * activeFraction) -
+                                      ((_dragging || _hovering) ? 9 : 6.5),
                                 ),
-                              ),
-                            ),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 120),
+                                  width: (_dragging || _hovering) ? 18 : 13,
+                                  height: (_dragging || _hovering) ? 18 : 13,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.white,
+                                    boxShadow: <BoxShadow>[
+                                      BoxShadow(
+                                        color: const Color(0xFF818CF8)
+                                            .withValues(alpha: 0.65),
+                                        blurRadius:
+                                            (_dragging || _hovering) ? 12 : 6,
+                                        spreadRadius: 1,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }),
                           ],
                         ),
                       ),
@@ -852,19 +893,36 @@ class _LiquidGlassBottomDockState extends State<LiquidGlassBottomDock> {
                     horizontal: 11,
                     vertical: 7,
                   ),
-                  child: Text(
-                    widget.isLive
-                        ? l10n.live
-                        : '${_fmtClock(displayPos)} / $rightLabel',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      fontFeatures: <FontFeature>[
-                        FontFeature.tabularFigures(),
-                      ],
-                    ),
-                  ),
+                  child: widget.isLive
+                      ? Text(
+                          l10n.live,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            fontFeatures: <FontFeature>[
+                              FontFeature.tabularFigures(),
+                            ],
+                          ),
+                        )
+                      : _withPosition((pos) {
+                          final displayPos = _displayPosition(pos, totalMs);
+                          final remaining = widget.duration - displayPos;
+                          final rightLabel = widget.showRemainingTime && totalMs > 0
+                              ? _fmtClock(-remaining)
+                              : _fmtClock(widget.duration);
+                          return Text(
+                            '${_fmtClock(displayPos)} / $rightLabel',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              fontFeatures: <FontFeature>[
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
+                          );
+                        }),
                 ),
               ),
               const SizedBox(width: 8),

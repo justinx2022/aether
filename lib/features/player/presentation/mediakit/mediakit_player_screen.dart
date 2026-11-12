@@ -6,6 +6,7 @@ import 'package:collection/collection.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart'
@@ -59,6 +60,7 @@ import '../vlc/side_car_fetch.dart';
 import '../vlc/side_car_subtitle_view.dart';
 import '../widgets/player_sheet_header.dart';
 import 'liquid_glass_player_chrome.dart';
+import 'mediakit_diagnostics_overlay.dart';
 import 'mediakit_more_sheet.dart';
 import 'mediakit_subtitle_sheet.dart';
 import 'mpv_subtitle_playback.dart';
@@ -100,8 +102,6 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   bool _hasPrewarmedNextEpisode = false;
 
   final List<StreamSubscription<Object?>> _subscriptions = [];
-  Duration? _dragPosition;
-  bool _isDragging = false;
 
   bool _disposed = false;
   bool _isLoading = true;
@@ -212,7 +212,16 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
 
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
-  Duration _buffer = Duration.zero;
+  final ValueNotifier<Duration> _positionNotifier = ValueNotifier(Duration.zero);
+  final ValueNotifier<Duration> _bufferNotifier = ValueNotifier(Duration.zero);
+  bool _showDiagnostics = false;
+  String _mpvVideoSync = 'audio';
+  Timer? _diagnosticsTimer;
+  bool _diagnosticsTimingCallbackAttached = false;
+  bool _pollingDiagnostics = false;
+  final List<FrameTiming> _recentFrameTimings = <FrameTiming>[];
+  final ValueNotifier<PlayerDiagnosticsSnapshot> _diagnosticsNotifier =
+      ValueNotifier(const PlayerDiagnosticsSnapshot());
   bool _playing = false;
   bool _controlsVisible = true;
   Timer? _hideControlsTimer;
@@ -255,11 +264,6 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   int? _sleepTimerMinutes;
 
   List<SkipSegment> _skipSegments = const [];
-
-  SkipSegment? get _currentSkipSegment {
-    if (_skipSegments.isEmpty) return null;
-    return segmentAt(_skipSegments, _position);
-  }
 
   Future<void> _loadSkipSegments(Episode? episode) async {
     if (episode == null) return;
@@ -378,6 +382,109 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
           duration: const Duration(seconds: 2),
         ),
       );
+    }
+  }
+
+  void _onFrameTimings(List<FrameTiming> timings) {
+    if (_disposed || !_showDiagnostics || timings.isEmpty) return;
+    _recentFrameTimings.addAll(timings);
+    if (_recentFrameTimings.length > 30) {
+      _recentFrameTimings.removeRange(0, _recentFrameTimings.length - 30);
+    }
+    _diagnosticsNotifier.value = _diagnosticsNotifier.value
+        .copyWithFrameTimings(_recentFrameTimings);
+  }
+
+  Future<String> _safeMpvProperty(NativePlayer native, String name) async {
+    try {
+      final raw = (await native.getProperty(name)).trim();
+      if (raw.isEmpty) return '-';
+      final parsed = double.tryParse(raw);
+      if (parsed != null && raw.contains('.')) {
+        return name == 'avsync'
+            ? parsed.toStringAsFixed(3)
+            : parsed.toStringAsFixed(2);
+      }
+      return raw;
+    } catch (_) {
+      return '-';
+    }
+  }
+
+  Future<void> _pollDiagnostics() async {
+    if (_disposed || !_showDiagnostics || _pollingDiagnostics) return;
+    final native = _native;
+    if (native == null) return;
+    _pollingDiagnostics = true;
+    try {
+      final values = await Future.wait<String>(<Future<String>>[
+        _safeMpvProperty(native, 'video-sync'),
+        _safeMpvProperty(native, 'hwdec-current'),
+        _safeMpvProperty(native, 'display-fps'),
+        _safeMpvProperty(native, 'container-fps'),
+        _safeMpvProperty(native, 'display-sync-active'),
+        _safeMpvProperty(native, 'frame-drop-count'),
+        _safeMpvProperty(native, 'decoder-frame-drop-count'),
+        _safeMpvProperty(native, 'vo-delayed-frame-count'),
+        _safeMpvProperty(native, 'avsync'),
+      ]);
+      if (_disposed || !_showDiagnostics) return;
+      _diagnosticsNotifier.value = _diagnosticsNotifier.value.copyWith(
+        videoSync: values[0] == '-' ? _mpvVideoSync : values[0],
+        hwdec: values[1],
+        displayFps: values[2],
+        containerFps: values[3],
+        displaySyncActive: values[4],
+        frameDrops: values[5],
+        decoderDrops: values[6],
+        voDelayed: values[7],
+        avSync: values[8],
+      );
+    } finally {
+      _pollingDiagnostics = false;
+    }
+  }
+
+  void _setDiagnosticsEnabled(bool enabled) {
+    if (_disposed) return;
+    setState(() => _showDiagnostics = enabled);
+    if (enabled) {
+      if (!_diagnosticsTimingCallbackAttached) {
+        SchedulerBinding.instance.addTimingsCallback(_onFrameTimings);
+        _diagnosticsTimingCallbackAttached = true;
+      }
+      _diagnosticsTimer?.cancel();
+      _diagnosticsTimer = Timer.periodic(
+        const Duration(milliseconds: 500),
+        (_) => unawaited(_pollDiagnostics()),
+      );
+      unawaited(_pollDiagnostics());
+    } else {
+      _diagnosticsTimer?.cancel();
+      _diagnosticsTimer = null;
+      if (_diagnosticsTimingCallbackAttached) {
+        SchedulerBinding.instance.removeTimingsCallback(_onFrameTimings);
+        _diagnosticsTimingCallbackAttached = false;
+      }
+      _recentFrameTimings.clear();
+    }
+  }
+
+  Future<void> _toggleMpvVideoSync() async {
+    final native = _native;
+    if (native == null) return;
+    final next = _mpvVideoSync == 'display-resample'
+        ? 'audio'
+        : 'display-resample';
+    _mpvVideoSync = next;
+    try {
+      await native.setProperty('video-sync', next);
+    } catch (_) {}
+    _diagnosticsNotifier.value = _diagnosticsNotifier.value.copyWith(
+      videoSync: next,
+    );
+    if (_showDiagnostics) {
+      unawaited(_pollDiagnostics());
     }
   }
 
@@ -1230,8 +1337,9 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
       _currentEpisode = next;
       _currentVideoUrl = next.url;
       _position = Duration.zero;
+      _positionNotifier.value = Duration.zero;
       _duration = Duration.zero;
-      _buffer = Duration.zero;
+      _bufferNotifier.value = Duration.zero;
       _isLoading = true;
       _isSwitching = false;
       _hasPlayedOnce = false;
@@ -1251,12 +1359,10 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     _subscriptions.add(
       _player.stream.position.listen((pos) {
         if (_disposed || !mounted) return;
-        // Kept current for seeking, resume and progress either way; only the
-        // chrome draws it, so with the chrome away there is nothing to repaint.
-        // The player emits this several times a second, and rebuilding the
-        // whole screen for a number nobody can see is the most expensive thing
-        // an idle video does.
+        // Position updates go straight into _positionNotifier so ONLY the
+        // scrubber rail, thumb, clock pill, and active skip badge rebuild.
         _position = pos;
+        _positionNotifier.value = pos;
         _subtitlePlayback.tick(pos);
         _maybeRecordProgress(pos);
 
@@ -1295,10 +1401,6 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
               setState(() => _nextEpisodeOffer = _nextEpisode);
             }
           }
-        }
-
-        if (_controlsVisible || _isDragging) {
-          setState(() {});
         }
       }),
     );
@@ -1341,10 +1443,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     _subscriptions.add(
       _player.stream.buffer.listen((buf) {
         if (_disposed || !mounted) return;
-        _buffer = buf;
-        if (_controlsVisible || _isDragging) {
-          setState(() {});
-        }
+        _bufferNotifier.value = buf;
       }),
     );
 
@@ -3072,6 +3171,22 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     try {
       _activeEmbeddedSubtitle.dispose();
     } catch (_) {}
+    _diagnosticsTimer?.cancel();
+    if (_diagnosticsTimingCallbackAttached) {
+      try {
+        SchedulerBinding.instance.removeTimingsCallback(_onFrameTimings);
+      } catch (_) {}
+      _diagnosticsTimingCallbackAttached = false;
+    }
+    try {
+      _positionNotifier.dispose();
+    } catch (_) {}
+    try {
+      _bufferNotifier.dispose();
+    } catch (_) {}
+    try {
+      _diagnosticsNotifier.dispose();
+    } catch (_) {}
     try {
       _videoTracks.dispose();
     } catch (_) {}
@@ -3482,15 +3597,31 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
 
                   if (!_inPip && _activeEdgeRail != null) _activeEdgeRail!,
 
+                  // Collapsible Performance & MPV Diagnostics HUD
+                  if (!_inPip && _showDiagnostics)
+                    Positioned(
+                      top: _controlsVisible ? 88 : 18,
+                      left: 16,
+                      child: MediaKitDiagnosticsOverlay(
+                        snapshot: _diagnosticsNotifier,
+                        onClose: () => _setDiagnosticsEnabled(false),
+                        onToggleVideoSync: _native != null
+                            ? () => unawaited(_toggleMpvVideoSync())
+                            : null,
+                      ),
+                    ),
+
                   // Skip Intro / Outro / Recap Floating Liquid Glass Pill Button
                   if (!_inPip &&
                       !_isScreenLocked &&
-                      _currentSkipSegment != null &&
+                      _skipSegments.isNotEmpty &&
                       !_isLoading &&
                       _error.isEmpty)
-                    Builder(
-                      builder: (context) {
-                        final seg = _currentSkipSegment!;
+                    ValueListenableBuilder<Duration>(
+                      valueListenable: _positionNotifier,
+                      builder: (context, pos, _) {
+                        final seg = segmentAt(_skipSegments, pos);
+                        if (seg == null) return const SizedBox.shrink();
                         final l10n = AppLocalizations.of(context);
                         final label = seg.type == SkipType.intro
                             ? (l10n?.skipIntro ?? 'Skip Intro')
@@ -3585,43 +3716,85 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                       ),
                     ),
 
-                  // BitChord Liquid Glass Player Controls Layer (Center sphere + Top & Bottom HUDs)
-                  if (!_inPip &&
-                      !_isLoading &&
-                      _error.isEmpty &&
-                      !_isScreenLocked &&
-                      (_controlsVisible || !_playing))
-                    AnimatedOpacity(
-                      opacity: (_controlsVisible || !_playing) ? 1.0 : 0.0,
-                      duration: const Duration(milliseconds: 200),
-                      curve: Curves.easeOutCubic,
-                      child: IgnorePointer(
-                        ignoring: !_controlsVisible && _playing,
-                        child: Stack(
-                          children: [
-                            if (_controlsVisible) _buildTopBar(),
-                            if (!_isLoading &&
-                                !_isSwitching &&
-                                (_controlsVisible || !_playing))
-                              Center(
-                                child: LiquidGlassCenterTransport(
-                                  isPlaying: _playing,
-                                  isBuffering: _isBuffering,
-                                  seekStepSeconds: _seekStep,
-                                  isLive: isLiveSource(_item, _currentVideoUrl),
-                                  onPlayPause: _togglePlayPause,
-                                  onSeekBackward: () => _seekRelative(-_seekStep),
-                                  onSeekForward: () => _seekRelative(_seekStep),
-                                ),
-                              ),
-                            if (_controlsVisible) _buildBottomBar(),
-                          ],
-                        ),
+                  // BitChord Liquid Glass Player Controls Layer: each chrome bar
+                  // owns its own compact AnimatedOpacity layer so fades never
+                  // composite a full-window offscreen saveLayer over the video.
+                  if (!_inPip && !_isLoading && _error.isEmpty && !_isScreenLocked) ...[
+                    _buildFadingTopBar(visible: _controlsVisible),
+                    if (!_isSwitching)
+                      _buildFadingCenterTransport(
+                        visible: _controlsVisible || !_playing,
                       ),
-                    ),
+                    _buildFadingBottomBar(visible: _controlsVisible),
+                  ],
                 ],
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFadingTopBar({required bool visible}) {
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      child: TickerMode(
+        enabled: visible,
+        child: IgnorePointer(
+          ignoring: !visible,
+          child: AnimatedOpacity(
+            opacity: visible ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            child: _buildTopBar(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFadingCenterTransport({required bool visible}) {
+    return Center(
+      child: TickerMode(
+        enabled: visible,
+        child: IgnorePointer(
+          ignoring: !visible,
+          child: AnimatedOpacity(
+            opacity: visible ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            child: LiquidGlassCenterTransport(
+              isPlaying: _playing,
+              isBuffering: _isBuffering,
+              seekStepSeconds: _seekStep,
+              isLive: isLiveSource(_item, _currentVideoUrl),
+              onPlayPause: _togglePlayPause,
+              onSeekBackward: () => _seekRelative(-_seekStep),
+              onSeekForward: () => _seekRelative(_seekStep),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFadingBottomBar({required bool visible}) {
+    return Positioned(
+      bottom: 0,
+      left: 0,
+      right: 0,
+      child: TickerMode(
+        enabled: visible,
+        child: IgnorePointer(
+          ignoring: !visible,
+          child: AnimatedOpacity(
+            opacity: visible ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            child: _buildBottomBar(),
           ),
         ),
       ),
@@ -3641,31 +3814,26 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                     : 'Episode ${ep.episode}'))
         : null;
 
-    return Positioned(
-      top: 0,
-      left: 0,
-      right: 0,
-      child: LiquidGlassTopHud(
-        title: _item.title,
-        subtitleTag: epText,
-        qualityBadge: _currentQualityLabel != 'Sources' ? _currentQualityLabel : null,
-        onBack: _exitPlayer,
-        nightAudioEnabled: _isDialogueBoostEnabled,
-        onToggleNightAudio: _native != null ? _toggleDialogueBoost : null,
-        showPipButton: _pipEligible && (_settings?.showPip ?? true),
-        onEnterPip: _enterPip,
-        sleepTimerMinutes: _sleepTimerMinutes,
-        onOpenSleepTimer: _showSleepTimerDialog,
-        isLocked: _isScreenLocked,
-        onLockScreen: () {
-          setState(() {
-            _isScreenLocked = true;
-            _controlsVisible = false;
-            _showUnlockButton = false;
-          });
-        },
-        isTv: _isTv,
-      ),
+    return LiquidGlassTopHud(
+      title: _item.title,
+      subtitleTag: epText,
+      qualityBadge: _currentQualityLabel != 'Sources' ? _currentQualityLabel : null,
+      onBack: _exitPlayer,
+      nightAudioEnabled: _isDialogueBoostEnabled,
+      onToggleNightAudio: _native != null ? _toggleDialogueBoost : null,
+      showPipButton: _pipEligible && (_settings?.showPip ?? true),
+      onEnterPip: _enterPip,
+      sleepTimerMinutes: _sleepTimerMinutes,
+      onOpenSleepTimer: _showSleepTimerDialog,
+      isLocked: _isScreenLocked,
+      onLockScreen: () {
+        setState(() {
+          _isScreenLocked = true;
+          _controlsVisible = false;
+          _showUnlockButton = false;
+        });
+      },
+      isTv: _isTv,
     );
   }
 
@@ -3676,59 +3844,43 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     final isDesktop = !kIsWeb &&
         (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
 
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
-      child: ValueListenableBuilder<Duration>(
-        valueListenable: _subtitlePlayback.delayListenable,
-        builder: (context, subDelay, _) => ListenableBuilder(
-          listenable: Listenable.merge(<Listenable>[_sideCars, _activeEmbeddedSubtitle]),
-          builder: (context, _) => LiquidGlassBottomDock(
-            position: _isDragging && _dragPosition != null ? _dragPosition! : _position,
-            duration: _duration,
-            buffer: _buffer,
-            showRemainingTime: _showRemainingTime,
-            onToggleRemainingTime: () {
-              _onUserActivity();
-              setState(() => _showRemainingTime = !_showRemainingTime);
-            },
-            onSeekStart: () {
-              _onUserActivity();
-              setState(() {
-                _isDragging = true;
-                _dragPosition = _position;
-              });
-            },
-            onSeekUpdate: (target) {
-              _onUserActivity();
-              setState(() => _dragPosition = target);
-            },
-            onSeekEnd: (target) {
-              _onUserActivity();
-              setState(() {
-                _isDragging = false;
-                _dragPosition = null;
-              });
-              _player.seek(target);
-            },
-            hasEpisodes: episodes.isNotEmpty,
-            onOpenEpisodes: _showEpisodesDialog,
-            onOpenAudio: _showAudioTrackDialog,
-            onOpenSubtitles: _showSubtitleTrackDialog,
-            subtitlesActive:
-                _sideCars.active != null || _activeEmbeddedSubtitle.value != null,
-            subtitleDelay: subDelay,
-            playbackSpeed: _playbackSpeed,
-            onCycleSpeed: _cyclePlaybackSpeed,
-            onOpenSources: _showQualityAndSourcesDialog,
-            onOpenMore: _showMoreSheet,
-            skipSegments: _skipSegments,
-            isTv: _isTv,
-            isLive: live,
-            onToggleFullscreen: isDesktop ? _toggleFullscreen : null,
-            isFullscreen: _isFullscreen,
-          ),
+    return ValueListenableBuilder<Duration>(
+      valueListenable: _subtitlePlayback.delayListenable,
+      builder: (context, subDelay, _) => ListenableBuilder(
+        listenable: Listenable.merge(<Listenable>[_sideCars, _activeEmbeddedSubtitle]),
+        builder: (context, _) => LiquidGlassBottomDock(
+          position: _positionNotifier.value,
+          duration: _duration,
+          buffer: _bufferNotifier.value,
+          positionListenable: _positionNotifier,
+          bufferListenable: _bufferNotifier,
+          showRemainingTime: _showRemainingTime,
+          onToggleRemainingTime: () {
+            _onUserActivity();
+            setState(() => _showRemainingTime = !_showRemainingTime);
+          },
+          onSeekStart: _onUserActivity,
+          onSeekUpdate: (_) => _onUserActivity(),
+          onSeekEnd: (target) {
+            _onUserActivity();
+            _player.seek(target);
+          },
+          hasEpisodes: episodes.isNotEmpty,
+          onOpenEpisodes: _showEpisodesDialog,
+          onOpenAudio: _showAudioTrackDialog,
+          onOpenSubtitles: _showSubtitleTrackDialog,
+          subtitlesActive:
+              _sideCars.active != null || _activeEmbeddedSubtitle.value != null,
+          subtitleDelay: subDelay,
+          playbackSpeed: _playbackSpeed,
+          onCycleSpeed: _cyclePlaybackSpeed,
+          onOpenSources: _showQualityAndSourcesDialog,
+          onOpenMore: _showMoreSheet,
+          skipSegments: _skipSegments,
+          isTv: _isTv,
+          isLive: live,
+          onToggleFullscreen: isDesktop ? _toggleFullscreen : null,
+          isFullscreen: _isFullscreen,
         ),
       ),
     );
@@ -3817,6 +3969,11 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
           Navigator.of(sheetContext).maybePop();
           _showSleepTimerDialog();
         },
+        showDiagnostics: _showDiagnostics,
+        onToggleDiagnostics: _setDiagnosticsEnabled,
+        mpvVideoSync: _native != null ? _mpvVideoSync : null,
+        onToggleMpvVideoSync:
+            _native != null ? () => unawaited(_toggleMpvVideoSync()) : null,
       ),
     );
   }

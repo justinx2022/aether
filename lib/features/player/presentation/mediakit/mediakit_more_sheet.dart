@@ -49,6 +49,10 @@ class MediaKitMoreSheet extends StatefulWidget {
     this.onAutoSyncSubtitles,
     this.sleepTimerMinutes,
     this.onOpenSleepTimer,
+    this.showDiagnostics = false,
+    this.onToggleDiagnostics,
+    this.mpvVideoSync,
+    this.onToggleMpvVideoSync,
     super.key,
   });
 
@@ -77,6 +81,10 @@ class MediaKitMoreSheet extends StatefulWidget {
   final VoidCallback? onAutoSyncSubtitles;
   final int? sleepTimerMinutes;
   final VoidCallback? onOpenSleepTimer;
+  final bool showDiagnostics;
+  final ValueChanged<bool>? onToggleDiagnostics;
+  final String? mpvVideoSync;
+  final VoidCallback? onToggleMpvVideoSync;
 
   @override
   State<MediaKitMoreSheet> createState() => _MediaKitMoreSheetState();
@@ -87,6 +95,8 @@ class _MediaKitMoreSheetState extends State<MediaKitMoreSheet> {
   late BoxFit _fit = widget.fit;
   late bool _fullscreen = widget.isFullscreen;
   late bool _nightAudio = widget.nightAudioEnabled;
+  late bool _showDiagnostics = widget.showDiagnostics;
+  late String? _mpvVideoSync = widget.mpvVideoSync;
 
   @override
   Widget build(BuildContext context) {
@@ -183,6 +193,33 @@ class _MediaKitMoreSheetState extends State<MediaKitMoreSheet> {
                         widget.onFullscreen();
                       },
                     ),
+                    if (widget.onToggleMpvVideoSync != null)
+                      PanelRow(
+                        label: 'MPV Video Sync',
+                        detail: _mpvVideoSync ?? 'audio',
+                        icon: Icons.sync_alt_rounded,
+                        selected: _mpvVideoSync == 'display-resample',
+                        onTap: () {
+                          setState(() {
+                            _mpvVideoSync = _mpvVideoSync == 'display-resample'
+                                ? 'audio'
+                                : 'display-resample';
+                          });
+                          widget.onToggleMpvVideoSync!();
+                        },
+                      ),
+                    if (widget.onToggleDiagnostics != null)
+                      PanelRow(
+                        label: 'Performance & MPV HUD',
+                        detail: _showDiagnostics ? 'On' : 'Off',
+                        icon: Icons.speed_rounded,
+                        selected: _showDiagnostics,
+                        onTap: () {
+                          final next = !_showDiagnostics;
+                          setState(() => _showDiagnostics = next);
+                          widget.onToggleDiagnostics!(next);
+                        },
+                      ),
                   ],
                 ),
               ),
