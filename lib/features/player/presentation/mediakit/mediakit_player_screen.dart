@@ -58,8 +58,10 @@ import '../vlc/panel/player_subtitle_search_page.dart';
 import '../vlc/player_startup_view.dart';
 import '../vlc/side_car_fetch.dart';
 import '../vlc/side_car_subtitle_view.dart';
+import '../widgets/hotstar_player_style.dart';
 import '../widgets/player_sheet_header.dart';
 import 'liquid_glass_player_chrome.dart';
+import 'mediakit_classic_chrome.dart';
 import 'mediakit_diagnostics_overlay.dart';
 import 'mediakit_more_sheet.dart';
 import 'mediakit_subtitle_sheet.dart';
@@ -3246,6 +3248,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     final playerSettings = ref.watch(playerSettingsProvider).asData?.value;
     final stremioTheme = playerSettings?.stremioLoadScreen ?? true;
     final seamlessMode = playerSettings?.seamlessPlayback ?? true;
+    final useClassicUi = playerSettings?.useClassicPlayerUi ?? false;
     // Watched, so a profile that resolves after the first frame - the usual
     // case on a television - re-lays the chrome out at ten-foot size.
     _form = playerFormFactorOf(ref.watch(deviceProfileProvider).asData?.value);
@@ -3262,6 +3265,9 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
           autofocus: true,
           onKeyEvent: _handleKeyEvent,
           child: MouseRegion(
+            cursor: (!_inPip && !_controlsVisible && _playing && !_isScreenLocked)
+                ? SystemMouseCursors.none
+                : MouseCursor.defer,
             onHover: (_) => _isScreenLocked ? null : _onUserActivity(),
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
@@ -3346,7 +3352,11 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                           subtitles: _sideCars,
                           settings: settings,
                           bottomInset: (!_inPip && _controlsVisible)
-                              ? 122
+                              ? (useClassicUi
+                                    ? HotstarPlayerStyle.bottomChromeHeightFor(
+                                        isTv: _isTv,
+                                      )
+                                    : 122)
                               : 0,
                         );
                       },
@@ -3629,7 +3639,14 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                                 ? (l10n?.skipOutro ?? 'Skip Outro')
                                 : (l10n?.skipRecap ?? 'Skip Recap'));
                         return Positioned(
-                          bottom: _controlsVisible ? 116 : 36,
+                          bottom: _controlsVisible
+                              ? (useClassicUi
+                                    ? HotstarPlayerStyle.bottomChromeHeightFor(
+                                            isTv: _isTv,
+                                          ) +
+                                          6
+                                    : 116)
+                              : 36,
                           right: 22,
                           child: GestureDetector(
                             behavior: HitTestBehavior.opaque,
@@ -3720,12 +3737,18 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                   // owns its own compact AnimatedOpacity layer so fades never
                   // composite a full-window offscreen saveLayer over the video.
                   if (!_inPip && !_isLoading && _error.isEmpty && !_isScreenLocked) ...[
-                    _buildFadingTopBar(visible: _controlsVisible),
-                    if (!_isSwitching)
+                    _buildFadingTopBar(
+                      visible: _controlsVisible,
+                      classicUi: useClassicUi,
+                    ),
+                    if (!_isSwitching && !useClassicUi)
                       _buildFadingCenterTransport(
                         visible: _controlsVisible || !_playing,
                       ),
-                    _buildFadingBottomBar(visible: _controlsVisible),
+                    _buildFadingBottomBar(
+                      visible: _controlsVisible,
+                      classicUi: useClassicUi,
+                    ),
                   ],
                 ],
               ),
@@ -3736,21 +3759,21 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     );
   }
 
-  Widget _buildFadingTopBar({required bool visible}) {
+  Widget _buildFadingTopBar({
+    required bool visible,
+    required bool classicUi,
+  }) {
     return Positioned(
       top: 0,
       left: 0,
       right: 0,
-      child: TickerMode(
-        enabled: visible,
-        child: IgnorePointer(
-          ignoring: !visible,
-          child: AnimatedOpacity(
-            opacity: visible ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOutCubic,
-            child: _buildTopBar(),
-          ),
+      child: IgnorePointer(
+        ignoring: !visible,
+        child: AnimatedOpacity(
+          opacity: visible ? 1.0 : 0.0,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          child: _buildTopBar(classicUi: classicUi),
         ),
       ),
     );
@@ -3758,51 +3781,48 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
 
   Widget _buildFadingCenterTransport({required bool visible}) {
     return Center(
-      child: TickerMode(
-        enabled: visible,
-        child: IgnorePointer(
-          ignoring: !visible,
-          child: AnimatedOpacity(
-            opacity: visible ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOutCubic,
-            child: LiquidGlassCenterTransport(
-              isPlaying: _playing,
-              isBuffering: _isBuffering,
-              seekStepSeconds: _seekStep,
-              isLive: isLiveSource(_item, _currentVideoUrl),
-              onPlayPause: _togglePlayPause,
-              onSeekBackward: () => _seekRelative(-_seekStep),
-              onSeekForward: () => _seekRelative(_seekStep),
-            ),
+      child: IgnorePointer(
+        ignoring: !visible,
+        child: AnimatedOpacity(
+          opacity: visible ? 1.0 : 0.0,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          child: LiquidGlassCenterTransport(
+            isPlaying: _playing,
+            isBuffering: _isBuffering,
+            seekStepSeconds: _seekStep,
+            isLive: isLiveSource(_item, _currentVideoUrl),
+            onPlayPause: _togglePlayPause,
+            onSeekBackward: () => _seekRelative(-_seekStep),
+            onSeekForward: () => _seekRelative(_seekStep),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildFadingBottomBar({required bool visible}) {
+  Widget _buildFadingBottomBar({
+    required bool visible,
+    required bool classicUi,
+  }) {
     return Positioned(
       bottom: 0,
       left: 0,
       right: 0,
-      child: TickerMode(
-        enabled: visible,
-        child: IgnorePointer(
-          ignoring: !visible,
-          child: AnimatedOpacity(
-            opacity: visible ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOutCubic,
-            child: _buildBottomBar(),
-          ),
+      child: IgnorePointer(
+        ignoring: !visible,
+        child: AnimatedOpacity(
+          opacity: visible ? 1.0 : 0.0,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          child: _buildBottomBar(classicUi: classicUi),
         ),
       ),
     );
   }
 
-  /// BitChord Apple Liquid Glass Top HUD capsule bar.
-  Widget _buildTopBar() {
+  /// Top HUD bar: Classic minimal or BitChord Apple Liquid Glass capsule.
+  Widget _buildTopBar({bool classicUi = false}) {
     final ep = _effectiveCurrentEpisode;
     final String? epText = ep != null
         ? (ep.name.isNotEmpty
@@ -3813,6 +3833,30 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                     ? 'S${ep.season} E${ep.episode}'
                     : 'Episode ${ep.episode}'))
         : null;
+
+    void onLock() {
+      setState(() {
+        _isScreenLocked = true;
+        _controlsVisible = false;
+        _showUnlockButton = false;
+      });
+    }
+
+    if (classicUi) {
+      return ClassicMediaKitTopBar(
+        title: _item.title,
+        subtitleTag: epText,
+        onBack: _exitPlayer,
+        nightAudioEnabled: _isDialogueBoostEnabled,
+        onToggleNightAudio: _native != null ? _toggleDialogueBoost : null,
+        showPipButton: _pipEligible && (_settings?.showPip ?? true),
+        onEnterPip: _enterPip,
+        sleepTimerMinutes: _sleepTimerMinutes,
+        onOpenSleepTimer: _showSleepTimerDialog,
+        onLockScreen: onLock,
+        isTv: _isTv,
+      );
+    }
 
     return LiquidGlassTopHud(
       title: _item.title,
@@ -3826,19 +3870,13 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
       sleepTimerMinutes: _sleepTimerMinutes,
       onOpenSleepTimer: _showSleepTimerDialog,
       isLocked: _isScreenLocked,
-      onLockScreen: () {
-        setState(() {
-          _isScreenLocked = true;
-          _controlsVisible = false;
-          _showUnlockButton = false;
-        });
-      },
+      onLockScreen: onLock,
       isTv: _isTv,
     );
   }
 
-  /// BitChord Apple Liquid Glass Bottom Scrubber & Action Capsule Dock.
-  Widget _buildBottomBar() {
+  /// Bottom Scrubber & Action dock: Classic minimal or BitChord Liquid Glass.
+  Widget _buildBottomBar({bool classicUi = false}) {
     final live = isLiveSource(_item, _currentVideoUrl);
     final episodes = _item.episodes ?? widget.item.episodes ?? const <Episode>[];
     final isDesktop = !kIsWeb &&
@@ -3848,40 +3886,78 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
       valueListenable: _subtitlePlayback.delayListenable,
       builder: (context, subDelay, _) => ListenableBuilder(
         listenable: Listenable.merge(<Listenable>[_sideCars, _activeEmbeddedSubtitle]),
-        builder: (context, _) => LiquidGlassBottomDock(
-          position: _positionNotifier.value,
-          duration: _duration,
-          buffer: _bufferNotifier.value,
-          positionListenable: _positionNotifier,
-          bufferListenable: _bufferNotifier,
-          showRemainingTime: _showRemainingTime,
-          onToggleRemainingTime: () {
-            _onUserActivity();
-            setState(() => _showRemainingTime = !_showRemainingTime);
-          },
-          onSeekStart: _onUserActivity,
-          onSeekUpdate: (_) => _onUserActivity(),
-          onSeekEnd: (target) {
-            _onUserActivity();
-            _player.seek(target);
-          },
-          hasEpisodes: episodes.isNotEmpty,
-          onOpenEpisodes: _showEpisodesDialog,
-          onOpenAudio: _showAudioTrackDialog,
-          onOpenSubtitles: _showSubtitleTrackDialog,
-          subtitlesActive:
-              _sideCars.active != null || _activeEmbeddedSubtitle.value != null,
-          subtitleDelay: subDelay,
-          playbackSpeed: _playbackSpeed,
-          onCycleSpeed: _cyclePlaybackSpeed,
-          onOpenSources: _showQualityAndSourcesDialog,
-          onOpenMore: _showMoreSheet,
-          skipSegments: _skipSegments,
-          isTv: _isTv,
-          isLive: live,
-          onToggleFullscreen: isDesktop ? _toggleFullscreen : null,
-          isFullscreen: _isFullscreen,
-        ),
+        builder: (context, _) {
+          final subtitlesActive =
+              _sideCars.active != null || _activeEmbeddedSubtitle.value != null;
+          if (classicUi) {
+            return ClassicMediaKitBottomBar(
+              position: _positionNotifier.value,
+              duration: _duration,
+              buffer: _bufferNotifier.value,
+              positionListenable: _positionNotifier,
+              bufferListenable: _bufferNotifier,
+              playing: _playing,
+              seekStepSeconds: _seekStep,
+              onPlayPause: _togglePlayPause,
+              onSeekRelative: _seekRelative,
+              onSeekStart: _onUserActivity,
+              onSeekUpdate: (_) => _onUserActivity(),
+              onSeekEnd: (target) {
+                _onUserActivity();
+                _player.seek(target);
+              },
+              hasEpisodes: episodes.isNotEmpty,
+              onOpenEpisodes: _showEpisodesDialog,
+              onOpenAudio: _showAudioTrackDialog,
+              onOpenSubtitles: _showSubtitleTrackDialog,
+              subtitlesActive: subtitlesActive,
+              subtitleDelay: subDelay,
+              playbackSpeed: _playbackSpeed,
+              onCycleSpeed: _cyclePlaybackSpeed,
+              onOpenSources: _showQualityAndSourcesDialog,
+              onOpenMore: _showMoreSheet,
+              skipSegments: _skipSegments,
+              isTv: _isTv,
+              isLive: live,
+              onToggleFullscreen: isDesktop ? _toggleFullscreen : null,
+              isFullscreen: _isFullscreen,
+            );
+          }
+
+          return LiquidGlassBottomDock(
+            position: _positionNotifier.value,
+            duration: _duration,
+            buffer: _bufferNotifier.value,
+            positionListenable: _positionNotifier,
+            bufferListenable: _bufferNotifier,
+            showRemainingTime: _showRemainingTime,
+            onToggleRemainingTime: () {
+              _onUserActivity();
+              setState(() => _showRemainingTime = !_showRemainingTime);
+            },
+            onSeekStart: _onUserActivity,
+            onSeekUpdate: (_) => _onUserActivity(),
+            onSeekEnd: (target) {
+              _onUserActivity();
+              _player.seek(target);
+            },
+            hasEpisodes: episodes.isNotEmpty,
+            onOpenEpisodes: _showEpisodesDialog,
+            onOpenAudio: _showAudioTrackDialog,
+            onOpenSubtitles: _showSubtitleTrackDialog,
+            subtitlesActive: subtitlesActive,
+            subtitleDelay: subDelay,
+            playbackSpeed: _playbackSpeed,
+            onCycleSpeed: _cyclePlaybackSpeed,
+            onOpenSources: _showQualityAndSourcesDialog,
+            onOpenMore: _showMoreSheet,
+            skipSegments: _skipSegments,
+            isTv: _isTv,
+            isLive: live,
+            onToggleFullscreen: isDesktop ? _toggleFullscreen : null,
+            isFullscreen: _isFullscreen,
+          );
+        },
       ),
     );
   }
@@ -3974,6 +4050,14 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
         mpvVideoSync: _native != null ? _mpvVideoSync : null,
         onToggleMpvVideoSync:
             _native != null ? () => unawaited(_toggleMpvVideoSync()) : null,
+        useClassicUi:
+            ref.read(playerSettingsProvider).asData?.value.useClassicPlayerUi ??
+            false,
+        onToggleClassicUi: (enabled) => unawaited(
+          ref
+              .read(playerSettingsProvider.notifier)
+              .setUseClassicPlayerUi(enabled),
+        ),
       ),
     );
   }

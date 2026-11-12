@@ -53,6 +53,8 @@ class MediaKitMoreSheet extends StatefulWidget {
     this.onToggleDiagnostics,
     this.mpvVideoSync,
     this.onToggleMpvVideoSync,
+    this.useClassicUi = false,
+    this.onToggleClassicUi,
     super.key,
   });
 
@@ -85,6 +87,8 @@ class MediaKitMoreSheet extends StatefulWidget {
   final ValueChanged<bool>? onToggleDiagnostics;
   final String? mpvVideoSync;
   final VoidCallback? onToggleMpvVideoSync;
+  final bool useClassicUi;
+  final ValueChanged<bool>? onToggleClassicUi;
 
   @override
   State<MediaKitMoreSheet> createState() => _MediaKitMoreSheetState();
@@ -97,6 +101,7 @@ class _MediaKitMoreSheetState extends State<MediaKitMoreSheet> {
   late bool _nightAudio = widget.nightAudioEnabled;
   late bool _showDiagnostics = widget.showDiagnostics;
   late String? _mpvVideoSync = widget.mpvVideoSync;
+  late bool _useClassicUi = widget.useClassicUi;
 
   @override
   Widget build(BuildContext context) {
@@ -193,6 +198,18 @@ class _MediaKitMoreSheetState extends State<MediaKitMoreSheet> {
                         widget.onFullscreen();
                       },
                     ),
+                    if (widget.onToggleClassicUi != null)
+                      PanelRow(
+                        label: 'Player Controls Style',
+                        detail: _useClassicUi ? 'Classic' : 'Liquid Glass',
+                        icon: Icons.layers_outlined,
+                        selected: _useClassicUi,
+                        onTap: () {
+                          final next = !_useClassicUi;
+                          setState(() => _useClassicUi = next);
+                          widget.onToggleClassicUi!(next);
+                        },
+                      ),
                     if (widget.onToggleMpvVideoSync != null)
                       PanelRow(
                         label: 'MPV Video Sync',

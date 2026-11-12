@@ -1,21 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:skystream/core/theme/app_theme.dart';
 import 'package:skystream/features/player/presentation/mediakit/liquid_glass_player_chrome.dart';
+import 'package:skystream/features/player/presentation/mediakit/mediakit_classic_chrome.dart';
 import 'package:skystream/features/player/presentation/mediakit/mediakit_diagnostics_overlay.dart';
 import 'package:skystream/features/player/presentation/mediakit/mediakit_more_sheet.dart';
+import 'package:skystream/features/player/presentation/widgets/player_control_components.dart';
+import 'package:skystream/features/player/presentation/widgets/player_stream_widgets.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
 
 Widget _wrapApp(
   Widget child, {
   TargetPlatform platform = TargetPlatform.windows,
 }) {
-  return MaterialApp(
-    theme: AppTheme.createDarkTheme(null).copyWith(platform: platform),
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
-    supportedLocales: AppLocalizations.supportedLocales,
-    home: Scaffold(body: child),
+  return ProviderScope(
+    child: MaterialApp(
+      theme: AppTheme.createDarkTheme(null).copyWith(platform: platform),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: Scaffold(body: child),
+    ),
   );
 }
 
@@ -292,6 +298,200 @@ void main() {
 
       expect(syncMode, 'display-resample');
       expect(diagOn, isTrue);
+    });
+
+    testWidgets(
+      'HUD auto-hide: fading bars animate to 0.0 opacity and ignore pointers when hidden',
+      (tester) async {
+        final visible = ValueNotifier<bool>(true);
+        addTearDown(visible.dispose);
+
+        await tester.pumpWidget(
+          _wrapApp(
+            ValueListenableBuilder<bool>(
+              valueListenable: visible,
+              builder: (context, show, _) => Stack(
+                children: [
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: IgnorePointer(
+                      ignoring: !show,
+                      child: AnimatedOpacity(
+                        opacity: show ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeOutCubic,
+                        child: LiquidGlassTopHud(
+                          title: 'HUD Fade Test',
+                          onBack: () {},
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+        final opacityFinder = find.byType(AnimatedOpacity);
+        expect(
+          tester
+              .renderObject<RenderAnimatedOpacity>(opacityFinder)
+              .opacity
+              .value,
+          1.0,
+        );
+
+        visible.value = false;
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 250));
+
+        expect(
+          tester
+              .renderObject<RenderAnimatedOpacity>(opacityFinder)
+              .opacity
+              .value,
+          0.0,
+        );
+        final ignorePointer = tester.widget<IgnorePointer>(
+          find
+              .ancestor(
+                of: opacityFinder,
+                matching: find.byType(IgnorePointer),
+              )
+              .first,
+        );
+        expect(ignorePointer.ignoring, isTrue);
+      },
+    );
+
+    testWidgets(
+      'Classic UI: renders PlayerTopBar & PlayerBottomBar and isolates position ticks',
+      (tester) async {
+        tester.view.physicalSize = const Size(1280, 720);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.reset);
+
+        final posNotifier = ValueNotifier<Duration>(const Duration(minutes: 1));
+        final bufNotifier = ValueNotifier<Duration>(const Duration(minutes: 3));
+        addTearDown(posNotifier.dispose);
+        addTearDown(bufNotifier.dispose);
+
+        int outerBuilds = 0;
+        await tester.pumpWidget(
+          _wrapApp(
+            Builder(
+              builder: (context) {
+                outerBuilds++;
+                return Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: ClassicMediaKitTopBar(
+                        title: 'Classic Sample Movie',
+                        subtitleTag: 'S1 E1',
+                        onBack: () {},
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: ClassicMediaKitBottomBar(
+                        position: Duration.zero,
+                        duration: const Duration(minutes: 10),
+                        buffer: Duration.zero,
+                        positionListenable: posNotifier,
+                        bufferListenable: bufNotifier,
+                        playing: true,
+                        seekStepSeconds: 10,
+                        onPlayPause: () {},
+                        onSeekRelative: (_) {},
+                        onSeekStart: () {},
+                        onSeekUpdate: (_) {},
+                        onSeekEnd: (_) {},
+                        hasEpisodes: true,
+                        onOpenEpisodes: () {},
+                        onOpenAudio: () {},
+                        onOpenSubtitles: () {},
+                        subtitlesActive: false,
+                        subtitleDelay: Duration.zero,
+                        playbackSpeed: 1.0,
+                        onCycleSpeed: () {},
+                        onOpenSources: () {},
+                        onOpenMore: () {},
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        );
+
+        expect(outerBuilds, 1);
+        expect(find.byType(PlayerTopBar), findsOneWidget);
+        expect(find.byType(PlayerBottomBar), findsOneWidget);
+        expect(find.byType(PlayerScrubber), findsOneWidget);
+        expect(find.byType(PlayerTimeLabel), findsOneWidget);
+        expect(find.byType(BackdropFilter), findsNothing);
+        expect(find.text('1:00 / 10:00'), findsOneWidget);
+
+        posNotifier.value = const Duration(minutes: 2, seconds: 15);
+        await tester.pump();
+        expect(find.text('2:15 / 10:00'), findsOneWidget);
+        expect(outerBuilds, 1);
+      },
+    );
+
+    testWidgets('More sheet toggles Player Controls Style (Classic vs Liquid Glass)', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(800, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      bool classicUi = false;
+      await tester.pumpWidget(
+        _wrapApp(
+          MediaKitMoreSheet(
+            speed: 1.0,
+            fit: BoxFit.contain,
+            isFullscreen: false,
+            quality: '1080p',
+            isTv: false,
+            isLive: false,
+            onSpeed: (_) {},
+            onFit: (_) {},
+            onFullscreen: () {},
+            onSources: () {},
+            useClassicUi: classicUi,
+            onToggleClassicUi: (v) => classicUi = v,
+          ),
+        ),
+      );
+      await tester.pump();
+
+      await tester.scrollUntilVisible(
+        find.text('Player Controls Style'),
+        100,
+        scrollable: find.byType(Scrollable),
+      );
+      await tester.ensureVisible(find.text('Player Controls Style'));
+      await tester.pump();
+      expect(find.text('Liquid Glass'), findsOneWidget);
+
+      await tester.tap(find.text('Player Controls Style'));
+      await tester.pump();
+
+      expect(classicUi, isTrue);
+      expect(find.text('Classic'), findsOneWidget);
     });
   });
 }

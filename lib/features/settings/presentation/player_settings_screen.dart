@@ -184,6 +184,24 @@ class PlayerSettingsScreen extends ConsumerWidget {
                       playerSettings.preferredPlayer,
                     ),
                   ),
+                  SettingsTile(
+                    icon: Icons.layers_outlined,
+                    title: 'Classic Player UI',
+                    subtitle: playerSettings.useClassicPlayerUi
+                        ? 'Minimal Classic bar controls'
+                        : 'BitChord Liquid Glass HUD (Default)',
+                    trailing: Switch(
+                      value: playerSettings.useClassicPlayerUi,
+                      onChanged: (val) => ref
+                          .read(playerSettingsProvider.notifier)
+                          .setUseClassicPlayerUi(val),
+                    ),
+                    onTap: () => ref
+                        .read(playerSettingsProvider.notifier)
+                        .setUseClassicPlayerUi(
+                          !playerSettings.useClassicPlayerUi,
+                        ),
+                  ),
                   if (isTouchDevice) ...[
                     SettingsTile(
                       icon: Icons.swipe_vertical_rounded,

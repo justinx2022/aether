@@ -191,6 +191,9 @@ class PlayerSettings {
   /// Whether Night Audio (multi-stage dialogue boost & dynamic range compression) is active.
   final bool nightAudioEnabled;
 
+  /// Whether the player uses the Classic minimal controls instead of BitChord Liquid Glass.
+  final bool useClassicPlayerUi;
+
   // Subtitle Accounts
   final String osUsername;
   final String osPassword;
@@ -234,6 +237,7 @@ class PlayerSettings {
     this.lanSync = true,
     this.useMediaKitOnWindows = true,
     this.nightAudioEnabled = false,
+    this.useClassicPlayerUi = false,
     this.osUsername = '',
     this.osPassword = '',
     this.osApiKey = '',
@@ -278,6 +282,7 @@ class PlayerSettings {
     bool? lanSync,
     bool? useMediaKitOnWindows,
     bool? nightAudioEnabled,
+    bool? useClassicPlayerUi,
     String? osUsername,
     String? osPassword,
     String? osApiKey,
@@ -328,6 +333,7 @@ class PlayerSettings {
       lanSync: lanSync ?? this.lanSync,
       useMediaKitOnWindows: useMediaKitOnWindows ?? this.useMediaKitOnWindows,
       nightAudioEnabled: nightAudioEnabled ?? this.nightAudioEnabled,
+      useClassicPlayerUi: useClassicPlayerUi ?? this.useClassicPlayerUi,
       osUsername: osUsername ?? this.osUsername,
       osPassword: osPassword ?? this.osPassword,
       osApiKey: osApiKey ?? this.osApiKey,
@@ -551,6 +557,12 @@ class PlayerSettingsNotifier extends _$PlayerSettingsNotifier {
           defaultValue: false,
         ) ??
         false;
+    final classicUi =
+        storage.getPlayerSetting<bool>(
+          'player_classic_ui',
+          defaultValue: false,
+        ) ??
+        false;
 
     SegmentPrefetchManager.instance.enabled = booster;
     LanSyncService.instance.enabled = lan;
@@ -591,6 +603,7 @@ class PlayerSettingsNotifier extends _$PlayerSettingsNotifier {
       lanSync: lan,
       useMediaKitOnWindows: mediaKitWin,
       nightAudioEnabled: nightAudio,
+      useClassicPlayerUi: classicUi,
       osUsername: osUser,
       osApiKey: osKey,
       subdlEmail: dlEmail,
@@ -972,6 +985,12 @@ class PlayerSettingsNotifier extends _$PlayerSettingsNotifier {
   Future<void> setNightAudioEnabled(bool enabled) async {
     await _repository.setPlayerSetting('player_night_audio', enabled);
     _update((PlayerSettings c) => c.copyWith(nightAudioEnabled: enabled));
+  }
+
+  /// Switches between BitChord Liquid Glass (`false`) and Classic minimal (`true`) player HUD.
+  Future<void> setUseClassicPlayerUi(bool enabled) async {
+    await _repository.setPlayerSetting('player_classic_ui', enabled);
+    _update((PlayerSettings c) => c.copyWith(useClassicPlayerUi: enabled));
   }
 
   PlayerGesture _parse(String s) {
