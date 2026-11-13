@@ -43,12 +43,16 @@ class GithubAsset {
   /// assets uploaded before digests were exposed.
   final String? digest;
 
+  /// When this asset was last updated/uploaded on GitHub.
+  final DateTime? updatedAt;
+
   GithubAsset({
     required this.name,
     required this.browserDownloadUrl,
     required this.size,
     required this.contentType,
     this.digest,
+    this.updatedAt,
   });
 
   factory GithubAsset.fromJson(Map<String, dynamic> json) {
@@ -58,6 +62,9 @@ class GithubAsset {
       size: json['size'] as int? ?? 0,
       contentType: json['content_type'] as String? ?? '',
       digest: json['digest'] as String?,
+      updatedAt: json['updated_at'] != null
+          ? DateTime.tryParse(json['updated_at'] as String)
+          : null,
     );
   }
 }

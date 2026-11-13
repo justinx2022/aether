@@ -326,6 +326,16 @@ class StorageService {
     return _settingsBox.get('declined_update_tag') as String?;
   }
 
+  /// Timestamp of the release/build installed on this device.
+  Future<void> setLastInstalledReleaseTime(DateTime time) async {
+    await _settingsBox.put('last_installed_release_time', time.toIso8601String());
+  }
+
+  DateTime? getLastInstalledReleaseTime() {
+    final raw = _settingsBox.get('last_installed_release_time') as String?;
+    return raw != null ? DateTime.tryParse(raw) : null;
+  }
+
   Future<void> setDefaultHomeScreen(String path) async {
     await _settingsBox.put('default_home_screen', path);
   }

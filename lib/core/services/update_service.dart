@@ -11,6 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:version/version.dart';
 
 import '../data/models/github_release.dart';
+import '../storage/storage_service.dart';
 
 import '../network/dio_client_provider.dart';
 
@@ -20,55 +21,103 @@ part 'update_service.g.dart';
 // cycle anyway.
 @Riverpod(keepAlive: true)
 UpdateService updateService(Ref ref) {
-  return UpdateService(ref.watch(dioClientProvider));
+  return UpdateService(
+    ref.watch(dioClientProvider),
+    ref.watch(storageServiceProvider),
+  );
 }
 
 class UpdateService {
   final Dio _dio;
+  final StorageService _storage;
   static const String _owner = 'justinx2022';
-  static const String _repo = 'skystream';
+  static const String _repo = 'aether';
 
-  UpdateService(this._dio);
+  UpdateService(this._dio, this._storage);
 
-  Future<GithubRelease?> checkForUpdate() async {
+  static Version? _tryParseVersion(String text) {
+    try {
+      return Version.parse(text);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<GithubRelease?> checkForUpdate({bool force = false}) async {
     try {
       final currentPackageInfo = await PackageInfo.fromPlatform();
-      final currentVersion = Version.parse(currentPackageInfo.version);
+      final currentVersion = _tryParseVersion(currentPackageInfo.version);
 
-      final response = await _dio.get<Map<String, dynamic>>(
-        'https://api.github.com/repos/$_owner/$_repo/releases/latest',
-      );
+      // Determine platform-specific endpoint:
+      // GitHub Actions release workflows publish to 'android-latest' and 'windows-latest'
+      String endpoint =
+          'https://api.github.com/repos/$_owner/$_repo/releases/latest';
+      if (!kIsWeb && Platform.isAndroid) {
+        endpoint =
+            'https://api.github.com/repos/$_owner/$_repo/releases/tags/android-latest';
+      } else if (!kIsWeb && Platform.isWindows) {
+        endpoint =
+            'https://api.github.com/repos/$_owner/$_repo/releases/tags/windows-latest';
+      }
+
+      Response<Map<String, dynamic>> response;
+      try {
+        response = await _dio.get<Map<String, dynamic>>(endpoint);
+      } catch (e) {
+        // Fallback to releases/latest if the specific tag is missing
+        response = await _dio.get<Map<String, dynamic>>(
+          'https://api.github.com/repos/$_owner/$_repo/releases/latest',
+        );
+      }
 
       if (response.statusCode == 200 && response.data != null) {
         final release = GithubRelease.fromJson(response.data!);
-        // Clean tag name (remove 'v' prefix if present)
-        final tagName = release.tagName.replaceAll(RegExp(r'^v'), '');
-        final latestVersion = Version.parse(tagName);
+        final platformAsset = await findPlatformAsset(release);
+        if (platformAsset == null) return null;
 
-        if (kDebugMode) {
-          debugPrint(
-            '[UpdateService] Current version: $currentPackageInfo.version -> $currentVersion, Latest version: $tagName -> $latestVersion',
-          );
+        if (force) {
+          return release;
         }
 
-        if (latestVersion > currentVersion) {
-          if (kDebugMode) {
-            debugPrint(
-              '[UpdateService] Update check RESULT: New version available ($latestVersion)',
-            );
+        // 1. Try semver comparison if tag is a valid version (e.g., 'v2.8.2' -> 2.8.2)
+        final tagName = release.tagName.replaceAll(RegExp(r'^v'), '');
+        final latestVersion = _tryParseVersion(tagName);
+
+        if (latestVersion != null && currentVersion != null) {
+          if (latestVersion > currentVersion) {
+            if (kDebugMode) {
+              debugPrint(
+                '[UpdateService] New semantic version: $latestVersion > $currentVersion',
+              );
+            }
+            return release;
           }
-          return release;
-        } else {
-          if (kDebugMode) {
-            debugPrint(
-              '[UpdateService] Update check RESULT: Already up to date',
-            );
+        }
+
+        // 2. Rolling release tags ('android-latest', 'windows-latest') or identical version:
+        // Compare the asset's upload timestamp with the locally stored install timestamp.
+        final assetTime = platformAsset.updatedAt ?? release.publishedAt;
+        if (assetTime != null) {
+          final installedTime = _storage.getLastInstalledReleaseTime();
+          if (installedTime == null) {
+            // First time running on this device: record current asset time
+            // so we don't nag on immediate initial launch.
+            await _storage.setLastInstalledReleaseTime(assetTime);
+            return null;
+          } else if (assetTime.isAfter(
+            installedTime.add(const Duration(minutes: 2)),
+          )) {
+            if (kDebugMode) {
+              debugPrint(
+                '[UpdateService] New build asset detected: $assetTime > $installedTime',
+              );
+            }
+            return release;
           }
         }
       }
     } catch (e) {
-      // Fail silently or log error
-      if (kDebugMode) debugPrint('Update check failed: $e');
+      if (kDebugMode) debugPrint('[UpdateService] Update check failed: $e');
     }
     return null;
   }

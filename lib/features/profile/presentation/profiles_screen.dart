@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/profile/user_profile.dart';
 import '../../../core/profile/profile_service.dart';
+import '../../../core/providers/device_info_provider.dart';
 import '../../../core/theme/app_backdrop_layer.dart';
+import '../../../shared/widgets/tv_logical_scale.dart';
 
 class ProfilesScreen extends ConsumerStatefulWidget {
   final bool isSwitching;
@@ -772,6 +775,8 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
   Widget build(BuildContext context) {
     final profileState = ref.watch(profileControllerProvider);
     final profiles = profileState.profiles;
+    final isTv = ref.watch(deviceProfileProvider).asData?.value.isTv ?? false;
+    final activeProfile = profileState.activeProfile;
 
     return Scaffold(
       backgroundColor: const Color(0xFF000000), // Pure OLED pitch-black
@@ -805,103 +810,130 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
           ),
         ],
       ),
-      body: AppBackdropLayer(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // ── Glowing Celestial Aether Logo Emblem ──
-                Container(
-                  width: 72,
-                  height: 72,
-                  margin: const EdgeInsets.only(bottom: 20),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF6366F1).withValues(alpha: 0.35),
-                        blurRadius: 28,
-                        spreadRadius: 4,
+      body: TvLogicalScale(
+        enabled: isTv,
+        child: AppBackdropLayer(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // ── Glowing Celestial Aether Logo Emblem ──
+                  Container(
+                    width: isTv ? 84 : 72,
+                    height: isTv ? 84 : 72,
+                    margin: const EdgeInsets.only(bottom: 20),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF6366F1).withValues(alpha: 0.35),
+                          blurRadius: 28,
+                          spreadRadius: 4,
+                        ),
+                        BoxShadow(
+                          color: const Color(0xFF06B6D4).withValues(alpha: 0.20),
+                          blurRadius: 40,
+                          spreadRadius: 8,
+                        ),
+                      ],
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.25),
+                        width: 1.5,
                       ),
-                      BoxShadow(
-                        color: const Color(0xFF06B6D4).withValues(alpha: 0.20),
-                        blurRadius: 40,
-                        spreadRadius: 8,
-                      ),
-                    ],
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.25),
-                      width: 1.5,
                     ),
-                  ),
-                  child: ClipOval(
-                    child: Image.asset(
-                      'assets/images/aether_logo.jpg',
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Color(0xFF6366F1), Color(0xFF06B6D4)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/images/aether_logo.jpg',
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [Color(0xFF6366F1), Color(0xFF06B6D4)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.auto_awesome,
+                            color: Colors.white,
+                            size: 32,
                           ),
                         ),
-                        child: const Icon(
-                          Icons.auto_awesome,
-                          color: Colors.white,
-                          size: 32,
-                        ),
                       ),
                     ),
                   ),
-                ),
 
-                const Text(
-                  'A E T H E R',
-                  style: TextStyle(
-                    color: Color(0xFFA5B4FC),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 4.0,
+                  const Text(
+                    'A E T H E R',
+                    style: TextStyle(
+                      color: Color(0xFFA5B4FC),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 4.5,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Who is watching?',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.5,
+                  const SizedBox(height: 10),
+                  Text(
+                    'Who is watching?',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: isTv ? 34 : 28,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.6,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _isManaging
-                      ? 'Select a profile to customize avatars and content preferences'
-                      : 'Choose your profile to resume your personalized cinema',
-                  style: const TextStyle(color: Colors.white54, fontSize: 14),
-                ),
-                const SizedBox(height: 48),
-                Wrap(
-                  spacing: 24,
-                  runSpacing: 24,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    ...profiles.map(
-                      (p) => _ProfileCard(
-                        profile: p,
-                        isManaging: _isManaging,
-                        onTap: () => _selectProfile(p),
+                  const SizedBox(height: 10),
+                  Text(
+                    _isManaging
+                        ? 'Select a profile to customize avatars and content preferences'
+                        : 'Choose your profile to resume your personalized cinema',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white54,
+                      fontSize: isTv ? 16 : 14,
+                    ),
+                  ),
+                  SizedBox(height: isTv ? 56 : 44),
+                  FocusTraversalGroup(
+                    policy: WidgetOrderTraversalPolicy(),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      clipBehavior: Clip.none,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          for (int i = 0; i < profiles.length; i++) ...[
+                            _ProfileCard(
+                              profile: profiles[i],
+                              isManaging: _isManaging,
+                              isTv: isTv,
+                              autofocus: activeProfile != null
+                                  ? profiles[i].id == activeProfile.id
+                                  : (i == 0),
+                              onTap: () => _selectProfile(profiles[i]),
+                            ),
+                            SizedBox(width: isTv ? 32 : 24),
+                          ],
+                          if (profiles.length < 5)
+                            _AddProfileCard(
+                              isTv: isTv,
+                              onTap: _showAddProfileDialog,
+                            ),
+                        ],
                       ),
                     ),
-                    if (profiles.length < 5)
-                      _AddProfileCard(onTap: _showAddProfileDialog),
-                  ],
-                ),
-              ],
+                  ),
+                  SizedBox(height: isTv ? 52 : 38),
+                  _ManageProfilesButton(
+                    isManaging: _isManaging,
+                    isTv: isTv,
+                    onTap: () => setState(() => _isManaging = !_isManaging),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -913,11 +945,15 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
 class _ProfileCard extends StatefulWidget {
   final UserProfile profile;
   final bool isManaging;
+  final bool isTv;
+  final bool autofocus;
   final VoidCallback onTap;
 
   const _ProfileCard({
     required this.profile,
     required this.isManaging,
+    this.isTv = false,
+    this.autofocus = false,
     required this.onTap,
   });
 
@@ -926,109 +962,225 @@ class _ProfileCard extends StatefulWidget {
 }
 
 class _ProfileCardState extends State<_ProfileCard> {
+  bool _isFocused = false;
   bool _isHovered = false;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode(debugLabel: 'profile_${widget.profile.id}');
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  void _onFocusChange() {
+    if (mounted) setState(() => _isFocused = _focusNode.hasFocus);
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final avatar = ProfileAvatars.get(widget.profile.avatarId);
+    final cardSize = widget.isTv ? 132.0 : 104.0;
 
     return FocusableActionDetector(
+      focusNode: _focusNode,
+      autofocus: widget.autofocus,
+      onShowFocusHighlight: (val) => setState(() => _isFocused = val),
       onShowHoverHighlight: (val) => setState(() => _isHovered = val),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedScale(
-          scale: _isHovered ? 1.06 : 1.0,
-          duration: const Duration(milliseconds: 180),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Stack(
-                alignment: Alignment.center,
+      actions: <Type, Action<Intent>>{
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) {
+            widget.onTap();
+            return null;
+          },
+        ),
+      },
+      child: Focus(
+        canRequestFocus: false,
+        skipTraversal: true,
+        onKeyEvent: (node, event) {
+          if (event is KeyDownEvent) {
+            final key = event.logicalKey;
+            if (key == LogicalKeyboardKey.select ||
+                key == LogicalKeyboardKey.enter ||
+                key == LogicalKeyboardKey.numpadEnter ||
+                key == LogicalKeyboardKey.space) {
+              widget.onTap();
+              return KeyEventResult.handled;
+            }
+          }
+          return KeyEventResult.ignored;
+        },
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            _focusNode.requestFocus();
+            widget.onTap();
+          },
+          child: AnimatedScale(
+            scale: _isFocused ? 1.15 : (_isHovered ? 1.08 : 1.0),
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            child: AnimatedOpacity(
+              opacity: _isFocused ? 1.0 : (_isHovered ? 0.95 : 0.70),
+              duration: const Duration(milliseconds: 200),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: avatar.gradientColors,
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(22),
-                      boxShadow: [
-                        BoxShadow(
-                          color: avatar.gradientColors.first.withValues(
-                            alpha: _isHovered ? 0.45 : 0.2,
-                          ),
-                          blurRadius: _isHovered ? 18 : 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                      border: _isHovered
-                          ? Border.all(color: Colors.white, width: 2.5)
-                          : Border.all(
-                              color: Colors.white.withValues(alpha: 0.12),
-                              width: 1.5,
-                            ),
-                    ),
-                    child: Icon(avatar.icon, color: Colors.white, size: 48),
-                  ),
-                  if (widget.isManaging)
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.55),
-                        borderRadius: BorderRadius.circular(22),
-                      ),
-                      child: const Icon(
-                        Icons.edit_rounded,
-                        color: Colors.white,
-                        size: 30,
-                      ),
-                    ),
-                  if (widget.profile.pin != null)
-                    Positioned(
-                      bottom: 6,
-                      right: 6,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
+                  Stack(
+                    alignment: Alignment.center,
+                    clipBehavior: Clip.none,
+                    children: [
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeOutCubic,
+                        width: cardSize,
+                        height: cardSize,
                         decoration: BoxDecoration(
-                          color: Colors.black87,
-                          borderRadius: BorderRadius.circular(8),
+                          gradient: LinearGradient(
+                            colors: avatar.gradientColors,
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius:
+                              BorderRadius.circular(widget.isTv ? 28 : 22),
+                          boxShadow: [
+                            if (_isFocused) ...[
+                              BoxShadow(
+                                color: const Color(0xFF6366F1).withValues(
+                                  alpha: 0.85,
+                                ),
+                                blurRadius: 32,
+                                spreadRadius: 4,
+                              ),
+                              BoxShadow(
+                                color: const Color(0xFF06B6D4).withValues(
+                                  alpha: 0.50,
+                                ),
+                                blurRadius: 44,
+                                spreadRadius: 8,
+                              ),
+                              const BoxShadow(
+                                color: Colors.white38,
+                                blurRadius: 18,
+                                spreadRadius: 2,
+                              ),
+                            ] else ...[
+                              BoxShadow(
+                                color: avatar.gradientColors.first.withValues(
+                                  alpha: _isHovered ? 0.45 : 0.20,
+                                ),
+                                blurRadius: _isHovered ? 18 : 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ],
+                          border: _isFocused
+                              ? Border.all(color: Colors.white, width: 3.5)
+                              : (_isHovered
+                                  ? Border.all(color: Colors.white, width: 2.5)
+                                  : Border.all(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.16,
+                                      ),
+                                      width: 1.5,
+                                    )),
                         ),
-                        child: const Icon(
-                          Icons.lock_rounded,
-                          color: Colors.white70,
-                          size: 12,
+                        child: Icon(
+                          avatar.icon,
+                          color: Colors.white,
+                          size: widget.isTv ? 60 : 48,
+                        ),
+                      ),
+                      if (widget.isManaging)
+                        Container(
+                          width: cardSize,
+                          height: cardSize,
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.58),
+                            borderRadius:
+                                BorderRadius.circular(widget.isTv ? 28 : 22),
+                          ),
+                          child: Icon(
+                            Icons.edit_rounded,
+                            color: Colors.white,
+                            size: widget.isTv ? 38 : 30,
+                          ),
+                        ),
+                      if (widget.profile.pin != null)
+                        Positioned(
+                          bottom: 8,
+                          right: 8,
+                          child: Container(
+                            padding: const EdgeInsets.all(5),
+                            decoration: BoxDecoration(
+                              color: Colors.black87,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.lock_rounded,
+                              color: Colors.white70,
+                              size: 14,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  SizedBox(height: widget.isTv ? 16 : 12),
+                  Text(
+                    widget.profile.name,
+                    style: TextStyle(
+                      color: _isFocused
+                          ? Colors.white
+                          : (_isHovered ? Colors.white : Colors.white70),
+                      fontSize: widget.isTv ? 18 : 15,
+                      fontWeight:
+                          _isFocused ? FontWeight.w800 : FontWeight.w600,
+                      letterSpacing: _isFocused ? 0.3 : 0,
+                    ),
+                  ),
+                  if (_isFocused)
+                    Container(
+                      margin: const EdgeInsets.only(top: 6),
+                      width: 26,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF818CF8),
+                        borderRadius: BorderRadius.circular(2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF818CF8).withValues(
+                              alpha: 0.85,
+                            ),
+                            blurRadius: 8,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                    )
+                  else if (widget.profile.feedMode != 'all')
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        widget.profile.feedMode.toUpperCase(),
+                        style: const TextStyle(
+                          color: Color(0xFF818CF8),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
                         ),
                       ),
                     ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Text(
-                widget.profile.name,
-                style: TextStyle(
-                  color: _isHovered ? Colors.white : Colors.white70,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              if (widget.profile.feedMode != 'all')
-                Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Text(
-                    widget.profile.feedMode.toUpperCase(),
-                    style: const TextStyle(
-                      color: Color(0xFF818CF8),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ),
-            ],
+            ),
           ),
         ),
       ),
@@ -1037,56 +1189,288 @@ class _ProfileCardState extends State<_ProfileCard> {
 }
 
 class _AddProfileCard extends StatefulWidget {
+  final bool isTv;
   final VoidCallback onTap;
 
-  const _AddProfileCard({required this.onTap});
+  const _AddProfileCard({
+    this.isTv = false,
+    required this.onTap,
+  });
 
   @override
   State<_AddProfileCard> createState() => _AddProfileCardState();
 }
 
 class _AddProfileCardState extends State<_AddProfileCard> {
+  bool _isFocused = false;
   bool _isHovered = false;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode(debugLabel: 'add_profile_card');
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  void _onFocusChange() {
+    if (mounted) setState(() => _isFocused = _focusNode.hasFocus);
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cardSize = widget.isTv ? 132.0 : 104.0;
+
+    return FocusableActionDetector(
+      focusNode: _focusNode,
+      onShowFocusHighlight: (val) => setState(() => _isFocused = val),
+      onShowHoverHighlight: (val) => setState(() => _isHovered = val),
+      actions: <Type, Action<Intent>>{
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) {
+            widget.onTap();
+            return null;
+          },
+        ),
+      },
+      child: Focus(
+        canRequestFocus: false,
+        skipTraversal: true,
+        onKeyEvent: (node, event) {
+          if (event is KeyDownEvent) {
+            final key = event.logicalKey;
+            if (key == LogicalKeyboardKey.select ||
+                key == LogicalKeyboardKey.enter ||
+                key == LogicalKeyboardKey.numpadEnter ||
+                key == LogicalKeyboardKey.space) {
+              widget.onTap();
+              return KeyEventResult.handled;
+            }
+          }
+          return KeyEventResult.ignored;
+        },
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            _focusNode.requestFocus();
+            widget.onTap();
+          },
+          child: AnimatedScale(
+            scale: _isFocused ? 1.15 : (_isHovered ? 1.08 : 1.0),
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            child: AnimatedOpacity(
+              opacity: _isFocused ? 1.0 : (_isHovered ? 0.95 : 0.70),
+              duration: const Duration(milliseconds: 200),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOutCubic,
+                    width: cardSize,
+                    height: cardSize,
+                    decoration: BoxDecoration(
+                      color: _isFocused
+                          ? const Color(0xFF6366F1).withValues(alpha: 0.22)
+                          : Colors.white.withValues(alpha: 0.05),
+                      borderRadius:
+                          BorderRadius.circular(widget.isTv ? 28 : 22),
+                      boxShadow: _isFocused
+                          ? [
+                              BoxShadow(
+                                color: const Color(0xFF6366F1).withValues(
+                                  alpha: 0.65,
+                                ),
+                                blurRadius: 28,
+                                spreadRadius: 3,
+                              ),
+                              const BoxShadow(
+                                color: Colors.white30,
+                                blurRadius: 16,
+                                spreadRadius: 2,
+                              ),
+                            ]
+                          : null,
+                      border: _isFocused
+                          ? Border.all(color: Colors.white, width: 3.5)
+                          : Border.all(
+                              color:
+                                  _isHovered ? Colors.white70 : Colors.white24,
+                              width: 1.5,
+                            ),
+                    ),
+                    child: Icon(
+                      Icons.add_rounded,
+                      color: (_isFocused || _isHovered)
+                          ? Colors.white
+                          : Colors.white60,
+                      size: widget.isTv ? 48 : 40,
+                    ),
+                  ),
+                  SizedBox(height: widget.isTv ? 16 : 12),
+                  Text(
+                    'Add Profile',
+                    style: TextStyle(
+                      color: (_isFocused || _isHovered)
+                          ? Colors.white
+                          : Colors.white60,
+                      fontSize: widget.isTv ? 18 : 15,
+                      fontWeight:
+                          _isFocused ? FontWeight.w700 : FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ManageProfilesButton extends StatefulWidget {
+  final bool isManaging;
+  final bool isTv;
+  final VoidCallback onTap;
+
+  const _ManageProfilesButton({
+    required this.isManaging,
+    this.isTv = false,
+    required this.onTap,
+  });
+
+  @override
+  State<_ManageProfilesButton> createState() => _ManageProfilesButtonState();
+}
+
+class _ManageProfilesButtonState extends State<_ManageProfilesButton> {
+  bool _isFocused = false;
+  bool _isHovered = false;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode(debugLabel: 'manage_profiles_button');
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  void _onFocusChange() {
+    if (mounted) setState(() => _isFocused = _focusNode.hasFocus);
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return FocusableActionDetector(
+      focusNode: _focusNode,
+      onShowFocusHighlight: (val) => setState(() => _isFocused = val),
       onShowHoverHighlight: (val) => setState(() => _isHovered = val),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedScale(
-          scale: _isHovered ? 1.06 : 1.0,
-          duration: const Duration(milliseconds: 180),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.04),
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(
-                    color: _isHovered ? Colors.white70 : Colors.white24,
-                    width: 1.5,
+      actions: <Type, Action<Intent>>{
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) {
+            widget.onTap();
+            return null;
+          },
+        ),
+      },
+      child: Focus(
+        canRequestFocus: false,
+        skipTraversal: true,
+        onKeyEvent: (node, event) {
+          if (event is KeyDownEvent) {
+            final key = event.logicalKey;
+            if (key == LogicalKeyboardKey.select ||
+                key == LogicalKeyboardKey.enter ||
+                key == LogicalKeyboardKey.numpadEnter ||
+                key == LogicalKeyboardKey.space) {
+              widget.onTap();
+              return KeyEventResult.handled;
+            }
+          }
+          return KeyEventResult.ignored;
+        },
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            _focusNode.requestFocus();
+            widget.onTap();
+          },
+          child: AnimatedScale(
+            scale: _isFocused ? 1.08 : (_isHovered ? 1.04 : 1.0),
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              padding: EdgeInsets.symmetric(
+                horizontal: widget.isTv ? 28 : 22,
+                vertical: widget.isTv ? 14 : 10,
+              ),
+              decoration: BoxDecoration(
+                color: _isFocused
+                    ? const Color(0xFF6366F1).withValues(alpha: 0.35)
+                    : (_isHovered
+                        ? Colors.white.withValues(alpha: 0.12)
+                        : Colors.white.withValues(alpha: 0.06)),
+                borderRadius: BorderRadius.circular(30),
+                border: _isFocused
+                    ? Border.all(color: Colors.white, width: 2.5)
+                    : Border.all(
+                        color: _isHovered
+                            ? Colors.white60
+                            : Colors.white.withValues(alpha: 0.22),
+                        width: 1.2,
+                      ),
+                boxShadow: _isFocused
+                    ? [
+                        BoxShadow(
+                          color:
+                              const Color(0xFF6366F1).withValues(alpha: 0.50),
+                          blurRadius: 20,
+                          spreadRadius: 2,
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    widget.isManaging
+                        ? Icons.check_circle_rounded
+                        : Icons.edit_rounded,
+                    size: widget.isTv ? 20 : 16,
+                    color: _isFocused ? Colors.white : const Color(0xFFA5B4FC),
                   ),
-                ),
-                child: Icon(
-                  Icons.add_rounded,
-                  color: _isHovered ? Colors.white : Colors.white54,
-                  size: 40,
-                ),
+                  const SizedBox(width: 8),
+                  Text(
+                    widget.isManaging ? 'Done Managing' : 'Manage Profiles',
+                    style: TextStyle(
+                      color:
+                          _isFocused ? Colors.white : const Color(0xFFA5B4FC),
+                      fontSize: widget.isTv ? 16 : 14,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              Text(
-                'Add Profile',
-                style: TextStyle(
-                  color: _isHovered ? Colors.white : Colors.white54,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

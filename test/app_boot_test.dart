@@ -34,6 +34,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:skystream/core/data/models/github_release.dart';
 import 'package:skystream/core/domain/entity/multimedia_item.dart';
 import 'package:skystream/core/extensions/base_provider.dart';
 import 'package:skystream/core/extensions/extension_manager.dart';
@@ -163,7 +164,10 @@ class _NoopUpdateController extends UpdateController {
   UpdateState build() => UpdateInitial();
 
   @override
-  Future<void> checkForUpdates() async {}
+  Future<GithubRelease?> checkForUpdates({
+    bool manual = false,
+    bool force = false,
+  }) async => null;
 }
 
 void main() {

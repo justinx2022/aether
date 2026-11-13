@@ -17,7 +17,9 @@ import 'app_version_provider.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
 
 import '../../../core/providers/locale_provider.dart';
+import '../../../core/providers/update_provider.dart';
 import '../../../core/router/app_router.dart';
+import '../../../core/widgets/update_dialog.dart';
 import 'cache_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -100,7 +102,12 @@ class SettingsScreen extends ConsumerWidget {
                 const SizedBox(height: LayoutConstants.spacingLg),
                 _buildAppDataSettingsGroup(context, ref, l10n),
                 const SizedBox(height: LayoutConstants.spacingLg),
-                _buildAboutSettingsGroup(context, l10n, versionAsync),
+                _buildAboutSettingsGroup(
+                  context,
+                  ref,
+                  l10n,
+                  versionAsync,
+                ),
               ],
             ),
           ),
@@ -299,9 +306,13 @@ class SettingsScreen extends ConsumerWidget {
 
   Widget _buildAboutSettingsGroup(
     BuildContext context,
+    WidgetRef ref,
     AppLocalizations l10n,
     AsyncValue<String> versionAsync,
   ) {
+    final updateState = ref.watch(updateControllerProvider);
+    final isCheckingUpdates = updateState is UpdateChecking;
+
     return SettingsGroup(
       title: l10n.about,
       children: [
@@ -320,7 +331,91 @@ class SettingsScreen extends ConsumerWidget {
             error: (err, stack) => l10n.unknown,
           ),
           trailing: const SizedBox.shrink(),
+        ),
+        SettingsTile(
+          icon: Icons.system_update_rounded,
+          title: 'Check for Updates',
+          subtitle: isCheckingUpdates
+              ? 'Checking GitHub releases...'
+              : 'Scan for new builds and auto-update in place',
+          trailing: isCheckingUpdates
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2.2),
+                )
+              : null,
           isLast: true,
+          onTap: () async {
+            if (isCheckingUpdates) return;
+            final release = await ref
+                .read(updateControllerProvider.notifier)
+                .checkForUpdates(manual: true);
+            if (!context.mounted) return;
+            if (release != null) {
+              await UpdateDialog.show(context, release);
+            } else {
+              await showDialog<void>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  backgroundColor: const Color(0xFF0F121C),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                    side: const BorderSide(color: Color(0xFF1E2638), width: 1),
+                  ),
+                  title: const Row(
+                    children: [
+                      Icon(Icons.check_circle_rounded, color: Color(0xFF10B981)),
+                      SizedBox(width: 10),
+                      Text(
+                        'App Up to Date',
+                        style: TextStyle(color: Colors.white, fontSize: 18),
+                      ),
+                    ],
+                  ),
+                  content: Text(
+                    'You are running the latest version (${versionAsync.asData?.value ?? '2.8.1'}).\n\nWould you like to force download and reinstall the latest GitHub release?',
+                    style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text(
+                        'OK',
+                        style: TextStyle(color: Colors.white60),
+                      ),
+                    ),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6366F1),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      icon: const Icon(
+                        Icons.download_rounded,
+                        size: 16,
+                        color: Colors.white,
+                      ),
+                      label: const Text(
+                        'Reinstall Build',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        final forcedRelease = await ref
+                            .read(updateControllerProvider.notifier)
+                            .checkForUpdates(manual: true, force: true);
+                        if (context.mounted && forcedRelease != null) {
+                          await UpdateDialog.show(context, forcedRelease);
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              );
+            }
+          },
         ),
       ],
     );
