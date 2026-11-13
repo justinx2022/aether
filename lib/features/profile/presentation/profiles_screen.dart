@@ -59,6 +59,24 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
           keyboardType: TextInputType.number,
           maxLength: 4,
           autofocus: true,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) {
+            if (controller.text == profile.pin) {
+              Navigator.pop(ctx);
+              ref
+                  .read(profileControllerProvider.notifier)
+                  .selectProfile(profile);
+              if (widget.isSwitching && context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/home');
+              }
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Incorrect PIN. Try again.')),
+              );
+            }
+          },
           style: const TextStyle(
             color: Colors.white,
             letterSpacing: 8,
@@ -159,6 +177,11 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                   TextField(
                     controller: nameController,
                     autofocus: true,
+                    textInputAction: TextInputAction.next,
+                    onSubmitted: (_) {
+                      FocusScope.of(ctx).unfocus();
+                      FocusScope.of(ctx).nextFocus();
+                    },
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       labelText: 'Profile Name',
@@ -489,6 +512,11 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                 children: [
                   TextField(
                     controller: nameController,
+                    textInputAction: TextInputAction.next,
+                    onSubmitted: (_) {
+                      FocusScope.of(ctx).unfocus();
+                      FocusScope.of(ctx).nextFocus();
+                    },
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       labelText: 'Profile Name',

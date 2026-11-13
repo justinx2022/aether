@@ -293,6 +293,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
         // dialog, so bail out if we got unmounted before moving focus.
         widget.onSubmitted?.call(value);
         if (mounted) {
+          FocusScope.of(context).unfocus();
           _focusNode.nextFocus();
         }
       },

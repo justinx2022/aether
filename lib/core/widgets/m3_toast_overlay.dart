@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:skystream/core/providers/device_info_provider.dart';
 import 'package:skystream/core/router/app_router.dart';
 import 'package:skystream/core/services/notification_service.dart';
 
@@ -107,6 +108,12 @@ class _M3ToastOverlayState extends ConsumerState<M3ToastOverlay> {
                                   _M3ToastCard(
                                     key: ValueKey(toasts[i].id),
                                     item: toasts[i],
+                                    isTv: ref
+                                            .watch(deviceProfileProvider)
+                                            .asData
+                                            ?.value
+                                            .isTv ??
+                                        false,
                                     onDismiss: () => notificationService
                                         .dismissToast(toasts[i].id),
                                     onHoverStart: () => notificationService
@@ -137,6 +144,7 @@ class _M3ToastCard extends StatefulWidget {
   final VoidCallback onDismiss;
   final VoidCallback onHoverStart;
   final VoidCallback onHoverEnd;
+  final bool isTv;
 
   const _M3ToastCard({
     super.key,
@@ -144,6 +152,7 @@ class _M3ToastCard extends StatefulWidget {
     required this.onDismiss,
     required this.onHoverStart,
     required this.onHoverEnd,
+    this.isTv = false,
   });
 
   @override
@@ -248,12 +257,14 @@ class _M3ToastCardState extends State<_M3ToastCard>
   }
 
   void _hoverStart() {
+    if (widget.isTv) return;
     if (_hovered) return;
     _hovered = true;
     widget.onHoverStart();
   }
 
   void _hoverEnd() {
+    if (widget.isTv) return;
     if (!_hovered) return;
     _hovered = false;
     widget.onHoverEnd();

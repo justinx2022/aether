@@ -23,15 +23,31 @@ KeyEventResult remoteTextFieldKeys(FocusNode node, KeyEvent event) {
     return KeyEventResult.ignored;
   }
   final context = node.context;
-  if (context == null || !context.mounted || _keyboardUp(context)) {
+  if (context == null || !context.mounted) {
     return KeyEventResult.ignored;
   }
+
   final key = event.logicalKey;
-  if (key == LogicalKeyboardKey.arrowDown || key == LogicalKeyboardKey.arrowUp) {
+
+  // On TV remote, pressing Back / Escape while typing should dismiss keyboard and unfocus
+  if (key == LogicalKeyboardKey.escape || key == LogicalKeyboardKey.goBack) {
+    if (node.hasFocus) {
+      node.unfocus();
+      return KeyEventResult.handled;
+    }
+  }
+
+  if (_keyboardUp(context)) {
+    return KeyEventResult.ignored;
+  }
+
+  if (key == LogicalKeyboardKey.arrowDown ||
+      key == LogicalKeyboardKey.arrowUp ||
+      key == LogicalKeyboardKey.tab) {
     node.focusInDirection(
-      key == LogicalKeyboardKey.arrowDown
-          ? TraversalDirection.down
-          : TraversalDirection.up,
+      (key == LogicalKeyboardKey.arrowUp)
+          ? TraversalDirection.up
+          : TraversalDirection.down,
     );
     return KeyEventResult.handled;
   }

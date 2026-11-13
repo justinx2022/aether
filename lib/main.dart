@@ -426,6 +426,7 @@ class _MyAppState extends ConsumerState<MyApp> {
         message: toast.message,
         type: ToastType.extension,
         icon: Icons.extension_rounded,
+        duration: const Duration(seconds: 3),
       );
     }
   }
@@ -471,6 +472,11 @@ class _MyAppState extends ConsumerState<MyApp> {
         final lightScheme = dynamicPalette ? lightDynamic : null;
         final darkScheme = dynamicPalette ? darkDynamic : null;
 
+        final isTv = profileAsync.asData?.value.isTv ?? false;
+        final disableGlass = isTv || Platform.isWindows;
+        final useLiquidGlass = isTv ? false : customization.liquidGlass;
+        final glassPerf = customization.glassPerformance || disableGlass;
+
         final materialApp = MaterialApp.router(
           scaffoldMessengerKey: ref
               .read(notificationServiceProvider)
@@ -484,8 +490,8 @@ class _MyAppState extends ConsumerState<MyApp> {
             surface: customization.surface,
             backdrop: customization.backdrop,
             world: world,
-            liquidGlass: customization.liquidGlass,
-            glassPerformance: customization.glassPerformance || Platform.isWindows,
+            liquidGlass: useLiquidGlass,
+            glassPerformance: glassPerf,
           ),
           darkTheme: AppTheme.createDarkTheme(
             darkScheme,
@@ -493,8 +499,8 @@ class _MyAppState extends ConsumerState<MyApp> {
             surface: customization.surface,
             backdrop: customization.backdrop,
             world: world,
-            liquidGlass: customization.liquidGlass,
-            glassPerformance: customization.glassPerformance || Platform.isWindows,
+            liquidGlass: useLiquidGlass,
+            glassPerformance: glassPerf,
           ),
           scrollBehavior: const NoScrollbarBehavior(),
           routerConfig: appRouter,

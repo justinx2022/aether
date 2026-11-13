@@ -998,6 +998,11 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _focusNode.requestFocus();
+      }
+    });
 
     if (!kIsWeb && Platform.isAndroid) {
       try {
@@ -3207,8 +3212,11 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
+    final key = event.logicalKey;
+
     if (_isScreenLocked) {
-      if (event.logicalKey == LogicalKeyboardKey.escape) {
+      if (key == LogicalKeyboardKey.escape ||
+          key == LogicalKeyboardKey.goBack) {
         setState(() {
           _isScreenLocked = false;
           _showUnlockButton = false;
@@ -3220,26 +3228,79 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
       return KeyEventResult.handled;
     }
 
-    if (event.logicalKey == LogicalKeyboardKey.space) {
+    // 1. Play / Pause & Activation (Space, Remote OK/Center, Enter, Gamepad A, Media Play/Pause)
+    if (key == LogicalKeyboardKey.space ||
+        key == LogicalKeyboardKey.select ||
+        key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter ||
+        key == LogicalKeyboardKey.gameButtonA ||
+        key == LogicalKeyboardKey.mediaPlayPause) {
       _togglePlayPause();
       return KeyEventResult.handled;
-    } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+    }
+
+    if (key == LogicalKeyboardKey.mediaPlay) {
+      _player.play();
+      _onUserActivity();
+      return KeyEventResult.handled;
+    }
+
+    if (key == LogicalKeyboardKey.mediaPause) {
+      _player.pause();
+      _onUserActivity();
+      return KeyEventResult.handled;
+    }
+
+    // 2. Seek Left / Right & Fast-Forward / Rewind
+    if (key == LogicalKeyboardKey.arrowRight ||
+        key == LogicalKeyboardKey.mediaFastForward) {
       _seekRelative(_seekStep);
+      _onUserActivity();
       return KeyEventResult.handled;
-    } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+    } else if (key == LogicalKeyboardKey.arrowLeft ||
+        key == LogicalKeyboardKey.mediaRewind) {
       _seekRelative(-_seekStep);
+      _onUserActivity();
       return KeyEventResult.handled;
-    } else if (event.logicalKey == LogicalKeyboardKey.keyF) {
-      _toggleFullscreen();
-      return KeyEventResult.handled;
-    } else if (event.logicalKey == LogicalKeyboardKey.escape) {
-      if (_isFullscreen) {
-        _toggleFullscreen();
-      } else {
-        _exitPlayer();
+    }
+
+    // 3. Up / Down on TV Remote (reveals controls HUD)
+    if (key == LogicalKeyboardKey.arrowUp ||
+        key == LogicalKeyboardKey.arrowDown) {
+      if (!_controlsVisible) {
+        _onUserActivity();
+        return KeyEventResult.handled;
+      }
+    }
+
+    // 4. Track Next / Episode Next
+    if (key == LogicalKeyboardKey.mediaTrackNext) {
+      if (_hasNextEpisode) {
+        _advance();
       }
       return KeyEventResult.handled;
     }
+
+    // 5. Fullscreen toggle
+    if (key == LogicalKeyboardKey.keyF) {
+      _toggleFullscreen();
+      return KeyEventResult.handled;
+    }
+
+    // 6. Back / Escape button (Dismisses HUD if open, or exits player)
+    if (key == LogicalKeyboardKey.escape || key == LogicalKeyboardKey.goBack) {
+      if (_controlsVisible) {
+        setState(() => _controlsVisible = false);
+        return KeyEventResult.handled;
+      }
+      if (_isFullscreen) {
+        _toggleFullscreen();
+        return KeyEventResult.handled;
+      }
+      _exitPlayer();
+      return KeyEventResult.handled;
+    }
+
     return KeyEventResult.ignored;
   }
 

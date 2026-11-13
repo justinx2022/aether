@@ -78,14 +78,16 @@ class AppBackdropLayer extends StatelessWidget {
             child: IgnorePointer(
               child: DecoratedBox(
                 decoration: BoxDecoration(gradient: gradient),
-                child: CustomPaint(
-                  painter: SpaceBackdropPainter(
-                    backdrop: backdrop,
-                    brightness: theme.brightness,
-                    accent: theme.colorScheme.primary,
-                  ),
-                  child: const SizedBox.expand(),
-                ),
+                child: tokens?.glassPerformance == true
+                    ? const SizedBox.expand()
+                    : CustomPaint(
+                        painter: SpaceBackdropPainter(
+                          backdrop: backdrop,
+                          brightness: theme.brightness,
+                          accent: theme.colorScheme.primary,
+                        ),
+                        child: const SizedBox.expand(),
+                      ),
               ),
             ),
           ),
