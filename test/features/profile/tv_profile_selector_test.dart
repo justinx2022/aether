@@ -58,7 +58,7 @@ void main() {
   final testProfiles = [
     UserProfile(
       id: 'profile_1',
-      name: 'Justin',
+      name: 'User',
       avatarId: ProfileAvatars.all.first.id,
       createdAt: DateTime(2026),
     ),
@@ -90,7 +90,7 @@ void main() {
 
         expect(find.text('Who is watching?'), findsOneWidget);
         expect(find.text('A E T H E R'), findsOneWidget);
-        expect(find.text('Justin'), findsOneWidget);
+        expect(find.text('User'), findsOneWidget);
         expect(find.text('Kids'), findsOneWidget);
 
         // Find the focused AnimatedScale (first card is autofocused at 1.15x scale)

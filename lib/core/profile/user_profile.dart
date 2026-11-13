@@ -66,7 +66,7 @@ class UserProfile {
 
     return UserProfile(
       id: map['id'] as String? ?? 'default_profile',
-      name: map['name'] as String? ?? 'Comrade',
+      name: map['name'] as String? ?? 'User',
       avatarId: map['avatarId'] as String? ?? 'avatar_cinema',
       pin: map['pin'] as String?,
       isKids: map['isKids'] as bool? ?? false,

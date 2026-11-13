@@ -57,20 +57,37 @@ class ProfileController extends Notifier<ProfileState> {
       }
     }
 
+    // Auto-migrate legacy hardcoded developer profiles ('Justin' and 'Roommate')
+    var migrated = false;
+    loaded = loaded.map((p) {
+      final trimmedName = p.name.trim().toLowerCase();
+      if (trimmedName == 'justin' || (p.id == 'profile_default' && p.name == 'Justin')) {
+        migrated = true;
+        return p.copyWith(name: 'User');
+      }
+      if (trimmedName == 'roommate' || (p.id == 'profile_roomie' && p.name == 'Roommate')) {
+        migrated = true;
+        return p.copyWith(name: 'Guest');
+      }
+      return p;
+    }).toList();
+
     if (loaded.isEmpty) {
       final defaultProfile = UserProfile(
         id: 'profile_default',
-        name: 'Justin',
+        name: 'User',
         avatarId: 'avatar_cinema',
         createdAt: DateTime.now(),
       );
       final guestProfile = UserProfile(
-        id: 'profile_roomie',
-        name: 'Roommate',
+        id: 'profile_guest',
+        name: 'Guest',
         avatarId: 'avatar_popcorn',
         createdAt: DateTime.now(),
       );
       loaded = [defaultProfile, guestProfile];
+      _saveProfiles(loaded);
+    } else if (migrated) {
       _saveProfiles(loaded);
     }
 
@@ -107,7 +124,7 @@ class ProfileController extends Notifier<ProfileState> {
   }) async {
     final newProfile = UserProfile(
       id: 'profile_${DateTime.now().millisecondsSinceEpoch}',
-      name: name.trim().isEmpty ? 'Comrade' : name.trim(),
+      name: name.trim().isEmpty ? 'User' : name.trim(),
       avatarId: avatarId,
       pin: pin?.isNotEmpty == true ? pin : null,
       isKids: isKids,
