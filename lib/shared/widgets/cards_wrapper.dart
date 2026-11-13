@@ -271,9 +271,15 @@ class _CardsWrapperState extends State<CardsWrapper>
       focusNode: _node,
       onFocusChange: _onFocusChange,
       onKeyEvent: (node, event) {
-        if (event.logicalKey == LogicalKeyboardKey.select ||
-            event.logicalKey == LogicalKeyboardKey.enter ||
-            event.logicalKey == LogicalKeyboardKey.space) {
+        final key = event.logicalKey;
+        final isActivationKey = key == LogicalKeyboardKey.select ||
+            key == LogicalKeyboardKey.enter ||
+            key == LogicalKeyboardKey.numpadEnter ||
+            key == LogicalKeyboardKey.space ||
+            key == LogicalKeyboardKey.gameButtonA ||
+            key == LogicalKeyboardKey.gameButtonSelect ||
+            key == LogicalKeyboardKey.gameButtonStart;
+        if (isActivationKey) {
           if (event is KeyDownEvent) {
             if (widget.onLongPress == null) {
               // No long-press handler — fire tap immediately.
@@ -306,7 +312,22 @@ class _CardsWrapperState extends State<CardsWrapper>
         }
         return KeyEventResult.ignored;
       },
-      child: MouseRegion(
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          ActivateIntent: CallbackAction<ActivateIntent>(
+            onInvoke: (_) {
+              widget.onTap();
+              return null;
+            },
+          ),
+          ButtonActivateIntent: CallbackAction<ButtonActivateIntent>(
+            onInvoke: (_) {
+              widget.onTap();
+              return null;
+            },
+          ),
+        },
+        child: MouseRegion(
         onEnter: (_) => _onHover(true),
         onExit: (_) => _onHover(false),
         // No title exists at this level; the child's own text merges into this
@@ -352,6 +373,7 @@ class _CardsWrapperState extends State<CardsWrapper>
               },
             ),
           ),
+        ),
         ),
       ),
     );

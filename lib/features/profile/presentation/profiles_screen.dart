@@ -992,10 +992,16 @@ class _ProfileCardState extends State<_ProfileCard> {
     return FocusableActionDetector(
       focusNode: _focusNode,
       autofocus: widget.autofocus,
-      onShowFocusHighlight: (val) => setState(() => _isFocused = val),
+      onShowFocusHighlight: (val) => setState(() => _isFocused = _focusNode.hasFocus || val),
       onShowHoverHighlight: (val) => setState(() => _isHovered = val),
       actions: <Type, Action<Intent>>{
         ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) {
+            widget.onTap();
+            return null;
+          },
+        ),
+        ButtonActivateIntent: CallbackAction<ButtonActivateIntent>(
           onInvoke: (_) {
             widget.onTap();
             return null;
@@ -1011,7 +1017,10 @@ class _ProfileCardState extends State<_ProfileCard> {
             if (key == LogicalKeyboardKey.select ||
                 key == LogicalKeyboardKey.enter ||
                 key == LogicalKeyboardKey.numpadEnter ||
-                key == LogicalKeyboardKey.space) {
+                key == LogicalKeyboardKey.space ||
+                key == LogicalKeyboardKey.gameButtonA ||
+                key == LogicalKeyboardKey.gameButtonSelect ||
+                key == LogicalKeyboardKey.gameButtonStart) {
               widget.onTap();
               return KeyEventResult.handled;
             }
@@ -1230,10 +1239,16 @@ class _AddProfileCardState extends State<_AddProfileCard> {
 
     return FocusableActionDetector(
       focusNode: _focusNode,
-      onShowFocusHighlight: (val) => setState(() => _isFocused = val),
+      onShowFocusHighlight: (val) => setState(() => _isFocused = _focusNode.hasFocus || val),
       onShowHoverHighlight: (val) => setState(() => _isHovered = val),
       actions: <Type, Action<Intent>>{
         ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) {
+            widget.onTap();
+            return null;
+          },
+        ),
+        ButtonActivateIntent: CallbackAction<ButtonActivateIntent>(
           onInvoke: (_) {
             widget.onTap();
             return null;
@@ -1249,7 +1264,10 @@ class _AddProfileCardState extends State<_AddProfileCard> {
             if (key == LogicalKeyboardKey.select ||
                 key == LogicalKeyboardKey.enter ||
                 key == LogicalKeyboardKey.numpadEnter ||
-                key == LogicalKeyboardKey.space) {
+                key == LogicalKeyboardKey.space ||
+                key == LogicalKeyboardKey.gameButtonA ||
+                key == LogicalKeyboardKey.gameButtonSelect ||
+                key == LogicalKeyboardKey.gameButtonStart) {
               widget.onTap();
               return KeyEventResult.handled;
             }
@@ -1379,10 +1397,16 @@ class _ManageProfilesButtonState extends State<_ManageProfilesButton> {
   Widget build(BuildContext context) {
     return FocusableActionDetector(
       focusNode: _focusNode,
-      onShowFocusHighlight: (val) => setState(() => _isFocused = val),
+      onShowFocusHighlight: (val) => setState(() => _isFocused = _focusNode.hasFocus || val),
       onShowHoverHighlight: (val) => setState(() => _isHovered = val),
       actions: <Type, Action<Intent>>{
         ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) {
+            widget.onTap();
+            return null;
+          },
+        ),
+        ButtonActivateIntent: CallbackAction<ButtonActivateIntent>(
           onInvoke: (_) {
             widget.onTap();
             return null;
@@ -1398,7 +1422,10 @@ class _ManageProfilesButtonState extends State<_ManageProfilesButton> {
             if (key == LogicalKeyboardKey.select ||
                 key == LogicalKeyboardKey.enter ||
                 key == LogicalKeyboardKey.numpadEnter ||
-                key == LogicalKeyboardKey.space) {
+                key == LogicalKeyboardKey.space ||
+                key == LogicalKeyboardKey.gameButtonA ||
+                key == LogicalKeyboardKey.gameButtonSelect ||
+                key == LogicalKeyboardKey.gameButtonStart) {
               widget.onTap();
               return KeyEventResult.handled;
             }

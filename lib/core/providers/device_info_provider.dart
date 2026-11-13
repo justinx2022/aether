@@ -78,8 +78,26 @@ Future<DeviceProfile> deviceProfile(Ref ref) async {
         // density measures 960x540dp and 540 is under the tablet threshold
         // above. A phone verdict is what lets the player pin an orientation on
         // something that cannot rotate.
-        isTv = androidInfo.systemFeatures.contains('android.software.leanback') ||
-            androidInfo.systemFeatures.contains('android.hardware.type.television');
+        final features = androidInfo.systemFeatures;
+        final hasLeanback = features.contains('android.software.leanback');
+        final hasTvFeature = features.contains('android.hardware.type.television');
+        final hasNoTouch = !features.contains('android.hardware.touchscreen');
+        final model = androidInfo.model.toLowerCase();
+        final product = androidInfo.product.toLowerCase();
+        final brand = androidInfo.brand.toLowerCase();
+        final device = androidInfo.device.toLowerCase();
+        final isTvHardware = model.contains('tv') ||
+            product.contains('tv') ||
+            brand.contains('tv') ||
+            device.contains('tv') ||
+            model.contains('aft') ||
+            model.contains('shield') ||
+            model.contains('chromecast') ||
+            product.contains('mibox') ||
+            product.contains('aquos') ||
+            product.contains('bravia');
+
+        isTv = hasLeanback || hasTvFeature || hasNoTouch || isTvHardware;
         physicalRamMb = androidInfo.physicalRamSize;
         // Trust Android's own verdict first — ActivityManager.isLowRamDevice()
         // is set by the OEM and accounts for more than raw megabytes.
