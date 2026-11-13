@@ -282,6 +282,7 @@ class _ClassicMediaKitBottomBarState extends State<ClassicMediaKitBottomBar> {
         icon: widget.playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
         tooltip: widget.playing ? l10n.pause : l10n.play,
         isTv: widget.isTv,
+        autofocus: widget.isTv,
         onPressed: widget.onPlayPause,
       ),
       if (!widget.isLive) ...[

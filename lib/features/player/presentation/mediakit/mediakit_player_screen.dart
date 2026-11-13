@@ -977,6 +977,8 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   }
 
   final FocusNode _focusNode = FocusNode();
+  final FocusScopeNode _controlsFocusScopeNode =
+      FocusScopeNode(debugLabel: 'mediakit_controls_scope');
 
   ProviderContainer? _container;
 
@@ -2326,28 +2328,60 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
 
   void _startControlsTimer() {
     _hideControlsTimer?.cancel();
-    _hideControlsTimer = Timer(const Duration(seconds: 4), () {
+    _hideControlsTimer = Timer(const Duration(seconds: 5), () {
       if (mounted && _playing) {
         setState(() => _controlsVisible = false);
+        _focusNode.requestFocus();
       }
     });
   }
 
-  void _toggleControlsVisibility() {
+  void _toggleControlsVisibility({bool focusOnControls = false}) {
     setState(() => _controlsVisible = !_controlsVisible);
     if (_controlsVisible) {
       _startControlsTimer();
+      if (_isTv || focusOnControls) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _controlsVisible) {
+            _controlsFocusScopeNode.requestFocus();
+          }
+        });
+      }
     } else {
       _hideControlsTimer?.cancel();
+      _focusNode.requestFocus();
     }
   }
 
-  void _onUserActivity() {
+  void _showControls({bool focusOnControls = true}) {
     if (_isScreenLocked) return;
     if (!_controlsVisible) {
       setState(() => _controlsVisible = true);
     }
     _startControlsTimer();
+    if (_isTv && focusOnControls) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _controlsVisible) {
+          _controlsFocusScopeNode.requestFocus();
+        }
+      });
+    }
+  }
+
+  void _onUserActivity({bool focusOnControls = false}) {
+    if (_isScreenLocked) return;
+    final wasHidden = !_controlsVisible;
+    if (wasHidden) {
+      setState(() => _controlsVisible = true);
+    }
+    _startControlsTimer();
+    if (_isTv && (wasHidden || focusOnControls)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _controlsVisible) {
+          _controlsFocusScopeNode.requestFocus();
+        }
+      });
+    }
   }
 
   void _togglePlayPause() {
@@ -3204,6 +3238,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
       _player.dispose();
     } catch (_) {}
     try {
+      _controlsFocusScopeNode.dispose();
       _focusNode.dispose();
     } catch (_) {}
     super.dispose();
@@ -3228,30 +3263,84 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
       return KeyEventResult.handled;
     }
 
-    // 1. Play / Pause & Activation (Space, Remote OK/Center, Enter, Gamepad A, Media Play/Pause)
-    if (key == LogicalKeyboardKey.space ||
-        key == LogicalKeyboardKey.select ||
-        key == LogicalKeyboardKey.enter ||
-        key == LogicalKeyboardKey.numpadEnter ||
-        key == LogicalKeyboardKey.gameButtonA ||
-        key == LogicalKeyboardKey.mediaPlayPause) {
-      _togglePlayPause();
+    // 1. Back button behavior (Dismisses HUD if open, exits player otherwise)
+    if (key == LogicalKeyboardKey.escape || key == LogicalKeyboardKey.goBack) {
+      if (_controlsVisible) {
+        setState(() => _controlsVisible = false);
+        _focusNode.requestFocus();
+        return KeyEventResult.handled;
+      }
+      if (_isFullscreen) {
+        _toggleFullscreen();
+        return KeyEventResult.handled;
+      }
+      _exitPlayer();
       return KeyEventResult.handled;
     }
 
+    // 2. When controls HUD is visible:
+    if (_controlsVisible) {
+      _onUserActivity();
+
+      // If a child control inside the controls bar (e.g. Play, Audio, Subtitles, Episodes) has focus:
+      // LET FLUTTER HANDLE directional traversal (Left/Right/Up/Down) and activation (Select/Enter/Space)!
+      if (!node.hasPrimaryFocus) {
+        return KeyEventResult.ignored;
+      }
+
+      // If the root node still has primary focus while controls are visible on TV,
+      // any D-pad arrow or OK button transfers focus directly to the controls:
+      if (_isTv) {
+        if (key == LogicalKeyboardKey.select ||
+            key == LogicalKeyboardKey.enter ||
+            key == LogicalKeyboardKey.numpadEnter ||
+            key == LogicalKeyboardKey.gameButtonA ||
+            key == LogicalKeyboardKey.arrowDown ||
+            key == LogicalKeyboardKey.arrowUp ||
+            key == LogicalKeyboardKey.arrowLeft ||
+            key == LogicalKeyboardKey.arrowRight) {
+          _controlsFocusScopeNode.requestFocus();
+          return KeyEventResult.handled;
+        }
+      }
+    }
+
+    // 3. When controls are HIDDEN:
+    // Dedicated Media Keys:
+    if (key == LogicalKeyboardKey.mediaPlayPause) {
+      _togglePlayPause();
+      return KeyEventResult.handled;
+    }
     if (key == LogicalKeyboardKey.mediaPlay) {
       _player.play();
       _onUserActivity();
       return KeyEventResult.handled;
     }
-
     if (key == LogicalKeyboardKey.mediaPause) {
       _player.pause();
       _onUserActivity();
       return KeyEventResult.handled;
     }
+    if (key == LogicalKeyboardKey.mediaTrackNext) {
+      if (_hasNextEpisode) _advance();
+      return KeyEventResult.handled;
+    }
 
-    // 2. Seek Left / Right & Fast-Forward / Rewind
+    // On TV remote, pressing OK/Select/Space while controls are hidden reveals controls & focuses them:
+    if (key == LogicalKeyboardKey.space ||
+        key == LogicalKeyboardKey.select ||
+        key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter ||
+        key == LogicalKeyboardKey.gameButtonA) {
+      if (_isTv) {
+        _showControls(focusOnControls: true);
+      } else {
+        _togglePlayPause();
+      }
+      return KeyEventResult.handled;
+    }
+
+    // Seeking when controls are hidden:
     if (key == LogicalKeyboardKey.arrowRight ||
         key == LogicalKeyboardKey.mediaFastForward) {
       _seekRelative(_seekStep);
@@ -3264,40 +3353,15 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
       return KeyEventResult.handled;
     }
 
-    // 3. Up / Down on TV Remote (reveals controls HUD)
+    // Up / Down on TV Remote reveals controls and moves focus to controls:
     if (key == LogicalKeyboardKey.arrowUp ||
         key == LogicalKeyboardKey.arrowDown) {
-      if (!_controlsVisible) {
-        _onUserActivity();
-        return KeyEventResult.handled;
-      }
-    }
-
-    // 4. Track Next / Episode Next
-    if (key == LogicalKeyboardKey.mediaTrackNext) {
-      if (_hasNextEpisode) {
-        _advance();
-      }
+      _showControls(focusOnControls: true);
       return KeyEventResult.handled;
     }
 
-    // 5. Fullscreen toggle
     if (key == LogicalKeyboardKey.keyF) {
       _toggleFullscreen();
-      return KeyEventResult.handled;
-    }
-
-    // 6. Back / Escape button (Dismisses HUD if open, or exits player)
-    if (key == LogicalKeyboardKey.escape || key == LogicalKeyboardKey.goBack) {
-      if (_controlsVisible) {
-        setState(() => _controlsVisible = false);
-        return KeyEventResult.handled;
-      }
-      if (_isFullscreen) {
-        _toggleFullscreen();
-        return KeyEventResult.handled;
-      }
-      _exitPlayer();
       return KeyEventResult.handled;
     }
 
@@ -3309,7 +3373,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     final playerSettings = ref.watch(playerSettingsProvider).asData?.value;
     final stremioTheme = playerSettings?.stremioLoadScreen ?? true;
     final seamlessMode = playerSettings?.seamlessPlayback ?? true;
-    final useClassicUi = playerSettings?.useClassicPlayerUi ?? false;
+    final useClassicUi = _isTv || (playerSettings?.useClassicPlayerUi ?? false);
     // Watched, so a profile that resolves after the first frame - the usual
     // case on a television - re-lays the chrome out at ten-foot size.
     _form = playerFormFactorOf(ref.watch(deviceProfileProvider).asData?.value);
@@ -3828,13 +3892,16 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
       top: 0,
       left: 0,
       right: 0,
-      child: IgnorePointer(
-        ignoring: !visible,
-        child: AnimatedOpacity(
-          opacity: visible ? 1.0 : 0.0,
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
-          child: _buildTopBar(classicUi: classicUi),
+      child: ExcludeFocus(
+        excluding: !visible,
+        child: IgnorePointer(
+          ignoring: !visible,
+          child: AnimatedOpacity(
+            opacity: visible ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            child: _buildTopBar(classicUi: classicUi),
+          ),
         ),
       ),
     );
@@ -3842,20 +3909,23 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
 
   Widget _buildFadingCenterTransport({required bool visible}) {
     return Center(
-      child: IgnorePointer(
-        ignoring: !visible,
-        child: AnimatedOpacity(
-          opacity: visible ? 1.0 : 0.0,
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
-          child: LiquidGlassCenterTransport(
-            isPlaying: _playing,
-            isBuffering: _isBuffering,
-            seekStepSeconds: _seekStep,
-            isLive: isLiveSource(_item, _currentVideoUrl),
-            onPlayPause: _togglePlayPause,
-            onSeekBackward: () => _seekRelative(-_seekStep),
-            onSeekForward: () => _seekRelative(_seekStep),
+      child: ExcludeFocus(
+        excluding: !visible,
+        child: IgnorePointer(
+          ignoring: !visible,
+          child: AnimatedOpacity(
+            opacity: visible ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            child: LiquidGlassCenterTransport(
+              isPlaying: _playing,
+              isBuffering: _isBuffering,
+              seekStepSeconds: _seekStep,
+              isLive: isLiveSource(_item, _currentVideoUrl),
+              onPlayPause: _togglePlayPause,
+              onSeekBackward: () => _seekRelative(-_seekStep),
+              onSeekForward: () => _seekRelative(_seekStep),
+            ),
           ),
         ),
       ),
@@ -3870,13 +3940,19 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
       bottom: 0,
       left: 0,
       right: 0,
-      child: IgnorePointer(
-        ignoring: !visible,
-        child: AnimatedOpacity(
-          opacity: visible ? 1.0 : 0.0,
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
-          child: _buildBottomBar(classicUi: classicUi),
+      child: ExcludeFocus(
+        excluding: !visible,
+        child: IgnorePointer(
+          ignoring: !visible,
+          child: AnimatedOpacity(
+            opacity: visible ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            child: FocusScope(
+              node: _controlsFocusScopeNode,
+              child: _buildBottomBar(classicUi: classicUi),
+            ),
+          ),
         ),
       ),
     );

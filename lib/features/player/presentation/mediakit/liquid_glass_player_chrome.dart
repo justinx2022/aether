@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:skystream/core/theme/theme_presets.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
 
 import '../../../../shared/widgets/glass_surface.dart';
@@ -22,6 +24,11 @@ Future<T?> showLiquidGlassPlayerSheet<T>({
     builder: (ctx) {
       final bottomInset = MediaQuery.viewInsetsOf(ctx).bottom;
       final isWindows = Theme.of(ctx).platform == TargetPlatform.windows;
+      final tokens = Theme.of(ctx).extension<AppSurfaceTokens>();
+      final disableGlass = (tokens?.glassPerformance ?? false) ||
+          !(tokens?.liquidGlass ?? true) ||
+          isWindows;
+
       return Padding(
         padding: EdgeInsets.fromLTRB(12, 12, 12, 12 + bottomInset),
         child: Center(
@@ -32,18 +39,35 @@ Future<T?> showLiquidGlassPlayerSheet<T>({
               maxHeight: MediaQuery.sizeOf(ctx).height * 0.86,
             ),
             child: RepaintBoundary(
-              child: GlassSurface(
-                borderRadius: BorderRadius.circular(26),
-                padding: EdgeInsets.zero,
-                blurSigma: isWindows ? 0 : 14,
-                useVibrancy: false,
-                shadow: true,
-                rimStrength: 1.25,
-                fill: const Color(0xFF0B101B).withValues(
-                  alpha: isWindows ? 0.90 : 0.72,
-                ),
-                child: builder(ctx),
-              ),
+              child: disableGlass
+                  ? Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0D111C),
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(
+                          color: const Color(0xFF263045),
+                          width: 1.5,
+                        ),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.black87,
+                            blurRadius: 24,
+                            spreadRadius: 4,
+                          ),
+                        ],
+                      ),
+                      child: builder(ctx),
+                    )
+                  : GlassSurface(
+                      borderRadius: BorderRadius.circular(26),
+                      padding: EdgeInsets.zero,
+                      blurSigma: 14,
+                      useVibrancy: false,
+                      shadow: true,
+                      rimStrength: 1.25,
+                      fill: const Color(0xFF0B101B).withValues(alpha: 0.72),
+                      child: builder(ctx),
+                    ),
             ),
           ),
         ),
@@ -73,12 +97,43 @@ class LiquidPlayerCapsule extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppSurfaceTokens>();
     final isWindows = Theme.of(context).platform == TargetPlatform.windows;
-    final baseAlpha = isWindows ? 0.78 : 0.50;
-    final accentBlendAlpha = isWindows ? 0.82 : 0.54;
+    final disableGlass = (tokens?.glassPerformance ?? false) ||
+        !(tokens?.liquidGlass ?? true) ||
+        isWindows;
+
+    if (disableGlass) {
+      final baseFill = activeAccent != null
+          ? Color.alphaBlend(
+              activeAccent!.withValues(alpha: 0.25),
+              const Color(0xFF0E1422),
+            )
+          : const Color(0xFF0E1422);
+
+      return RepaintBoundary(
+        child: Container(
+          decoration: BoxDecoration(
+            color: baseFill,
+            borderRadius: borderRadius,
+            border: Border.all(
+              color: activeAccent != null
+                  ? activeAccent!.withValues(alpha: 0.55)
+                  : const Color(0xFF232D42),
+              width: 1,
+            ),
+          ),
+          padding: padding,
+          child: child,
+        ),
+      );
+    }
+
+    const baseAlpha = 0.50;
+    const accentBlendAlpha = 0.54;
     final fill = activeAccent != null
         ? Color.alphaBlend(
-            activeAccent!.withValues(alpha: isWindows ? 0.28 : 0.24),
+            activeAccent!.withValues(alpha: 0.24),
             const Color(0xFF0E1422).withValues(alpha: accentBlendAlpha),
           )
         : const Color(0xFF0E1422).withValues(alpha: baseAlpha);
@@ -87,7 +142,7 @@ class LiquidPlayerCapsule extends StatelessWidget {
       child: GlassSurface(
         borderRadius: borderRadius,
         padding: padding,
-        blurSigma: isWindows ? 0 : blurSigma,
+        blurSigma: blurSigma,
         useVibrancy: false,
         shadow: false,
         rimStrength: activeAccent != null ? math.max(1.25, rimStrength) : rimStrength,
@@ -1002,7 +1057,7 @@ class _LiquidGlassBottomDockState extends State<LiquidGlassBottomDock> {
   }
 }
 
-class _GlassDockChip extends StatelessWidget {
+class _GlassDockChip extends StatefulWidget {
   const _GlassDockChip({
     required this.icon,
     required this.label,
@@ -1016,36 +1071,76 @@ class _GlassDockChip extends StatelessWidget {
   final bool active;
 
   @override
+  State<_GlassDockChip> createState() => _GlassDockChipState();
+}
+
+class _GlassDockChipState extends State<_GlassDockChip> {
+  bool _isFocused = false;
+
+  @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: LiquidPlayerCapsule(
-        borderRadius: BorderRadius.circular(18),
-        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-        activeAccent: active ? const Color(0xFF818CF8) : null,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Icon(
-              icon,
-              size: 16,
-              color: active
-                  ? const Color(0xFFA5B4FC)
-                  : Colors.white.withValues(alpha: 0.92),
+    return Focus(
+      onFocusChange: (f) => setState(() => _isFocused = f),
+      onKeyEvent: (node, event) {
+        if (event is! KeyDownEvent) return KeyEventResult.ignored;
+        final key = event.logicalKey;
+        if (key == LogicalKeyboardKey.select ||
+            key == LogicalKeyboardKey.enter ||
+            key == LogicalKeyboardKey.space ||
+            key == LogicalKeyboardKey.gameButtonA) {
+          widget.onTap();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: _isFocused
+                ? Border.all(color: Colors.white, width: 2)
+                : null,
+            boxShadow: _isFocused
+                ? [
+                    BoxShadow(
+                      color: Colors.white.withValues(alpha: 0.4),
+                      blurRadius: 10,
+                      spreadRadius: 2,
+                    ),
+                  ]
+                : null,
+          ),
+          child: LiquidPlayerCapsule(
+            borderRadius: BorderRadius.circular(18),
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+            activeAccent: widget.active ? const Color(0xFF818CF8) : null,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Icon(
+                  widget.icon,
+                  size: 16,
+                  color: widget.active
+                      ? const Color(0xFFA5B4FC)
+                      : Colors.white.withValues(alpha: 0.92),
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  widget.label,
+                  style: TextStyle(
+                    color: widget.active
+                        ? Colors.white
+                        : Colors.white.withValues(alpha: 0.92),
+                    fontSize: 12,
+                    fontWeight: widget.active ? FontWeight.w700 : FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 5),
-            Text(
-              label,
-              style: TextStyle(
-                color: active
-                    ? Colors.white
-                    : Colors.white.withValues(alpha: 0.92),
-                fontSize: 12,
-                fontWeight: active ? FontWeight.w700 : FontWeight.w600,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
