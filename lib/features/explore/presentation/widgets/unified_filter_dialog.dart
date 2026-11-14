@@ -9,6 +9,7 @@ import '../../data/explore_language_provider.dart';
 import '../../data/explore_tmdb_provider.dart';
 import '../../data/explore_mode_provider.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
+import '../../../../core/theme/theme_presets.dart' show AppSurfaceTokens;
 
 class UnifiedFilterDialog extends ConsumerStatefulWidget {
   const UnifiedFilterDialog({super.key});
@@ -282,7 +283,10 @@ class _UnifiedFilterDialogState extends ConsumerState<UnifiedFilterDialog>
           ),
         ),
       );
-    return Theme.of(context).platform == TargetPlatform.windows
+    final tokens = Theme.of(context).extension<AppSurfaceTokens>();
+    final disableGlass = Theme.of(context).platform == TargetPlatform.windows ||
+        (tokens?.glassPerformance ?? false);
+    return disableGlass
         ? dialog
         : BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
 import '../../../core/network/link_probe_service.dart';
+import '../../../core/theme/theme_presets.dart' show AppSurfaceTokens;
 import '../../../shared/focus/app_focus.dart';
 
 /// The sheets' accent is [ColorScheme.primary]: it is what the rest of the
@@ -241,6 +242,9 @@ class GlassSheetScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final palette = GlassPalette.of(context);
+    final tokens = theme.extension<AppSurfaceTokens>();
+    final disableGlass = (tokens?.glassPerformance ?? false) ||
+        theme.platform == TargetPlatform.windows;
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -283,15 +287,19 @@ class GlassSheetScaffold extends StatelessWidget {
                         children: [
                           // Translucent obsidian base behind a backdrop blur.
                           Positioned.fill(
-                            child: BackdropFilter(
-                              filter: ui.ImageFilter.blur(
-                                sigmaX: blurSigma,
-                                sigmaY: blurSigma,
-                              ),
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(color: palette.pane),
-                              ),
-                            ),
+                            child: (disableGlass || blurSigma <= 0)
+                                ? DecoratedBox(
+                                    decoration: BoxDecoration(color: palette.pane),
+                                  )
+                                : BackdropFilter(
+                                    filter: ui.ImageFilter.blur(
+                                      sigmaX: blurSigma,
+                                      sigmaY: blurSigma,
+                                    ),
+                                    child: DecoratedBox(
+                                      decoration: BoxDecoration(color: palette.pane),
+                                    ),
+                                  ),
                           ),
                           // Hairline edge on the glass. It used to be wrapped
                           // in a full-bleed ShaderMask that faded the line out

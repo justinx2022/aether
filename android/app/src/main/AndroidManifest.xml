@@ -33,7 +33,8 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:fullBackupContent="@xml/backup_rules"
         android:dataExtractionRules="@xml/data_extraction_rules"
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="true"
+        android:largeHeap="true">
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileProvider"
@@ -78,10 +79,10 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
-        <!-- Explicitly enable Impeller -->
+        <!-- Disable Impeller so stable Skia/OpenGL ES is used on Android TV (prevents GPU driver crashes & saves VRAM on Mali-400/450/G31) -->
         <meta-data
             android:name="io.flutter.embedding.android.EnableImpeller"
-            android:value="true"
+            android:value="false"
             tools:replace="android:value" />
 
     </application>

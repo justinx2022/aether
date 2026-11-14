@@ -21,6 +21,7 @@ import '../../../core/providers/device_info_provider.dart';
 /// below are what protect a fresh install; this list is what someone who has
 /// gone looking for the setting is allowed to ask for.
 const List<int> kNetworkBufferChoicesMb = <int>[
+  32,
   64,
   128,
   256,
@@ -37,11 +38,11 @@ const List<int> kNetworkBufferChoicesMb = <int>[
 /// folds in Android's own low-RAM flag, which an OEM sets knowing things about
 /// the device that a number does not capture.
 int defaultNetworkBufferMb(DeviceTier tier) => switch (tier) {
-  // Cheap sticks and old phones. 256 MB leaves plenty of room.
-  DeviceTier.low => 256,
+  // Cheap sticks and 1GB/2GB phones/TVs. 64 MB is ~1 min of 1080p and prevents OOM.
+  DeviceTier.low => 64,
 
-  // Ordinary phones, tablets and TV boxes.
-  DeviceTier.standard => 512,
+  // Ordinary phones, tablets and 2GB-4GB TV boxes. 128 MB is safe and responsive.
+  DeviceTier.standard => 128,
 
   // Anything with memory to spare. Desktops and high-RAM devices get 2048 MB (2 GB).
   DeviceTier.high => 2048,
@@ -99,12 +100,12 @@ int bufferDurationToMb({
 
   // Maximum memory safety caps based on device tier
   final maxSafeMb = switch (tier) {
-    DeviceTier.low => 512,
-    DeviceTier.standard => 1536,
+    DeviceTier.low => 256,
+    DeviceTier.standard => 1024,
     DeviceTier.high => 8192,
   };
 
-  return calculatedMb.clamp(64, maxSafeMb);
+  return calculatedMb.clamp(32, maxSafeMb);
 }
 
 /// The buffer to actually use: what the viewer chose (either by duration or direct size),
@@ -147,7 +148,7 @@ int resolveReadAheadSeconds(int? chosenDurationMinutes, DeviceTier tier) {
 /// [kMaxTorrentBehindMb]'s reasoning, which is the same trade for a cache that
 /// is not a torrent's.
 int resolveCacheBehindBytes(int bufferMb) {
-  final behindMb = (bufferMb * 0.25).round().clamp(16, kMaxTorrentBehindMb);
+  final behindMb = (bufferMb * 0.25).round().clamp(4, kMaxTorrentBehindMb);
   return behindMb * 1024 * 1024;
 }
 

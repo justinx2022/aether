@@ -45,6 +45,7 @@ import 'core/network/cloudflare_bypass.dart';
 import 'core/config/tmdb_config.dart';
 import 'core/providers/bootstrap_provider.dart' show quietDesktopBrightness;
 import 'core/providers/device_info_provider.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'shared/focus/app_focus.dart';
 import 'shared/widgets/loading_indicator.dart';
 import 'shared/widgets/tv_logical_scale.dart';
@@ -63,12 +64,16 @@ void main() async {
 
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Cap Flutter's image cache. Default is 1000 entries / 100 MB which is too
-  // generous for low-RAM TVs and even most phones — decoded TMDB posters fill
-  // it quickly. Tighter limits force earlier eviction and keep raster smooth.
+  // Cap Flutter's image cache.
+  // On low-RAM Android devices and Android TV (1GB - 4GB RAM), an unconstrained
+  // image cache causes out-of-memory (OOM) Dalvik crashes or Linux kernel LMK kills
+  // when scrolling through movie poster grids.
+  // 32MB / 50 images keeps browsing smooth and immediately evicts off-screen
+  // posters before RAM is exhausted. Desktop platforms retain a larger cache.
+  final isAndroid = !kIsWeb && Platform.isAndroid;
   PaintingBinding.instance.imageCache
-    ..maximumSize = 300
-    ..maximumSizeBytes = 250 * 1024 * 1024; // 250 MB for pristine 4K backdrops
+    ..maximumSize = isAndroid ? 50 : 200
+    ..maximumSizeBytes = isAndroid ? (32 * 1024 * 1024) : (150 * 1024 * 1024);
 
   // Repaint rainbow for the flicker hunt - see player_debug_flags.dart. A
   // compile-time constant, so a normal build carries no trace of it.
@@ -172,12 +177,33 @@ class _AppRootState extends State<AppRoot> {
           _initialized = true;
         });
         // Pre-warm the system WebView after the first frame so the initial
-        // render isn't delayed. This eliminates the frame jank that occurs
-        // when the CF bypass spawns its HeadlessInAppWebView cold during search.
+        // render isn't delayed.
+        // On Android TV or low-memory devices (< 3GB RAM), do NOT prewarm on boot:
+        // spawning Chromium WebView consumes ~100MB of RAM and triggers
+        // Out-Of-Memory (OOM) kills on 1GB/2GB/3GB RAM TV boxes.
         if (Platform.isAndroid || Platform.isIOS) {
           Future.delayed(
-            const Duration(seconds: 3),
-            CloudflareBypass.instance.prewarm,
+            const Duration(seconds: 4),
+            () async {
+              if (Platform.isAndroid) {
+                try {
+                  final deviceInfo = DeviceInfoPlugin();
+                  final androidInfo = await deviceInfo.androidInfo;
+                  final features = androidInfo.systemFeatures;
+                  final isTv = features.contains('android.software.leanback') ||
+                      features.contains('android.hardware.type.television') ||
+                      !features.contains('android.hardware.touchscreen') ||
+                      androidInfo.isLowRamDevice ||
+                      (androidInfo.physicalRamSize > 0 &&
+                          androidInfo.physicalRamSize < 3072);
+                  if (isTv) {
+                    // Do not prewarm on TV or < 3GB RAM devices to save ~100MB RAM
+                    return;
+                  }
+                } catch (_) {}
+              }
+              await CloudflareBypass.instance.prewarm();
+            },
           );
         }
       }
@@ -235,10 +261,11 @@ class MyApp extends ConsumerStatefulWidget {
   ConsumerState<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends ConsumerState<MyApp> {
+class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     FocusManager.instance.addEarlyKeyEventHandler(_handleEarlyKeyEvent);
     // Brings back the ten-foot layout if the last session was left in it.
     // Applied here rather than in `main` because it reads through a provider,
@@ -254,8 +281,16 @@ class _MyAppState extends ConsumerState<MyApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     FocusManager.instance.removeEarlyKeyEventHandler(_handleEarlyKeyEvent);
     super.dispose();
+  }
+
+  @override
+  void didHaveMemoryPressure() {
+    super.didHaveMemoryPressure();
+    PaintingBinding.instance.imageCache.clear();
+    PaintingBinding.instance.imageCache.clearLiveImages();
   }
 
   KeyEventResult _handleEarlyKeyEvent(KeyEvent event) {
@@ -460,7 +495,14 @@ class _MyAppState extends ConsumerState<MyApp> {
     // frames may use w1280 backdrops on TV before snapping to original.
     ref.listen<AsyncValue<DeviceProfile>>(deviceProfileProvider, (prev, next) {
       final value = next.value;
-      if (value != null) TmdbConfig.setProfile(value);
+      if (value != null) {
+        TmdbConfig.setProfile(value);
+        if (value.isTv || value.isLowEnd) {
+          PaintingBinding.instance.imageCache
+            ..maximumSize = 40
+            ..maximumSizeBytes = 24 * 1024 * 1024;
+        }
+      }
     });
 
     return DynamicColorBuilder(

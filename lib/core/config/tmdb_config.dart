@@ -60,11 +60,27 @@ class TmdbConfig {
     _profile = profile;
   }
 
-  /// Deliver true uncompressed 4K UHD backdrops (`original`, 3840x2160) across all devices.
-  static String get backdropSizeUrl => '$_imageRoot/original';
+  /// TMDB backdrop resolution:
+  /// 3840x2160 'original' backdrops consume ~33 MB of RAM each when decoded into RGBA8888.
+  /// On Android TV and low/standard memory devices (1GB - 4GB RAM), cycling multiple 4K
+  /// backdrops quickly causes Out-Of-Memory (OOM) crashes or Linux LowMemoryKiller (LMK) kills.
+  /// 'w1280' delivers crystal-clear 720p/1080p backdrops at only ~3.6 MB of RAM (90% reduction),
+  /// while 'original' is reserved for high-end desktop environments with abundant RAM.
+  static String get backdropSizeUrl {
+    if (_profile.tier == DeviceTier.high && !_profile.isTv) {
+      return '$_imageRoot/original';
+    }
+    return '$_imageRoot/w1280';
+  }
 
-  /// High-definition poster renders (`w780`) across all devices for pin-sharp display.
-  static String get posterSizeUrl => '$_imageRoot/w780';
+  /// High-definition poster renders. On low-end devices, 'w500' provides sharp
+  /// 500x750 posters at 1.5 MB RAM instead of 3.65 MB for 'w780'.
+  static String get posterSizeUrl {
+    if (_profile.isLowEnd) {
+      return '$_imageRoot/w500';
+    }
+    return '$_imageRoot/w780';
+  }
 
   /// High-resolution cast head-shots and thumbnails.
   static String get profileSizeUrl => '$_imageRoot/h632';

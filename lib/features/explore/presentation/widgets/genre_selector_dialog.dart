@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/explore_filter_provider.dart';
 import '../../data/explore_tmdb_provider.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
+import '../../../../core/theme/theme_presets.dart' show AppSurfaceTokens;
 
 class GenreSelectorDialog extends ConsumerWidget {
   const GenreSelectorDialog({super.key});
@@ -130,7 +131,10 @@ class GenreSelectorDialog extends ConsumerWidget {
           ),
         ),
       );
-    return theme.platform == TargetPlatform.windows
+    final tokens = theme.extension<AppSurfaceTokens>();
+    final disableGlass = theme.platform == TargetPlatform.windows ||
+        (tokens?.glassPerformance ?? false);
+    return disableGlass
         ? dialog
         : BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),

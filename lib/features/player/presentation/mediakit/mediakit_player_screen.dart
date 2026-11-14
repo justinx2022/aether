@@ -1120,15 +1120,31 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   /// the same one.
   ({int megabytes, int seconds}) _bufferPlan() {
     final settings = _read(playerSettingsProvider).asData?.value ?? _settings;
-    final tier =
-        _read(deviceProfileProvider).asData?.value.tier ?? DeviceTier.standard;
+    final profile = _read(deviceProfileProvider).asData?.value;
+    final tier = profile?.tier ?? DeviceTier.standard;
+    final isTv = profile?.isTv ?? _isTv;
+    var mb = resolveNetworkBufferMb(
+      settings?.networkBufferMb,
+      tier,
+      chosenDurationMinutes: settings?.bufferDurationMinutes,
+    );
+    var secs = resolveReadAheadSeconds(settings?.bufferDurationMinutes, tier);
+
+    // On TV or low-RAM Android hardware (1GB - 4GB RAM), enforce protective
+    // memory bounds so native mpv demuxer allocations do not trigger kernel LMK kills.
+    if (isTv || tier == DeviceTier.low) {
+      final capMb = tier == DeviceTier.low ? 48 : 96;
+      if (mb > capMb) {
+        mb = capMb;
+      }
+      if (secs > 60) {
+        secs = 60;
+      }
+    }
+
     return (
-      megabytes: resolveNetworkBufferMb(
-        settings?.networkBufferMb,
-        tier,
-        chosenDurationMinutes: settings?.bufferDurationMinutes,
-      ),
-      seconds: resolveReadAheadSeconds(settings?.bufferDurationMinutes, tier),
+      megabytes: mb,
+      seconds: secs,
     );
   }
 
@@ -1137,6 +1153,9 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
       final native = _player.platform as NativePlayer;
       try {
         if (!kIsWeb && Platform.isAndroid) {
+          final profile = _read(deviceProfileProvider).asData?.value;
+          final isTv = profile?.isTv ?? _isTv;
+          final isLow = profile?.tier == DeviceTier.low;
           // Zero-copy direct hardware decoding into Android SurfaceTexture
           await native.setProperty('hwdec', 'mediacodec');
           await native.setProperty('scale', 'bilinear');
@@ -1148,9 +1167,14 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
           // Mobile cache tuning (high-throughput readahead, fills buffer aggressively)
           await native.setProperty('cache', 'yes');
           await native.setProperty('cache-pause-wait', '2');
-          await native.setProperty('demuxer-lavf-probesize', '1048576');
-          // Seconds: 500000 is rejected as out of range, not read as 0.5 s.
-          await native.setProperty('demuxer-lavf-analyzeduration', '0.5');
+          // On TV / low-RAM, use a leaner 512KB probe size and 0.25s analyze duration for instant start
+          if (isTv || isLow) {
+            await native.setProperty('demuxer-lavf-probesize', '524288');
+            await native.setProperty('demuxer-lavf-analyzeduration', '0.25');
+          } else {
+            await native.setProperty('demuxer-lavf-probesize', '1048576');
+            await native.setProperty('demuxer-lavf-analyzeduration', '0.5');
+          }
           await native.setProperty('hr-seek', 'yes');
           await native.setProperty('hr-seek-framedrop', 'yes');
           await native.setProperty('network-timeout', '10');

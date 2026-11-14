@@ -170,10 +170,10 @@ void main() {
       });
 
       test('bufferDurationToMb computes safe megabytes bounded by device tier', () {
-        // Low tier capped at 512 MB
+        // Low tier capped at 256 MB
         expect(
           bufferDurationToMb(durationMinutes: 90, quality: '1080p', tier: DeviceTier.low),
-          512,
+          256,
         );
         // High tier allows up to 8192 MB (90 * 45 = 4050 MB)
         expect(

@@ -483,7 +483,7 @@ class _M3ToastCardState extends State<_M3ToastCard>
                           ],
                         ),
                       );
-                      return isWindows
+                      return (isWindows || widget.isTv)
                           ? DecoratedBox(
                               decoration: BoxDecoration(
                                 color: surfaceColor.withValues(

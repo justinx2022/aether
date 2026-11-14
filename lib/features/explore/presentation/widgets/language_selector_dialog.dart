@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/explore_language_provider.dart';
+import '../../../../core/theme/theme_presets.dart' show AppSurfaceTokens;
 
 class LanguageSelectorDialog extends ConsumerWidget {
   const LanguageSelectorDialog({super.key});
@@ -188,7 +189,10 @@ class LanguageSelectorDialog extends ConsumerWidget {
           ),
         ),
       );
-    return theme.platform == TargetPlatform.windows
+    final tokens = theme.extension<AppSurfaceTokens>();
+    final disableGlass = theme.platform == TargetPlatform.windows ||
+        (tokens?.glassPerformance ?? false);
+    return disableGlass
         ? dialog
         : BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
