@@ -124,7 +124,7 @@ class PlayerPlatformService {
   /// Shared with `MainActivity.CHANNEL`. Traffic runs both ways over it:
   /// `enterPip`/`setPipState` out, transport actions and `pipModeChanged` back.
   static const MethodChannel _pipChannel = MethodChannel(
-    'dev.akash.skystream.player/pip',
+    'dev.justin.aether.player/pip',
   );
 
   static const List<DeviceOrientation> _landscape = [

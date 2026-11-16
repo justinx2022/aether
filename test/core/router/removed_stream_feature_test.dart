@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/router/app_router.dart';
+import 'package:aether/core/router/app_router.dart';
 
 /// `lib/features/stream/` was ~1,700 lines of a browse-and-play feature -
 /// a provider, an aggregator, a picker and a `PlayerRoute` launch path - that

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/player/presentation/vlc/vlc_player_screen.dart'
+import 'package:aether/features/player/presentation/vlc/vlc_player_screen.dart'
     show kNetworkCachingMs;
 
 import 'fake_vlc_engine.dart';

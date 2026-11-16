@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/player/domain/subtitle_style.dart';
-import 'package:skystream/features/settings/presentation/player_settings_provider.dart';
-import 'package:skystream/features/settings/presentation/widgets/settings_widgets.dart';
-import 'package:skystream/features/settings/presentation/widgets/subtitle_appearance_settings.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/features/player/domain/subtitle_style.dart';
+import 'package:aether/features/settings/presentation/player_settings_provider.dart';
+import 'package:aether/features/settings/presentation/widgets/settings_widgets.dart';
+import 'package:aether/features/settings/presentation/widgets/subtitle_appearance_settings.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 void main() {
   group('labels', () {

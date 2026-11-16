@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/extensions/services/repository_service.dart';
+import 'package:aether/core/extensions/services/repository_service.dart';
 
 /// Adding an extension repository by URL or by shortcode.
 ///
@@ -75,7 +75,7 @@ void main() {
 
     test('accepts a custom scheme share link', () async {
       expect(
-        await service.parseRepoUrl('skystream://example.com/repo.json'),
+        await service.parseRepoUrl('aether://example.com/repo.json'),
         'https://example.com/repo.json',
       );
     });

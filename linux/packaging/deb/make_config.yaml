@@ -1,5 +1,5 @@
-display_name: SkyStream
-package_name: skystream
+display_name: Aether
+package_name: aether
 description: A modern, media streaming client.
 maintainer:
   name: Akash

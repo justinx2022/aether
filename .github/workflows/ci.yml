@@ -18,7 +18,7 @@
 #     than at the next release build.
 #   Manual dispatch only: macOS and iOS. Their CocoaPods install fetches
 #     VLCKit from a release asset on the upstream author's repo
-#     (akashdh11/skystream, tag vlckit-3.7.3) that now answers 404, so the leg
+#     (justinx2022/aether, tag vlckit-3.7.3) that now answers 404, so the leg
 #     cannot get past `pod install` here no matter what the tree contains. The
 #     entry stays for the day that asset is re-hosted or the podspec is
 #     pointed at a build we control; until then a red Apple leg on every push
@@ -625,14 +625,14 @@ jobs:
             exit 1
           fi
           mkdir -p ci-artifacts
-          tar -czf "ci-artifacts/skystream-${{ matrix.name }}-debug.tar.gz" -C "$OUT" .
+          tar -czf "ci-artifacts/aether-${{ matrix.name }}-debug.tar.gz" -C "$OUT" .
           ls -lh ci-artifacts
 
       - name: Upload ${{ matrix.name }} Build
         uses: actions/upload-artifact@v7
         with:
-          name: skystream-${{ matrix.name }}-debug
-          path: ci-artifacts/skystream-${{ matrix.name }}-debug.tar.gz
+          name: aether-${{ matrix.name }}-debug
+          path: ci-artifacts/aether-${{ matrix.name }}-debug.tar.gz
           retention-days: 7
           if-no-files-found: error
 

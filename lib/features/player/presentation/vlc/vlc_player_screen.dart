@@ -533,7 +533,7 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
   bool _restorePending = false;
 
   /// The subtitle files of what is playing - the source's and any the viewer
-  /// added - which SkyStream draws itself rather than handing to libVLC. See
+  /// added - which Aether draws itself rather than handing to libVLC. See
   /// [SideCarSubtitles].
   late final SideCarSubtitles _sideCars = SideCarSubtitles(
     fetch: (url, headers) => _read(sideCarFetchProvider)(url, headers),
@@ -1323,7 +1323,7 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
       _hlsMedia = (uri: uri, headers: headers);
     }
 
-    // The source's subtitle files are read and drawn by SkyStream rather than
+    // The source's subtitle files are read and drawn by Aether rather than
     // handed to libVLC, which drew them into the picture - so Zoom cut them
     // off - and could not open the ones behind a playlist or headers at all.
     // Listed here and fetched when first shown; see [SideCarSubtitles].
@@ -1431,7 +1431,7 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
   /// opened stays on. The viewer is looking at the subtitle list when it
   /// happens, which is the one moment they can undo it.
   ///
-  /// The same rule keeps libVLC's own subtitle off while SkyStream draws a
+  /// The same rule keeps libVLC's own subtitle off while Aether draws a
   /// side-car: two subtitles on screen at once is never what anyone chose,
   /// and the media can put an embedded track on at any time - when its
   /// streams appear, after a seek, at an HLS discontinuity. Picking a track
@@ -1736,7 +1736,7 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
     unawaited(_sideCars.select(sources.last, from: _controller.value.position));
   }
 
-  /// A side-car in a format SkyStream does not read - MicroDVD, VobSub, TTML
+  /// A side-car in a format Aether does not read - MicroDVD, VobSub, TTML
   /// - goes to libVLC, as every side-car once did. libVLC's add selects what
   /// it adds, and it arrives as one of the video's own tracks.
   void _handSideCarToEngine(SideCarTrack track) {

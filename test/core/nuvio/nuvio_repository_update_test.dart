@@ -17,9 +17,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:skystream/core/network/dio_client_provider.dart';
-import 'package:skystream/core/nuvio/data/nuvio_repository.dart';
-import 'package:skystream/core/nuvio/models/nuvio_models.dart';
+import 'package:aether/core/network/dio_client_provider.dart';
+import 'package:aether/core/nuvio/data/nuvio_repository.dart';
+import 'package:aether/core/nuvio/models/nuvio_models.dart';
 
 const String _manifestUrl = 'https://nuvio.test/manifest.json';
 

@@ -28,7 +28,7 @@ import '../../../../core/providers/device_info_provider.dart';
 import '../../../../core/providers/locale_provider.dart';
 import '../../../player/presentation/player_platform_service.dart';
 
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 import '../../../../core/services/notification_service.dart';
 import '../cache_provider.dart';
@@ -2016,7 +2016,7 @@ void showDeveloperDialog(BuildContext context) {
               svgUrl: 'https://raw.githubusercontent.com/simple-icons/simple-icons/11.10.0/icons/github.svg',
               color: const Color(0xFF909692),
               onTap: () => launchUrl(
-                Uri.parse('https://github.com/justinx2022/skystream'),
+                Uri.parse('https://github.com/justinx2022/aether'),
                 mode: LaunchMode.externalApplication,
               ),
             ),

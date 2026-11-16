@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/addons/models/addon_meta.dart';
+import 'package:aether/core/addons/models/addon_meta.dart';
 
 /// A meta payload is only ever as well-typed as the add-on that served it, and
 /// the meta fetch loop in `addon_providers.dart` answers a [TypeError] by

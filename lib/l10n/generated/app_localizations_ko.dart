@@ -10,7 +10,7 @@ class AppLocalizationsKo extends AppLocalizations {
   AppLocalizationsKo([String locale = 'ko']) : super(locale);
 
   @override
-  String get appTitle => 'SkyStream';
+  String get appTitle => 'Aether';
 
   @override
   String get languageName => '한국어';

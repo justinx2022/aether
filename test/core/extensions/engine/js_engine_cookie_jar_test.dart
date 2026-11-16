@@ -17,9 +17,9 @@ import 'dart:isolate';
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/extensions/engine/js_engine.dart';
-import 'package:skystream/core/storage/extension_repository.dart';
-import 'package:skystream/core/storage/storage_service.dart';
+import 'package:aether/core/extensions/engine/js_engine.dart';
+import 'package:aether/core/storage/extension_repository.dart';
+import 'package:aether/core/storage/storage_service.dart';
 
 class _FakeExtensionRepository extends ExtensionRepository {
   _FakeExtensionRepository() : super(StorageService());

@@ -2,12 +2,12 @@
 // ignore_for_file: riverpod_lint/avoid_public_notifier_properties
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/library/presentation/history_provider.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/features/player/domain/playback_progress.dart';
-import 'package:skystream/core/storage/history_repository.dart';
-import 'package:skystream/features/player/domain/stream_resolver.dart';
-import 'package:skystream/features/tracking/domain/sync_progress_item.dart';
+import 'package:aether/features/library/presentation/history_provider.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/features/player/domain/playback_progress.dart';
+import 'package:aether/core/storage/history_repository.dart';
+import 'package:aether/features/player/domain/stream_resolver.dart';
+import 'package:aether/features/tracking/domain/sync_progress_item.dart';
 
 void main() {
   ProgressSample sample(int posMs, int durMs, {int token = 1}) => ProgressSample(

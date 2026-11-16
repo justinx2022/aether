@@ -28,7 +28,7 @@ class RepositoryService {
       return fixedUrl;
     }
 
-    // Custom scheme used by share links: skystream://host/path.
+    // Custom scheme used by share links: aether://host/path.
     final scheme = RegExp(
       r'^[a-zA-Z][a-zA-Z0-9+.-]*://(.+)$',
     ).firstMatch(fixedUrl);
@@ -42,7 +42,7 @@ class RepositoryService {
       return 'https://$fixedUrl';
     }
 
-    // Shortcode: try the SkyStream namespace first, then the bare code.
+    // Shortcode: try the Aether namespace first, then the bare code.
     if (RegExp(r'^[a-zA-Z0-9!_-]+$').hasMatch(fixedUrl)) {
       Object? lastError;
       for (final candidate in [

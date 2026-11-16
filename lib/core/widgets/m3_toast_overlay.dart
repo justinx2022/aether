@@ -1,8 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:skystream/core/router/app_router.dart';
-import 'package:skystream/core/services/notification_service.dart';
+import 'package:aether/core/router/app_router.dart';
+import 'package:aether/core/services/notification_service.dart';
 
 /// Exact Material 3 Expressive animation curves & timings.
 class ToastCurves {
@@ -356,13 +356,11 @@ class _M3ToastCardState extends State<_M3ToastCard>
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(22),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.center,
@@ -478,7 +476,6 @@ class _M3ToastCardState extends State<_M3ToastCard>
             ),
           ),
         ),
-      ),
     );
   }
 }

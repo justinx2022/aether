@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/shared/widgets/tv_logical_scale.dart';
+import 'package:aether/shared/widgets/tv_logical_scale.dart';
 
 /// A television reports about 960 dp of width whatever its panel is, so the
 /// same layout that breathes on a laptop is drawn at twice the relative size

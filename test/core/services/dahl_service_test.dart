@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/services/dahl_service.dart';
-import 'package:skystream/features/settings/presentation/ai_settings_provider.dart';
+import 'package:aether/core/services/dahl_service.dart';
+import 'package:aether/features/settings/presentation/ai_settings_provider.dart';
 
 /// Keeps [aiSettingsProvider] off the on-disk repository so the service sees
 /// exactly the settings a test asks for.

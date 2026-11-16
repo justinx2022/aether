@@ -28,13 +28,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:skystream/core/providers/device_info_provider.dart';
-import 'package:skystream/core/router/app_router.dart' show kPlayerRoutePath;
-import 'package:skystream/core/theme/app_world.dart';
-import 'package:skystream/core/theme/world_provider.dart';
-import 'package:skystream/features/settings/presentation/general_settings_provider.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
-import 'package:skystream/shared/widgets/app_scaffold.dart';
+import 'package:aether/core/providers/device_info_provider.dart';
+import 'package:aether/core/router/app_router.dart' show kPlayerRoutePath;
+import 'package:aether/core/theme/app_world.dart';
+import 'package:aether/core/theme/world_provider.dart';
+import 'package:aether/features/settings/presentation/general_settings_provider.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
+import 'package:aether/shared/widgets/app_scaffold.dart';
 
 /// A 1080p television: 960x540 dp at devicePixelRatio 2.
 const Size _tvPhysical = Size(1920, 1080);

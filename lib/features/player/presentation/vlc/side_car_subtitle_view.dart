@@ -1,4 +1,4 @@
-/// The side-car subtitle on screen: drawn by SkyStream over the video, not by
+/// The side-car subtitle on screen: drawn by Aether over the video, not by
 /// libVLC into it.
 ///
 /// Laid out against the player area rather than the picture, so Zoom and

@@ -21,9 +21,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:skystream/core/providers/device_info_provider.dart';
-import 'package:skystream/core/storage/storage_service.dart';
-import 'package:skystream/core/theme/theme_provider.dart';
+import 'package:aether/core/providers/device_info_provider.dart';
+import 'package:aether/core/storage/storage_service.dart';
+import 'package:aether/core/theme/theme_provider.dart';
 
 void main() {
   final binding = TestWidgetsFlutterBinding.ensureInitialized();

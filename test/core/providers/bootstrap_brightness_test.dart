@@ -4,7 +4,7 @@
 /// read and write the monitor's own brightness. Its constructor probes once,
 /// and it then installs a window-proc delegate that re-probes on `WM_SIZE` and
 /// `WM_ACTIVATEAPP` and *writes* on `WM_DESTROY`, `WM_CLOSE` and deactivate,
-/// because `is_auto_reset_` defaults to true. Users have reported SkyStream
+/// because `is_auto_reset_` defaults to true. Users have reported Aether
 /// resetting their screen brightness on Windows: that is this write, observed.
 ///
 /// None of it buys anything here. The only caller of the brightness API is the
@@ -25,7 +25,7 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/providers/bootstrap_provider.dart';
+import 'package:aether/core/providers/bootstrap_provider.dart';
 
 /// The channel the `screen_brightness` federated plugin speaks on.
 const MethodChannel _brightnessChannel = MethodChannel(

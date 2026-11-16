@@ -5,10 +5,10 @@ import '../../../../core/router/app_router.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/extensions/extension_manager.dart';
-import 'package:skystream/core/utils/image_fallbacks.dart';
-import 'package:skystream/features/search/presentation/search_provider.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/extensions/extension_manager.dart';
+import 'package:aether/core/utils/image_fallbacks.dart';
+import 'package:aether/features/search/presentation/search_provider.dart';
 
 import '../../../../shared/widgets/cards_wrapper.dart';
 
@@ -17,7 +17,7 @@ import '../../../../shared/widgets/shimmer_placeholder.dart';
 import '../../../../shared/widgets/thumbnail_error_placeholder.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
 
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 import 'source_section_card.dart';
 

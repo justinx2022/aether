@@ -1,14 +1,14 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:skystream/core/utils/responsive_breakpoints.dart';
+import 'package:aether/core/utils/responsive_breakpoints.dart';
 
-import 'package:skystream/core/extensions/extension_manager.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/router/app_router.dart';
-import 'package:skystream/core/utils/image_fallbacks.dart';
-import 'package:skystream/shared/widgets/desktop_scroll_wrapper.dart';
-import 'package:skystream/shared/widgets/multimedia_card.dart';
+import 'package:aether/core/extensions/extension_manager.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/router/app_router.dart';
+import 'package:aether/core/utils/image_fallbacks.dart';
+import 'package:aether/shared/widgets/desktop_scroll_wrapper.dart';
+import 'package:aether/shared/widgets/multimedia_card.dart';
 
 import 'stamp_in_label.dart';
 import 'bouncy_entry_animation.dart';

@@ -472,7 +472,7 @@ StreamResult? _directStream(MultimediaItem item, String videoUrl) {
 /// For saying who is being waited on. Resolution itself does not go through
 /// this, but it answers from the same two functions, so the two cannot name
 /// different plugins.
-SkyStreamProvider? pluginFor(
+AetherProvider? pluginFor(
   ProviderReader read,
   MultimediaItem item,
   String videoUrl,
@@ -482,7 +482,7 @@ SkyStreamProvider? pluginFor(
   return _resolveProvider(read, item);
 }
 
-SkyStreamProvider? _resolveProvider(ProviderReader read, MultimediaItem item) {
+AetherProvider? _resolveProvider(ProviderReader read, MultimediaItem item) {
   final active = read(activeProviderProvider);
   final wanted = item.provider;
   if (wanted != null) {

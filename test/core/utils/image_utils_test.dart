@@ -3,7 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/utils/image_utils.dart';
+import 'package:aether/core/utils/image_utils.dart';
 
 /// A solid PNG of exactly [width] x [height], so the decode that lands in the
 /// image cache can be measured in bytes.

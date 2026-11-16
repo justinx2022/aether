@@ -281,16 +281,10 @@ class GlassSheetScaffold extends StatelessWidget {
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
-                          // Translucent obsidian base behind a backdrop blur.
+                          // Crisp solid obsidian base without GPU blur
                           Positioned.fill(
-                            child: BackdropFilter(
-                              filter: ui.ImageFilter.blur(
-                                sigmaX: blurSigma,
-                                sigmaY: blurSigma,
-                              ),
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(color: palette.pane),
-                              ),
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(color: palette.pane),
                             ),
                           ),
                           // Hairline edge on the glass. It used to be wrapped

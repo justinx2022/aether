@@ -3,8 +3,8 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pointycastle/export.dart';
-import 'package:skystream/core/media/cenc.dart';
-import 'package:skystream/core/media/iso_bmff.dart';
+import 'package:aether/core/media/cenc.dart';
+import 'package:aether/core/media/iso_bmff.dart';
 
 /// A real DASH init segment from an encrypted live channel (video track).
 ///

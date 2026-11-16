@@ -12,7 +12,7 @@ import '../../../../core/storage/history_repository.dart';
 import '../../../../core/utils/responsive_breakpoints.dart';
 import '../data/tmdb_details_provider.dart';
 
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 import '../../../../core/utils/layout_constants.dart';
 import 'widgets/tmdb_details_desktop_hero.dart';
@@ -592,7 +592,7 @@ class _TmdbMovieDetailsScreenState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // The two source systems, as peers and in the same order the
-                // desktop hero uses: SkyStream providers, then Nuvio. One
+                // desktop hero uses: Aether providers, then Nuvio. One
                 // spacing unit above, between and below, so neither card
                 // reads as the page's primary action.
                 ProviderSearchSection(

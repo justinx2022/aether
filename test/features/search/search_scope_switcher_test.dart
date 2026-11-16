@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/explore/presentation/widgets/hover_border_gradient.dart';
-import 'package:skystream/features/search/presentation/search_provider.dart';
-import 'package:skystream/features/search/presentation/widgets/search_header_bar.dart';
+import 'package:aether/features/explore/presentation/widgets/hover_border_gradient.dart';
+import 'package:aether/features/search/presentation/search_provider.dart';
+import 'package:aether/features/search/presentation/widgets/search_header_bar.dart';
 
 void main() {
   Widget host(Widget child, {required MediaQueryData media}) {

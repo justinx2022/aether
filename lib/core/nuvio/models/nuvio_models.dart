@@ -10,7 +10,7 @@
 /// ```
 ///
 /// Each scraper file exports `getStreams(tmdbId, mediaType, season, episode)`
-/// and returns a list of link objects. SkyStream runs them alongside its own
+/// and returns a list of link objects. Aether runs them alongside its own
 /// plugins so both systems contribute links to the same sheet.
 library;
 
@@ -106,7 +106,7 @@ class NuvioScraperInfo {
     'disabledPlatforms': disabledPlatforms,
   };
 
-  /// Nuvio uses `movie` / `tv`; SkyStream and Stremio say `movie` / `series`.
+  /// Nuvio uses `movie` / `tv`; Aether and Stremio say `movie` / `series`.
   static String normalizeType(String type) {
     final t = type.toLowerCase();
     if (t == 'series' || t == 'show' || t == 'anime') return 'tv';

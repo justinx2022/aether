@@ -60,11 +60,27 @@ class TmdbConfig {
     _profile = profile;
   }
 
-  /// Deliver true uncompressed 4K UHD backdrops (`original`, 3840x2160) across all devices.
-  static String get backdropSizeUrl => '$_imageRoot/original';
+  /// Hardware-adaptive backdrop sizing: Prevents 33MB RAM spikes on mobile and TV sticks
+  static String get backdropSizeUrl {
+    if (_profile.tier == DeviceTier.low) {
+      return '$_imageRoot/w780';
+    } else if (_profile.isTv || _profile.isDesktopOS) {
+      return '$_imageRoot/w1280';
+    } else {
+      return '$_imageRoot/w780';
+    }
+  }
 
-  /// High-definition poster renders (`w780`) across all devices for pin-sharp display.
-  static String get posterSizeUrl => '$_imageRoot/w780';
+  /// Adaptive poster renders: w500 on mobile/low-tier, w780 on large screens
+  static String get posterSizeUrl {
+    if (_profile.tier == DeviceTier.low) {
+      return '$_imageRoot/w342';
+    } else if (_profile.isLargeScreen) {
+      return '$_imageRoot/w780';
+    } else {
+      return '$_imageRoot/w500';
+    }
+  }
 
   /// High-resolution cast head-shots and thumbnails.
   static String get profileSizeUrl => '$_imageRoot/h632';

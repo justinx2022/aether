@@ -110,7 +110,7 @@ class _CacheEntry {
 }
 
 /// Runs every enabled Nuvio scraper for one title and streams results back as
-/// they arrive, mirroring how the SkyStream plugin aggregator behaves so both
+/// they arrive, mirroring how the Aether plugin aggregator behaves so both
 /// systems can feed one list.
 class NuvioStreamService {
   NuvioStreamService(this._ref);

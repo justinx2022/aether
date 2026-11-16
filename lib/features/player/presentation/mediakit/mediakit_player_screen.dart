@@ -169,7 +169,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   final List<String> _mpvLogTail = <String>[];
 
   /// The subtitle files of what is playing - the source's and any the viewer
-  /// added - which SkyStream draws over the picture rather than handing to
+  /// added - which Aether draws over the picture rather than handing to
   /// mpv. See [SideCarSubtitles].
   late final SideCarSubtitles _sideCars;
 
@@ -451,7 +451,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
 
     _player = Player(
       configuration: PlayerConfiguration(
-        title: 'SkyStream',
+        title: 'Aether',
         bufferSize: _bufferPlan().megabytes * 1024 * 1024,
         // `info`, not `error`: a source that opens and then draws nothing
         // usually has no error to report, only messages about what it was
@@ -612,7 +612,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
         await native.setProperty('audio-pitch-correction', 'yes');
         await native.setProperty('user-agent', kDefaultBrowserUserAgent);
 
-        // SkyStream Neural AI Enhancements (Dahl Core)
+        // Aether Neural AI Enhancements (Dahl Core)
         final aiSettings = _read(aiSettingsProvider).asData?.value;
         if (aiSettings != null && aiSettings.aiEnabled) {
           // 1. Dialogue Isolation & Night Mode Audio Filters
@@ -1873,7 +1873,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     }
   }
 
-  /// Turns off a subtitle mpv selected for itself while one of SkyStream's own
+  /// Turns off a subtitle mpv selected for itself while one of Aether's own
   /// files is on - two on screen at once is never what anyone chose - or while
   /// the setting says Off.
   ///
@@ -1912,7 +1912,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     unawaited(_player.setSubtitleTrack(SubtitleTrack.no()));
   }
 
-  /// A file arrived in a format SkyStream does not read. mpv can be handed
+  /// A file arrived in a format Aether does not read. mpv can be handed
   /// files a different way, but not from here, so the viewer is told rather
   /// than left wondering why the row disappeared.
   void _handSideCarToEngine(SideCarTrack track) {
@@ -2046,7 +2046,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     unawaited(_player.setSubtitleTrack(track));
   }
 
-  /// Moves the lines against the picture, for both SkyStream's files and the
+  /// Moves the lines against the picture, for both Aether's files and the
   /// tracks mpv draws.
   void _setSubtitleDelay(Duration delay) {
     _subtitlePlayback.setDelay(delay);

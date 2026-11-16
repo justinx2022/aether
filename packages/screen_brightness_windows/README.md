@@ -18,7 +18,7 @@ write the *monitor's own* brightness, via `Dxva2.lib`
   `WM_ACTIVATEAPP` paths, which `ScreenBrightness().setAutoReset(false)` can
   switch off.
 
-That close-time write is the "SkyStream resets my screen brightness on Windows"
+That close-time write is the "Aether resets my screen brightness on Windows"
 users have reported. `setAutoReset(false)` cannot reach it.
 
 Each failed probe also leaks a `PHYSICAL_MONITOR` handle: the throw happens
@@ -26,7 +26,7 @@ before `DestroyPhysicalMonitors`, and the `malloc` is never freed.
 
 ## Why nothing is lost
 
-SkyStream never uses screen brightness on a desktop. The only caller is the
+Aether never uses screen brightness on a desktop. The only caller is the
 player's touch rail, which returns early:
 
 ```dart

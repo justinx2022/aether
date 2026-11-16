@@ -80,7 +80,7 @@ Future<List<R>> _processInChunks<T, R>(
   return results.cast<R>();
 }
 
-class JsBasedProvider extends SkyStreamProvider {
+class JsBasedProvider extends AetherProvider {
   // Bump whenever [_buildIife]'s wrapper text changes: the version is part of
   // the .qbc filename, so bytecode compiled from an older wrapper is ignored
   // rather than loaded.

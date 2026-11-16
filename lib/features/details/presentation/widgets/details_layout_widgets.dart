@@ -7,15 +7,15 @@ import 'package:collection/collection.dart';
 
 import '../downloaded_file_provider.dart';
 
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/storage/history_repository.dart';
-import 'package:skystream/core/utils/layout_constants.dart';
-import 'package:skystream/shared/widgets/custom_widgets.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/storage/history_repository.dart';
+import 'package:aether/core/utils/layout_constants.dart';
+import 'package:aether/shared/widgets/custom_widgets.dart';
 
 import '../details_controller.dart';
 
-import 'package:skystream/core/extensions/extension_manager.dart';
-import 'package:skystream/core/services/download_service.dart';
+import 'package:aether/core/extensions/extension_manager.dart';
+import 'package:aether/core/services/download_service.dart';
 
 import '../download_launcher.dart';
 import 'download_progress_dialog.dart';
@@ -23,9 +23,9 @@ import 'download_management_dialog.dart';
 import 'episode_card.dart';
 import '../../../../shared/focus/app_focus.dart';
 
-import 'package:skystream/core/providers/device_info_provider.dart';
-import 'package:skystream/core/utils/responsive_breakpoints.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/core/providers/device_info_provider.dart';
+import 'package:aether/core/utils/responsive_breakpoints.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 class DetailsSeasonListWrapper extends ConsumerWidget {
   const DetailsSeasonListWrapper({super.key, required this.itemUrl});

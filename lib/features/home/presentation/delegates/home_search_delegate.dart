@@ -12,7 +12,7 @@ import '../../../search/presentation/search_history_provider.dart';
 import '../../../search/presentation/search_provider.dart';
 import '../../../search/presentation/widgets/search_suggestion_row.dart';
 
-import 'package:skystream/shared/widgets/multimedia_card.dart';
+import 'package:aether/shared/widgets/multimedia_card.dart';
 
 import '../../../../shared/widgets/loading_indicator.dart';
 import '../../../../core/utils/responsive_breakpoints.dart';
@@ -307,7 +307,7 @@ class _HomeSearchResultsState extends ConsumerState<_HomeSearchResults> {
       result = null;
     });
 
-    final SkyStreamProvider? provider = ref.read(activeProviderProvider);
+    final AetherProvider? provider = ref.read(activeProviderProvider);
     if (provider == null) {
       if (mounted) setState(() => isLoading = false);
       return;

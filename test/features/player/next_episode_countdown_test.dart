@@ -4,12 +4,12 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/player/presentation/vlc/next_episode_countdown.dart';
-import 'package:skystream/features/player/presentation/widgets/hotstar_player_style.dart';
-import 'package:skystream/features/player/presentation/widgets/player_control_components.dart';
-import 'package:skystream/features/player/presentation/widgets/player_stream_widgets.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
-import 'package:skystream/shared/widgets/thumbnail_error_placeholder.dart';
+import 'package:aether/features/player/presentation/vlc/next_episode_countdown.dart';
+import 'package:aether/features/player/presentation/widgets/hotstar_player_style.dart';
+import 'package:aether/features/player/presentation/widgets/player_control_components.dart';
+import 'package:aether/features/player/presentation/widgets/player_stream_widgets.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
+import 'package:aether/shared/widgets/thumbnail_error_placeholder.dart';
 
 /// Hosts the card the way the player does: an overlay layer in a [Stack] over
 /// a (here, absent) video surface. [locale] and [textScale] are the two axes

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:skystream/core/utils/layout_constants.dart';
-import 'package:skystream/core/theme/app_world.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
-import 'package:skystream/shared/widgets/cards_wrapper.dart';
-import 'package:skystream/features/home/presentation/delegates/home_search_delegate.dart';
-import 'package:skystream/features/home/presentation/home_provider.dart';
-import 'package:skystream/shared/widgets/profile_app_bar_button.dart';
+import 'package:aether/core/utils/layout_constants.dart';
+import 'package:aether/core/theme/app_world.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
+import 'package:aether/shared/widgets/cards_wrapper.dart';
+import 'package:aether/features/home/presentation/delegates/home_search_delegate.dart';
+import 'package:aether/features/home/presentation/home_provider.dart';
+import 'package:aether/shared/widgets/profile_app_bar_button.dart';
 
 import 'dart:async';
 

@@ -12,11 +12,11 @@ import '../../../../core/utils/responsive_breakpoints.dart';
 import '../../../../core/models/tmdb_details.dart';
 import '../tmdb_details_controller.dart';
 
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 import '../../../../shared/widgets/loading_indicator.dart';
 
-import 'package:skystream/core/services/notification_service.dart';
+import 'package:aether/core/services/notification_service.dart';
 
 import '../../../../shared/focus/app_focus.dart';
 

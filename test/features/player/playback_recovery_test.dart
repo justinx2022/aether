@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/providers/device_info_provider.dart';
-import 'package:skystream/features/player/domain/playback_recovery.dart';
-import 'package:skystream/features/player/domain/stream_resolver.dart'
+import 'package:aether/core/providers/device_info_provider.dart';
+import 'package:aether/features/player/domain/playback_recovery.dart';
+import 'package:aether/features/player/domain/stream_resolver.dart'
     show ProbeOutcome;
 
 void main() {

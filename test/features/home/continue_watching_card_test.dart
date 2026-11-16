@@ -2,11 +2,11 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/storage/history_repository.dart';
-import 'package:skystream/core/theme/app_world.dart';
-import 'package:skystream/features/home/presentation/widgets/continue_watching_card.dart';
-import 'package:skystream/shared/widgets/cards_wrapper.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/storage/history_repository.dart';
+import 'package:aether/core/theme/app_world.dart';
+import 'package:aether/features/home/presentation/widgets/continue_watching_card.dart';
+import 'package:aether/shared/widgets/cards_wrapper.dart';
 
 /// The two footprints the rail actually hands the card
 /// (continue_watching_section.dart: 360x200 on tablet/TV, 280x150 on phone).

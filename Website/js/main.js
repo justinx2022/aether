@@ -61,7 +61,7 @@
   /* ── GitHub live star + download count ── */
   (async () => {
     try {
-      const r = await fetch('https://api.github.com/repos/akashdh11/skystream', {
+      const r = await fetch('https://api.github.com/repos/justinx2022/aether', {
         headers: { Accept: 'application/vnd.github+json' }
       });
       if (!r.ok) throw new Error();
@@ -82,7 +82,7 @@
   /* Fetch total download count from releases */
   (async () => {
     try {
-      const r = await fetch('https://api.github.com/repos/akashdh11/skystream/releases', {
+      const r = await fetch('https://api.github.com/repos/justinx2022/aether/releases', {
         headers: { Accept: 'application/vnd.github+json' }
       });
       if (!r.ok) throw new Error();

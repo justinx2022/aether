@@ -5,9 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:skystream/core/storage/secure_token_storage.dart';
-import 'package:skystream/core/storage/storage_service.dart';
-import 'package:skystream/features/settings/presentation/player_settings_provider.dart';
+import 'package:aether/core/storage/secure_token_storage.dart';
+import 'package:aether/core/storage/storage_service.dart';
+import 'package:aether/features/settings/presentation/player_settings_provider.dart';
 
 /// Source of [PlayerSettings], read as text.
 ///

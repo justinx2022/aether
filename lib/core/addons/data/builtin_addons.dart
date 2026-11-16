@@ -1,11 +1,11 @@
 import '../models/addon_manifest.dart';
 
-/// Add-ons SkyStream can fall back to without the user installing anything.
+/// Add-ons Aether can fall back to without the user installing anything.
 ///
 /// Catalog-only add-ons are extremely common — the Streaming Catalogs add-on
 /// (Netflix/Disney+/Prime rows), Trakt lists, RPDB catalogs — and none of them
 /// implement `meta`. In Stremio those work because Cinemeta is always
-/// installed. SkyStream keeps the same guarantee by consulting Cinemeta as a
+/// installed. Aether keeps the same guarantee by consulting Cinemeta as a
 /// fallback: still pure add-on protocol, just not something the user had to
 /// add, and only used when no installed add-on can answer.
 class BuiltInAddons {

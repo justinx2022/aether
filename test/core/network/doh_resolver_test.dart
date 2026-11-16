@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:skystream/core/network/doh_resolver.dart';
-import 'package:skystream/core/services/provider_health_service.dart';
+import 'package:aether/core/network/doh_resolver.dart';
+import 'package:aether/core/services/provider_health_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

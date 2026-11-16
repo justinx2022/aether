@@ -11,4 +11,4 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
-!app/skystream-release.jks
+!app/aether-release.jks

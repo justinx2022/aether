@@ -83,7 +83,7 @@ class _Entry {
 
 /// Signatures of add-ons that trade in pirate streams. The community
 /// directory is largely subtitles/metadata/catalog utilities, but p2p and
-/// torrent catalog add-ons do appear in it; SkyStream does not surface those
+/// torrent catalog add-ons do appear in it; Aether does not surface those
 /// — they are the copyright problems that get unofficial directories and
 /// their users in trouble. (Note these are dropped from Discover only;
 /// nothing is blocked server-side, and anything already installed keeps

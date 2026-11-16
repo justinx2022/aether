@@ -139,7 +139,7 @@ class ExtensionManager extends _$ExtensionManager {
   }
 
   @override
-  List<SkyStreamProvider> build() {
+  List<AetherProvider> build() {
     _engine = ref.watch(jsEngineProvider);
     _storageService = ref.watch(pluginStorageServiceProvider);
     return [];
@@ -225,7 +225,7 @@ class ExtensionManager extends _$ExtensionManager {
 
       for (int i = 0; i < sortedPlugins.length; i += batchSize) {
         final batch = sortedPlugins.skip(i).take(batchSize);
-        final batchLoads = <Future<List<SkyStreamProvider>>>[];
+        final batchLoads = <Future<List<AetherProvider>>>[];
 
         for (final plugin in batch) {
           final alreadyLoaded = _hasLoadedProviders(plugin.packageName);
@@ -258,7 +258,7 @@ class ExtensionManager extends _$ExtensionManager {
       // Unload Removed Plugins
       final installedPackageNames = installed.map((e) => e.packageName).toSet();
 
-      final providersToRemove = <SkyStreamProvider>[];
+      final providersToRemove = <AetherProvider>[];
 
       for (final provider in state) {
         if (!_belongsToInstalled(provider.packageName, installedPackageNames)) {
@@ -272,7 +272,7 @@ class ExtensionManager extends _$ExtensionManager {
             "ExtensionManager: Unloading ${providersToRemove.length} providers",
           );
         }
-        final newState = List<SkyStreamProvider>.from(state);
+        final newState = List<AetherProvider>.from(state);
         for (final p in providersToRemove) {
           if (kDebugMode) {
             debugPrint(
@@ -338,7 +338,7 @@ class ExtensionManager extends _$ExtensionManager {
   /// Dynamic provider mode: when plugin.json has `"providers": []` (empty array),
   /// a bootstrap JsBasedProvider is created to call `getProviders()` and fetch
   /// the live list, then fan-out into sub-providers exactly like the static path.
-  Future<List<SkyStreamProvider>> _loadPlugin(ExtensionPlugin plugin) async {
+  Future<List<AetherProvider>> _loadPlugin(ExtensionPlugin plugin) async {
     if (_engine == null || _storageService == null) return [];
     try {
       // A plugin whose JS no longer matches the hash recorded at install is
@@ -453,7 +453,7 @@ class ExtensionManager extends _$ExtensionManager {
         );
 
         // Fan-out — identical structure to the static path below.
-        final results = <SkyStreamProvider>[];
+        final results = <AetherProvider>[];
         for (final sub in dynamicProviders) {
           if (!_isSubProviderEnabled(plugin.packageName, sub.id)) continue;
           final subId = sub.id.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
@@ -486,7 +486,7 @@ class ExtensionManager extends _$ExtensionManager {
 
       // ── Static provider fan-out ───────────────────────────────────────────
       if (plugin.providers != null && plugin.providers!.isNotEmpty) {
-        final results = <SkyStreamProvider>[];
+        final results = <AetherProvider>[];
         for (final sub in plugin.providers!) {
           if (!_isSubProviderEnabled(plugin.packageName, sub.id)) continue;
           final subId = sub.id.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
@@ -561,7 +561,7 @@ class ExtensionManager extends _$ExtensionManager {
   }
 
   /// First loaded provider belonging to [packageName], or null.
-  SkyStreamProvider? _firstLoadedProvider(String packageName) {
+  AetherProvider? _firstLoadedProvider(String packageName) {
     try {
       return state.firstWhere(
         (p) =>
@@ -600,7 +600,7 @@ class ExtensionManager extends _$ExtensionManager {
     return false;
   }
 
-  void _addProvider(SkyStreamProvider provider) {
+  void _addProvider(AetherProvider provider) {
     if (!state.any((p) => p.packageName == provider.packageName)) {
       if (kDebugMode) {
         debugPrint(
@@ -617,9 +617,9 @@ class ExtensionManager extends _$ExtensionManager {
     }
   }
 
-  List<SkyStreamProvider> getAllProviders() => state;
+  List<AetherProvider> getAllProviders() => state;
 
-  SkyStreamProvider? getProvider(String packageName) {
+  AetherProvider? getProvider(String packageName) {
     try {
       return state.firstWhere((p) => p.packageName == packageName);
     } catch (_) {
@@ -656,7 +656,7 @@ class ActiveProvider extends _$ActiveProvider {
   bool _initialLoadDone = false;
 
   @override
-  SkyStreamProvider? build() {
+  AetherProvider? build() {
     // Safety net: when sync finishes but no further extensionManager state
     // change fires, check one final time for the target provider.
     ref.listen(pluginSyncCompleteProvider, (_, complete) {
@@ -727,7 +727,7 @@ class ActiveProvider extends _$ActiveProvider {
     return null;
   }
 
-  void _loadFromStorage(List<SkyStreamProvider> currentProviders) {
+  void _loadFromStorage(List<AetherProvider> currentProviders) {
     final storage = ref.read(settingsRepositoryProvider);
     final id = storage.getActiveProviderId();
 
@@ -751,7 +751,7 @@ class ActiveProvider extends _$ActiveProvider {
     }
   }
 
-  Future<void> set(SkyStreamProvider? provider) async {
+  Future<void> set(AetherProvider? provider) async {
     state = provider;
     _targetProviderId = null;
     ref.read(providerResolutionLoadingProvider.notifier).set(false);

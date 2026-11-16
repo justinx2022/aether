@@ -85,8 +85,8 @@ packages/flutter_torrent_server/go_src/.gradle/
 /coverage/
 plugins/
 keystore/
-skystream-plugins/
-skystream-tools/
+aether-plugins/
+aether-tools/
 tree-shaking-test*.js
 
 node_modules/

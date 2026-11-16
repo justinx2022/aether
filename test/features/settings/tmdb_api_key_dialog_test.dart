@@ -14,10 +14,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/network/dio_client_provider.dart';
-import 'package:skystream/features/settings/presentation/general_settings_provider.dart';
-import 'package:skystream/features/settings/presentation/widgets/settings_dialogs.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/core/network/dio_client_provider.dart';
+import 'package:aether/features/settings/presentation/general_settings_provider.dart';
+import 'package:aether/features/settings/presentation/widgets/settings_dialogs.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 /// Made up. Real keys stay out of the repository.
 const String _key = '0123456789abcdef0123456789abcdef';

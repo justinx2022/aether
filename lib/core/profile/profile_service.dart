@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../storage/storage_service.dart';
 import 'user_profile.dart';
 
@@ -58,20 +59,11 @@ class ProfileController extends Notifier<ProfileState> {
     }
 
     if (loaded.isEmpty) {
-      final defaultProfile = UserProfile(
-        id: 'profile_default',
-        name: 'Justin',
-        avatarId: 'avatar_cinema',
-        createdAt: DateTime.now(),
+      return const ProfileState(
+        profiles: [],
+        activeProfile: null,
+        isLoading: false,
       );
-      final guestProfile = UserProfile(
-        id: 'profile_roomie',
-        name: 'Roommate',
-        avatarId: 'avatar_popcorn',
-        createdAt: DateTime.now(),
-      );
-      loaded = [defaultProfile, guestProfile];
-      _saveProfiles(loaded);
     }
 
     final activeId = _storage.getString(_kActiveProfileIdKey) ?? loaded.first.id;
@@ -97,7 +89,7 @@ class ProfileController extends Notifier<ProfileState> {
     state = state.copyWith(activeProfile: profile);
   }
 
-  Future<void> addProfile({
+  Future<UserProfile> addProfile({
     required String name,
     required String avatarId,
     String? pin,
@@ -105,28 +97,68 @@ class ProfileController extends Notifier<ProfileState> {
     List<String> preferredGenres = const [],
     String feedMode = 'all',
   }) async {
+    String? pinHash;
+    String? pinSalt;
+    if (pin != null && pin.trim().isNotEmpty) {
+      pinSalt = UserProfile.generateSalt();
+      pinHash = UserProfile.hashPinPbkdf2(pin.trim(), pinSalt);
+    }
+
     final newProfile = UserProfile(
       id: 'profile_${DateTime.now().millisecondsSinceEpoch}',
-      name: name.trim().isEmpty ? 'Comrade' : name.trim(),
+      name: name.trim().isEmpty ? 'Viewer' : name.trim(),
       avatarId: avatarId,
-      pin: pin?.isNotEmpty == true ? pin : null,
+      pinHash: pinHash,
+      pinSalt: pinSalt,
       isKids: isKids,
       preferredGenres: preferredGenres,
       feedMode: feedMode,
       createdAt: DateTime.now(),
     );
 
+    if (pinHash != null) {
+      try {
+        const secure = FlutterSecureStorage(aOptions: AndroidOptions());
+        await secure.write(key: 'profile_pin_${newProfile.id}', value: pinHash);
+      } catch (_) {}
+    }
+
     final updated = [...state.profiles, newProfile];
     await _saveProfiles(updated);
-    state = state.copyWith(profiles: updated);
+
+    UserProfile nextActive = state.activeProfile ?? newProfile;
+    if (state.activeProfile == null) {
+      await _storage.setString(_kActiveProfileIdKey, newProfile.id);
+    }
+
+    state = state.copyWith(
+      profiles: updated,
+      activeProfile: nextActive,
+    );
+    return newProfile;
   }
 
   Future<void> updateProfile(UserProfile profile) async {
-    final updated = state.profiles.map((p) => p.id == profile.id ? profile : p).toList();
+    UserProfile toSave = profile;
+    if (toSave.pin != null && toSave.pin!.isNotEmpty && toSave.pinHash == null) {
+      final salt = UserProfile.generateSalt();
+      final hash = UserProfile.hashPinPbkdf2(toSave.pin!, salt);
+      toSave = toSave.copyWith(
+        pin: null,
+        pinSalt: salt,
+        pinHash: hash,
+      );
+      try {
+        const secure = FlutterSecureStorage(aOptions: AndroidOptions());
+        await secure.write(key: 'profile_pin_${toSave.id}', value: hash);
+      } catch (_) {}
+    }
+
+    final updated = state.profiles.map((p) => p.id == toSave.id ? toSave : p).toList();
     await _saveProfiles(updated);
 
     final currentActive = state.activeProfile;
-    final newActive = currentActive?.id == profile.id ? profile : currentActive;
+    final newActive = currentActive?.id == toSave.id ? toSave : currentActive;
 
     state = state.copyWith(
       profiles: updated,

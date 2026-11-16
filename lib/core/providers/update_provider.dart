@@ -71,15 +71,9 @@ class UpdateController extends _$UpdateController {
   }
 
   Future<void> downloadAndInstall(GithubRelease release) async {
-    // For iOS, just open the release URL
-    // For iOS and Desktop platforms, use browser-managed downloads
-    if (Platform.isIOS ||
-        Platform.isWindows ||
-        Platform.isMacOS ||
-        Platform.isLinux) {
+    // iOS sandboxing requires opening the platform release or TestFlight url
+    if (Platform.isIOS) {
       final asset = await _service.findPlatformAsset(release);
-      // Removed ref.mounted guard
-
       final url = asset?.browserDownloadUrl ?? release.htmlUrl;
 
       if (await canLaunchUrl(Uri.parse(url))) {
@@ -89,21 +83,19 @@ class UpdateController extends _$UpdateController {
       return;
     }
 
+    // On Android, Windows, macOS, and Linux: Download directly in-app with live progress bar
     state = UpdateDownloading(0.0);
     try {
       final file = await _service.downloadUpdateAsset(release, (progress) {
-        // Safe check for progress update
         try {
           if (ref.mounted) state = UpdateDownloading(progress);
         } catch (_) {}
       });
 
-      // Removed ref.mounted guard
-
       if (file != null) {
         state = UpdateDownloaded(file);
 
-        // Android requires explicit permission to install packages
+        // Android package installer requires explicit permission
         if (Platform.isAndroid) {
           final status = await Permission.requestInstallPackages.request();
           if (!status.isGranted) {
@@ -114,10 +106,22 @@ class UpdateController extends _$UpdateController {
           }
         }
 
-        // Trigger installation
-        final result = await OpenFile.open(file.path);
-        if (result.type != ResultType.done) {
-          state = UpdateError("Install failed: ${result.message}");
+        // On Linux: Ensure downloaded AppImage or binary is executable
+        if (Platform.isLinux) {
+          try {
+            await Process.run('chmod', ['+x', file.path]);
+          } catch (_) {}
+        }
+
+        // Trigger native OS installation directly
+        if (Platform.isWindows && file.path.toLowerCase().endsWith('.exe')) {
+          await Process.start(file.path, [], mode: ProcessStartMode.detached);
+          exit(0);
+        } else {
+          final result = await OpenFile.open(file.path);
+          if (result.type != ResultType.done) {
+            state = UpdateError("Install failed: ${result.message}");
+          }
         }
       } else {
         state = UpdateError(

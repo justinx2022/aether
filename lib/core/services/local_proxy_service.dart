@@ -65,6 +65,7 @@ class LocalProxyService {
   HttpServer? _server;
   int _serverPort = 0;
   final Map<String, String> _playlists = {};
+  final Map<String, (String keyHex, String? kidHex)> _cencSessions = {};
 
   static const int _maxPlaylists = 50;
 
@@ -188,6 +189,7 @@ class LocalProxyService {
     _server = null;
     _serverPort = 0;
     _playlists.clear();
+    _cencSessions.clear();
     SegmentPrefetchManager.instance.clear();
     // Release the pooled keep-alive sockets too, otherwise they sit open for
     // the full idle timeout after the proxy is meant to be gone.

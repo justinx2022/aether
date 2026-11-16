@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/addons/presentation/widgets/addon_manage_view.dart';
+import 'package:aether/features/addons/presentation/widgets/addon_manage_view.dart';
 
 /// The Quick Install row shows a short starter list and nothing else. Two of
 /// the three are the official add-ons; Torrentio's direct-P2P entry is the

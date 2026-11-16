@@ -66,22 +66,12 @@ class GlassSurface extends StatelessWidget {
       child: Padding(padding: padding, child: child),
     );
 
-    if (blurSigma > 0 && !reduce) {
-      panel = ClipRRect(
-        borderRadius: radius,
-        clipBehavior: clipBehavior,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
-          child: panel,
-        ),
-      );
-    } else {
-      panel = ClipRRect(
-        borderRadius: radius,
-        clipBehavior: clipBehavior,
-        child: panel,
-      );
-    }
+    // Clean, crisp solid OLED surface without expensive GPU BackdropFilter
+    panel = ClipRRect(
+      borderRadius: radius,
+      clipBehavior: clipBehavior,
+      child: panel,
+    );
 
     if (!shadow) return panel;
     return Container(

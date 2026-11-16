@@ -31,11 +31,11 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/providers/device_info_provider.dart';
-import 'package:skystream/core/router/app_router.dart';
-import 'package:skystream/core/services/notification_service.dart';
-import 'package:skystream/core/widgets/m3_toast_overlay.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/providers/device_info_provider.dart';
+import 'package:aether/core/router/app_router.dart';
+import 'package:aether/core/services/notification_service.dart';
+import 'package:aether/core/widgets/m3_toast_overlay.dart';
 
 /// A phone held sideways, which is the only shape the player runs at on touch.
 const Size _phone = Size(844, 390);

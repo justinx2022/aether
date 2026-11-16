@@ -15,9 +15,7 @@ class YearSelectorDialog extends ConsumerWidget {
     final currentYear = DateTime.now().year;
     final years = List.generate(50, (index) => currentYear - index);
 
-    return BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-      child: Dialog(
+    return Dialog(
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.all(20),
         child: Container(
@@ -127,7 +125,6 @@ class YearSelectorDialog extends ConsumerWidget {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 }

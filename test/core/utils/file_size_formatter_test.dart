@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/utils/file_size_formatter.dart';
+import 'package:aether/core/utils/file_size_formatter.dart';
 
 void main() {
   group('formatFileSize', () {

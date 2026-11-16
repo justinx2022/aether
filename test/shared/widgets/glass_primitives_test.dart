@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:skystream/core/theme/app_theme.dart';
-import 'package:skystream/shared/widgets/artwork_overlay.dart';
-import 'package:skystream/shared/widgets/empty_state.dart';
-import 'package:skystream/shared/widgets/glass_action_button.dart';
-import 'package:skystream/shared/widgets/glass_surface.dart';
-import 'package:skystream/shared/widgets/section_header.dart';
+import 'package:aether/core/theme/app_theme.dart';
+import 'package:aether/shared/widgets/artwork_overlay.dart';
+import 'package:aether/shared/widgets/empty_state.dart';
+import 'package:aether/shared/widgets/glass_action_button.dart';
+import 'package:aether/shared/widgets/glass_surface.dart';
+import 'package:aether/shared/widgets/section_header.dart';
 
 /// The shared primitives the overhaul adds.
 ///

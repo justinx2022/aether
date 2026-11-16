@@ -39,7 +39,9 @@ class BecauseYouWatchedSection extends ConsumerWidget {
           ),
         );
       },
-      loading: () => const SizedBox.shrink(),
+      loading: () => const SizedBox(
+        height: 180,
+      ),
       error: (err, stack) => const SizedBox.shrink(),
     );
   }

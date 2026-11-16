@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/search/presentation/widgets/search_suggestion_row.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/features/search/presentation/widgets/search_suggestion_row.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 void main() {
   late FocusNode node;

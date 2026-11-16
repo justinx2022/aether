@@ -1,7 +1,7 @@
 /// Side-car subtitle files: the ones a source ships beside its video, and the
 /// ones a viewer brings - a file from the device, a result found online.
 ///
-/// SkyStream reads and draws these itself (subtitle_cues.dart says why), so
+/// Aether reads and draws these itself (subtitle_cues.dart says why), so
 /// they are tracks of this list rather than of libVLC's. Tracks embedded in
 /// the video stay in libVLC's list, and the two never show at once: the
 /// player screen turns libVLC's subtitle off while one of these is on.

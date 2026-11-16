@@ -12,7 +12,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/player/presentation/player_debug_flags.dart';
+import 'package:aether/features/player/presentation/player_debug_flags.dart';
 import 'package:vlc_player/vlc_player.dart';
 
 import 'fake_vlc_engine.dart';
@@ -48,7 +48,7 @@ void main() {
   final painted = find.byType(VlcPlayer);
   final mounted = find.byType(VlcPlayer, skipOffstage: false);
 
-  group('SKYSTREAM_VLC_VERBOSE', () {
+  group('AETHER_VLC_VERBOSE', () {
     // The default, and the one that matters most: a normal build stays quiet.
     testWidgets('a normal launch leaves libVLC quiet', variant: texturePlatform, (
       tester,
@@ -69,7 +69,7 @@ void main() {
       variant: texturePlatform,
       (tester) async {
         PlayerDiagnostics.environment = const <String, String>{
-          'SKYSTREAM_VLC_VERBOSE': '1',
+          'AETHER_VLC_VERBOSE': '1',
         };
 
         await pumpPlayer(tester);
@@ -89,7 +89,7 @@ void main() {
     );
   });
 
-  group('SKYSTREAM_NO_VIDEO', () {
+  group('AETHER_NO_VIDEO', () {
     testWidgets(
       'a normal launch paints the video surface',
       variant: texturePlatform,
@@ -112,7 +112,7 @@ void main() {
       variant: texturePlatform,
       (tester) async {
         PlayerDiagnostics.environment = const <String, String>{
-          'SKYSTREAM_NO_VIDEO': '1',
+          'AETHER_NO_VIDEO': '1',
         };
 
         await pumpPlayer(tester);

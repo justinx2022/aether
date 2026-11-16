@@ -1,7 +1,7 @@
 /// What an overlaid subtitle file times its lines off, whichever engine is
 /// playing underneath.
 ///
-/// SkyStream draws subtitle files itself (`subtitle_cues.dart` says why), so
+/// Aether draws subtitle files itself (`subtitle_cues.dart` says why), so
 /// the drawing code needs a clock and nothing else: where playback is, whether
 /// it is running, how fast, and the delay the viewer set. libVLC reports those
 /// through its controller and media_kit through its player state, so each

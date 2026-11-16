@@ -22,17 +22,17 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/extensions/base_provider.dart';
-import 'package:skystream/core/extensions/extension_manager.dart';
-import 'package:skystream/features/home/presentation/home_provider.dart';
-import 'package:skystream/features/home/presentation/home_state.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/extensions/base_provider.dart';
+import 'package:aether/core/extensions/extension_manager.dart';
+import 'package:aether/features/home/presentation/home_provider.dart';
+import 'package:aether/features/home/presentation/home_state.dart';
 
 typedef _Sections = Map<String, List<MultimediaItem>>;
 
 /// A scraper stand-in. Every `getHome()` returns a fresh completer so a test
 /// can decide exactly when — and in which order — each call lands.
-class _FakeScraper extends SkyStreamProvider {
+class _FakeScraper extends AetherProvider {
   _FakeScraper(this.name);
 
   @override
@@ -80,13 +80,13 @@ class _FakeScraper extends SkyStreamProvider {
 class _FakeActiveProvider extends ActiveProvider {
   _FakeActiveProvider(this._initial);
 
-  final SkyStreamProvider? _initial;
+  final AetherProvider? _initial;
 
   @override
-  SkyStreamProvider? build() => _initial;
+  AetherProvider? build() => _initial;
 
   @override
-  Future<void> set(SkyStreamProvider? provider) async {
+  Future<void> set(AetherProvider? provider) async {
     state = provider;
   }
 }
@@ -100,7 +100,7 @@ Future<void> _settle([int turns = 64]) async {
   }
 }
 
-ProviderContainer _containerWith(SkyStreamProvider? active) {
+ProviderContainer _containerWith(AetherProvider? active) {
   final container = ProviderContainer(
     overrides: [
       activeProviderProvider.overrideWith(() => _FakeActiveProvider(active)),

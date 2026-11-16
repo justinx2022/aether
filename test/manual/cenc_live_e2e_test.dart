@@ -6,7 +6,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/services/local_proxy_service.dart';
+import 'package:aether/core/services/local_proxy_service.dart';
 
 const _mpd =
     'https://livestream1.sunnxt.com/05b5df1221764bca9867054c5e65ee62/SunTVB_IN_index.mpd';

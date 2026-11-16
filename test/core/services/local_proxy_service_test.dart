@@ -10,7 +10,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/services/local_proxy_service.dart';
+import 'package:aether/core/services/local_proxy_service.dart';
 
 /// A loopback stand-in for a CDN that records how it was reached.
 ///

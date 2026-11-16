@@ -18,7 +18,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/player/presentation/widgets/player_control_components.dart'
+import 'package:aether/features/player/presentation/widgets/player_control_components.dart'
     show
         PlayerActionButton,
         PlayerBottomBar,

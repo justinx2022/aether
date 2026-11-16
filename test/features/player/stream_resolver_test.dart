@@ -8,12 +8,12 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart'
     show ProviderListenable;
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/extensions/base_provider.dart';
-import 'package:skystream/core/extensions/extension_manager.dart';
-import 'package:skystream/features/library/presentation/history_provider.dart';
-import 'package:skystream/features/player/domain/stream_resolver.dart';
-import 'package:skystream/features/settings/presentation/player_settings_provider.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/extensions/base_provider.dart';
+import 'package:aether/core/extensions/extension_manager.dart';
+import 'package:aether/features/library/presentation/history_provider.dart';
+import 'package:aether/features/player/domain/stream_resolver.dart';
+import 'package:aether/features/settings/presentation/player_settings_provider.dart';
 
 /// A provider reader backed by a fixed table, so the resolver can be exercised
 /// without a container. Reading anything not listed is a failure rather than a
@@ -39,7 +39,7 @@ StreamResult streamAt(String url, String source) =>
 
 /// A plugin that hands back a fixed list. The interface is small enough to
 /// satisfy outright, which keeps the fake honest about what the resolver calls.
-class FakePlugin implements SkyStreamProvider {
+class FakePlugin implements AetherProvider {
   FakePlugin(this.streams);
 
   final List<StreamResult> streams;
@@ -48,7 +48,7 @@ class FakePlugin implements SkyStreamProvider {
   Future<List<StreamResult>> loadStreams(String url) async => streams;
 
   @override
-  String get packageName => 'com.skystream.fake';
+  String get packageName => 'com.aether.fake';
   @override
   String get name => 'Fake';
   @override

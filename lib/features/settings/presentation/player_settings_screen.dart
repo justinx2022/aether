@@ -8,7 +8,7 @@ import '../../../core/router/app_router.dart';
 import '../../../core/utils/layout_constants.dart';
 import '../../../core/utils/stream_quality_sorter.dart';
 
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 import 'player_settings_provider.dart';
 import 'widgets/settings_dialogs.dart';

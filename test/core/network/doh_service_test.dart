@@ -3,8 +3,8 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/network/dio_client_provider.dart';
-import 'package:skystream/core/network/doh_service.dart';
+import 'package:aether/core/network/dio_client_provider.dart';
+import 'package:aether/core/network/doh_service.dart';
 
 /// Stands in for the DoH endpoint. [blocked] models the case the audit found:
 /// a captive portal or an ISP that black-holes the resolver, so the request

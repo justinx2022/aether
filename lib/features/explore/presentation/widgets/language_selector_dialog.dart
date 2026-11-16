@@ -14,9 +14,7 @@ class LanguageSelectorDialog extends ConsumerWidget {
     final languages = ref.watch(languageListProvider);
     final currentLang = ref.watch(languageProvider);
 
-    return BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-      child: Dialog(
+    return Dialog(
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.all(20),
         child: Container(
@@ -189,7 +187,6 @@ class LanguageSelectorDialog extends ConsumerWidget {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 }

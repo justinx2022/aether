@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:skystream/features/explore/data/explore_mode_provider.dart';
-import 'package:skystream/features/explore/presentation/widgets/hover_border_gradient.dart';
-import 'package:skystream/shared/widgets/custom_widgets.dart';
+import 'package:aether/features/explore/data/explore_mode_provider.dart';
+import 'package:aether/features/explore/presentation/widgets/hover_border_gradient.dart';
+import 'package:aether/shared/widgets/custom_widgets.dart';
 
 import '../../../../shared/focus/app_focus.dart';
 

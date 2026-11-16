@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/player/domain/playback_recovery.dart';
+import 'package:aether/features/player/domain/playback_recovery.dart';
 
 import 'fake_vlc_engine.dart';
 import 'vlc_screen_harness.dart';

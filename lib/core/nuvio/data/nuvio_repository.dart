@@ -63,7 +63,7 @@ class NuvioState {
 
 /// Stores Nuvio plugin repositories and the scraper code they publish.
 ///
-/// This sits next to — not inside — the SkyStream plugin system: both are
+/// This sits next to — not inside — the Aether plugin system: both are
 /// "plugins", both feed the same sources sheet, but they speak different
 /// protocols and are managed separately.
 @Riverpod(keepAlive: true)

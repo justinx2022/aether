@@ -313,7 +313,7 @@ internal class VlcPlayerPlatformView(
     /// input lock the whole time, and every read of the player - time,
     /// length, tracks - takes that lock too. A live stream whose segment read
     /// has stalled keeps the input thread alive for as long as the read
-    /// lasts; SkyStream caught its main thread 15 s deep in
+    /// lasts; Aether caught its main thread 15 s deep in
     /// `libvlc_media_player_stop` -> `input_Close` -> `vlc_join`. The main
     /// thread is also Flutter's UI thread, so the app froze and Android killed
     /// it as not responding, on switching source or on pressing back.

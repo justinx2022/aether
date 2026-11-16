@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /*
  * Runs real Nuvio provider bundles inside a real QuickJS build using the exact
- * polyfill SkyStream ships (lib/core/nuvio/data/nuvio_polyfill.dart).
+ * polyfill Aether ships (lib/core/nuvio/data/nuvio_polyfill.dart).
  *
  *   node tool/nuvio_qjs_harness.js <providers-dir> [--id 634649] [--type movie]
  *                                  [--only 4khdhub,hdhub4u] [--timeout 45]

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/player/domain/volume_routing.dart';
-import 'package:skystream/features/player/presentation/player_platform_service.dart';
+import 'package:aether/features/player/domain/volume_routing.dart';
+import 'package:aether/features/player/presentation/player_platform_service.dart';
 
 /// Where a volume request lands, per form factor.
 ///

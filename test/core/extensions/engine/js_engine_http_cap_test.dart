@@ -4,7 +4,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/extensions/engine/js_engine.dart';
+import 'package:aether/core/extensions/engine/js_engine.dart';
 
 /// Audit W24 — a third-party plugin that asks for a media URL instead of a
 /// page used to pull the whole file into a Dart String on the main isolate.

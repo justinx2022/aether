@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/player/presentation/vlc/vlc_progress_bar.dart';
-import 'package:skystream/features/player/presentation/widgets/player_stream_widgets.dart';
-import 'package:skystream/features/settings/presentation/player_settings_provider.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/features/player/presentation/vlc/vlc_progress_bar.dart';
+import 'package:aether/features/player/presentation/widgets/player_stream_widgets.dart';
+import 'package:aether/features/settings/presentation/player_settings_provider.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 import 'package:vlc_player/vlc_player.dart';
 
 import 'fake_vlc_engine.dart';

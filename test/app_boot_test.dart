@@ -34,21 +34,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/extensions/base_provider.dart';
-import 'package:skystream/core/extensions/extension_manager.dart';
-import 'package:skystream/core/extensions/models/extension_plugin.dart';
-import 'package:skystream/core/extensions/models/extension_repository.dart';
-import 'package:skystream/core/extensions/providers.dart';
-import 'package:skystream/core/extensions/services/plugin_storage_service.dart';
-import 'package:skystream/core/extensions/services/repository_service.dart';
-import 'package:skystream/core/providers/update_provider.dart';
-import 'package:skystream/core/router/app_router.dart';
-import 'package:skystream/core/services/download_service.dart';
-import 'package:skystream/core/storage/storage_service.dart';
-import 'package:skystream/features/extensions/providers/extensions_controller.dart';
-import 'package:skystream/features/extensions/widgets/extensions_sync_bridge.dart';
-import 'package:skystream/main.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/extensions/base_provider.dart';
+import 'package:aether/core/extensions/extension_manager.dart';
+import 'package:aether/core/extensions/models/extension_plugin.dart';
+import 'package:aether/core/extensions/models/extension_repository.dart';
+import 'package:aether/core/extensions/providers.dart';
+import 'package:aether/core/extensions/services/plugin_storage_service.dart';
+import 'package:aether/core/extensions/services/repository_service.dart';
+import 'package:aether/core/providers/update_provider.dart';
+import 'package:aether/core/router/app_router.dart';
+import 'package:aether/core/services/download_service.dart';
+import 'package:aether/core/storage/storage_service.dart';
+import 'package:aether/features/extensions/providers/extensions_controller.dart';
+import 'package:aether/features/extensions/widgets/extensions_sync_bridge.dart';
+import 'package:aether/main.dart';
 
 const String _repoUrl = 'https://example.test/repo.json';
 const String _packageName = 'com.example.superstream';
@@ -61,7 +61,7 @@ final ExtensionPlugin _installedPlugin = ExtensionPlugin(
   version: 1,
 );
 
-class _FakeProvider extends SkyStreamProvider {
+class _FakeProvider extends AetherProvider {
   _FakeProvider(this.packageName);
 
   @override
@@ -135,7 +135,7 @@ class _FakeExtensionManager extends ExtensionManager {
   final List<List<String>> syncedPackages = <List<String>>[];
 
   @override
-  List<SkyStreamProvider> build() => const <SkyStreamProvider>[];
+  List<AetherProvider> build() => const <AetherProvider>[];
 
   @override
   Future<void> syncFromPlugins(List<ExtensionPlugin> installed) async {
@@ -311,7 +311,7 @@ void main() {
       expect(
         container
             .read(extensionManagerProvider)
-            .map((SkyStreamProvider p) => p.packageName),
+            .map((AetherProvider p) => p.packageName),
         <String>[_packageName],
         reason: 'getAllProviders() is empty: nothing can be searched or played',
       );
@@ -352,7 +352,7 @@ void main() {
       expect(
         container
             .read(extensionManagerProvider)
-            .map((SkyStreamProvider p) => p.packageName),
+            .map((AetherProvider p) => p.packageName),
         <String>[_packageName],
         reason:
             'the provider picker would offer nothing and Home would claim no '

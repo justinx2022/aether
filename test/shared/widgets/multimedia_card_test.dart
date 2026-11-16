@@ -4,8 +4,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/settings/presentation/general_settings_provider.dart';
-import 'package:skystream/shared/widgets/multimedia_card.dart';
+import 'package:aether/features/settings/presentation/general_settings_provider.dart';
+import 'package:aether/shared/widgets/multimedia_card.dart';
 
 /// A 1080p television: 1920x1080 physical, 960x540 logical at a raster scale
 /// of 2. This is the device the decode bound exists for — the source is

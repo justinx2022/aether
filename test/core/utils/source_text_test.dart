@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/utils/source_text.dart';
+import 'package:aether/core/utils/source_text.dart';
 
-/// The sources sheet mixes SkyStream plugin links with Nuvio scraper links.
+/// The sources sheet mixes Aether plugin links with Nuvio scraper links.
 /// Each system labels a link in its own style, which made one list read like
 /// two. These are the real shapes seen from the installed repositories.
 void main() {
@@ -62,17 +62,17 @@ void main() {
       );
     });
 
-    test('a Nuvio row and a SkyStream row end up in the same style', () {
+    test('a Nuvio row and a Aether row end up in the same style', () {
       final nuvio = buildSourceDetail([
         '71.41GB',
         'Hindi',
         null,
         '\u200b\u200b🎬 4KHDHub | 2160p | Dual-Audio',
       ]);
-      final skystream = buildSourceDetail(['1080p WEB-DL x264 | SERVER 3']);
+      final aether = buildSourceDetail(['1080p WEB-DL x264 | SERVER 3']);
       expect(nuvio, '71.41GB · Hindi · 4KHDHub · 2160p · Dual-Audio');
-      expect(skystream, '1080p WEB-DL x264 · SERVER 3');
-      for (final label in [nuvio, skystream]) {
+      expect(aether, '1080p WEB-DL x264 · SERVER 3');
+      for (final label in [nuvio, aether]) {
         expect(label.contains('|'), isFalse);
         expect(label.contains('\u200b'), isFalse);
         expect(label.contains('  '), isFalse);

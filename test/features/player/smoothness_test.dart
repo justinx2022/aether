@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/player/domain/smoothness.dart';
+import 'package:aether/features/player/domain/smoothness.dart';
 
 /// Which side a stutter is coming from.
 ///

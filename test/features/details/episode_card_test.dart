@@ -4,15 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/storage/episode_watch_repository.dart';
-import 'package:skystream/core/storage/history_repository.dart';
-import 'package:skystream/core/storage/storage_service.dart';
-import 'package:skystream/features/details/presentation/details_controller.dart';
-import 'package:skystream/features/details/presentation/download_launcher.dart';
-import 'package:skystream/features/details/presentation/downloaded_file_provider.dart';
-import 'package:skystream/features/details/presentation/widgets/episode_card.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/storage/episode_watch_repository.dart';
+import 'package:aether/core/storage/history_repository.dart';
+import 'package:aether/core/storage/storage_service.dart';
+import 'package:aether/features/details/presentation/details_controller.dart';
+import 'package:aether/features/details/presentation/download_launcher.dart';
+import 'package:aether/features/details/presentation/downloaded_file_provider.dart';
+import 'package:aether/features/details/presentation/widgets/episode_card.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 /// Every history getter is Hive-backed; this card only asks "how far in was
 /// this episode", so answer "never watched" and skip the boxes entirely.

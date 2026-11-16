@@ -332,7 +332,7 @@ class AiSettingsScreen extends ConsumerWidget {
       context: context,
       builder: (BuildContext dialogContext) => TextInputDialog(
         title: 'Custom Dahl API Key',
-        message: 'Leave blank to use SkyStream\'s shared 100M token pool, '
+        message: 'Leave blank to use Aether\'s shared 100M token pool, '
             'or enter your private Dahl Inference key:',
         initialText: currentKey,
         hintText: 'dahl_...',

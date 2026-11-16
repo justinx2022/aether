@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/addons/data/addon_repository.dart';
-import 'package:skystream/core/addons/data/addon_stream_service.dart';
-import 'package:skystream/core/addons/models/addon_stream_source.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/network/link_probe_service.dart';
-import 'package:skystream/core/theme/app_theme.dart';
-import 'package:skystream/features/addons/presentation/addon_sources_sheet.dart';
-import 'package:skystream/features/sources/presentation/source_sheet_widgets.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/core/addons/data/addon_repository.dart';
+import 'package:aether/core/addons/data/addon_stream_service.dart';
+import 'package:aether/core/addons/models/addon_stream_source.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/network/link_probe_service.dart';
+import 'package:aether/core/theme/app_theme.dart';
+import 'package:aether/features/addons/presentation/addon_sources_sheet.dart';
+import 'package:aether/features/sources/presentation/source_sheet_widgets.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 /// The Stremio sheet is one of three built from the same parts, and was the
 /// only one with no D-pad test of its own.

@@ -1,10 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/addons/data/addon_client.dart';
-import 'package:skystream/core/addons/data/addon_stream_service.dart';
-import 'package:skystream/core/addons/models/addon_manifest.dart';
-import 'package:skystream/core/addons/models/addon_meta.dart';
-import 'package:skystream/core/addons/models/addon_stream_source.dart';
+import 'package:aether/core/addons/data/addon_client.dart';
+import 'package:aether/core/addons/data/addon_stream_service.dart';
+import 'package:aether/core/addons/models/addon_manifest.dart';
+import 'package:aether/core/addons/models/addon_meta.dart';
+import 'package:aether/core/addons/models/addon_stream_source.dart';
 
 void main() {
   group('AddonMeta.imdbId', () {

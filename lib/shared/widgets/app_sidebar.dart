@@ -4,8 +4,8 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
-import 'package:skystream/core/utils/layout_constants.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
+import 'package:aether/core/utils/layout_constants.dart';
 
 import '../../core/theme/app_world.dart';
 import '../../core/theme/design_tokens.dart';
@@ -256,19 +256,9 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
                     Positioned.fill(
                       child: ClipRRect(
                         borderRadius: dockRadius,
-                        child: reduceMotion
-                            ? DecoratedBox(
-                                decoration: _dockGlass(world, dockRadius),
-                              )
-                            : BackdropFilter(
-                                filter: ImageFilter.blur(
-                                  sigmaX: AppBlur.chrome,
-                                  sigmaY: AppBlur.chrome,
-                                ),
-                                child: DecoratedBox(
-                                  decoration: _dockGlass(world, dockRadius),
-                                ),
-                              ),
+                        child: DecoratedBox(
+                          decoration: _dockGlass(world, dockRadius),
+                        ),
                       ),
                     ),
                     ...List.generate(destinations.length, (i) {

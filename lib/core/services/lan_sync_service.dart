@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import '../domain/entity/multimedia_item.dart';
@@ -8,7 +9,7 @@ import '../storage/storage_service.dart';
 
 /// Seamless Cross-Device Watch Progress Synchronization over Local Area Network (Wi-Fi).
 ///
-/// Automatically discovers other SkyStream instances running on the same local
+/// Automatically discovers other Aether instances running on the same local
 /// network (e.g. PC, Android TV, tablet, phone) and synchronizes watch history,
 /// continue-watching states, and playback positions with zero cloud configuration.
 class LanSyncService {
@@ -27,12 +28,6 @@ class LanSyncService {
   static const int _kMaxSyncBodyBytes = 2 * 1024 * 1024;
 
   /// Whether [address] is on a network this device can be a peer of.
-  ///
-  /// The discovery ping says where to send the local watch history, and it
-  /// arrives as a datagram any machine that can reach the socket may send.
-  /// Without this check one forged ping sends the whole history to a server of
-  /// the sender's choosing; likewise a forwarded port would let the internet
-  /// read it. A household peer is always private, link-local or loopback.
   static bool _isPrivateAddress(InternetAddress address) {
     if (address.isLoopback) return true;
     final raw = address.rawAddress;
@@ -65,17 +60,48 @@ class LanSyncService {
   HttpServer? _httpServer;
   Timer? _broadcastTimer;
   bool _started = false;
+  String _syncToken = '';
+  String _pairingCode = '';
 
-  /// `ip:port` of peers a sync is currently running against. Pings arrive as
-  /// often as every broadcast, and two overlapping syncs would echo each
-  /// other's history back and forth.
+  /// `ip:port` of peers a sync is currently running against.
   final Set<String> _inFlightPeers = <String>{};
 
-  /// Whether local network sync is enabled. Controlled via Settings.
-  bool enabled = true;
+  /// Whether local network sync is enabled. Disabled by default for network privacy.
+  bool enabled = false;
 
   late final String _deviceId =
       'device_${DateTime.now().millisecondsSinceEpoch}_${Platform.operatingSystem}';
+
+  String get syncToken {
+    if (_syncToken.isEmpty) {
+      _syncToken = _storageService?.getString('lan_sync_auth_token_v1') ?? '';
+      if (_syncToken.isEmpty) {
+        final rand = Random.secure();
+        final bytes = List<int>.generate(16, (_) => rand.nextInt(256));
+        _syncToken = base64Url.encode(bytes);
+        _storageService?.setString('lan_sync_auth_token_v1', _syncToken);
+      }
+    }
+    return _syncToken;
+  }
+
+  /// 6-digit authentication pairing code required to synchronize watch progress.
+  String get pairingCode {
+    if (_pairingCode.isEmpty) {
+      _pairingCode = _storageService?.getString('lan_sync_pairing_code_v1') ?? '';
+      if (_pairingCode.isEmpty) {
+        final rand = Random.secure();
+        _pairingCode = (100000 + rand.nextInt(900000)).toString();
+        _storageService?.setString('lan_sync_pairing_code_v1', _pairingCode);
+      }
+    }
+    return _pairingCode;
+  }
+
+  void setPairingCode(String code) {
+    _pairingCode = code.trim();
+    _storageService?.setString('lan_sync_pairing_code_v1', _pairingCode);
+  }
 
   /// Starts the LAN discovery and sync service.
   Future<void> start([StorageService? storageService]) async {
@@ -108,9 +134,10 @@ class LanSyncService {
     if (!enabled || _udpSocket == null) return;
     try {
       final payload = jsonEncode({
-        'app': 'skystream',
+        'app': 'aether',
         'type': 'lan_sync_ping',
         'deviceId': _deviceId,
+        'pairingCode': pairingCode,
         'os': Platform.operatingSystem,
         'httpPort': _httpServer?.port ?? _httpPort,
       });
@@ -157,6 +184,18 @@ class LanSyncService {
       final remote = request.connectionInfo?.remoteAddress;
       if (remote == null || !_isPrivateAddress(remote)) {
         request.response.statusCode = HttpStatus.forbidden;
+        await request.response.close();
+        return;
+      }
+
+      // Require matching auth token or pairing code to prevent unauthorized LAN snooping
+      final token = request.headers.value('x-sync-token');
+      final pairing = request.headers.value('x-sync-pairing-code');
+      final isAuthorized =
+          (token != null && token.isNotEmpty && token == syncToken) ||
+          (pairing != null && pairing.isNotEmpty && pairing == pairingCode);
+      if (!isAuthorized) {
+        request.response.statusCode = HttpStatus.unauthorized;
         await request.response.close();
         return;
       }
@@ -229,30 +268,33 @@ class LanSyncService {
     try {
       final raw = utf8.decode(datagram.data);
       final dynamic json = jsonDecode(raw);
-      if (json is Map && json['app'] == 'skystream' && json['type'] == 'lan_sync_ping') {
+      if (json is Map && json['app'] == 'aether' && json['type'] == 'lan_sync_ping') {
         // The ping names the address to send our history to, so it is only
         // trusted from this network.
         if (!_isPrivateAddress(datagram.address)) return;
         final peerDeviceId = json['deviceId']?.toString();
         final peerPort = json['httpPort'] as int? ?? _httpPort;
-        if (peerDeviceId != null && peerDeviceId != _deviceId) {
-          // Discovered another SkyStream peer on the network!
+        final peerPairing = json['pairingCode']?.toString();
+        if (peerDeviceId != null && peerDeviceId != _deviceId && peerPairing != null) {
+          // Discovered another Aether peer on the network with valid credentials
           final peerIp = datagram.address.address;
-          unawaited(_syncWithPeer(peerIp, peerPort));
+          unawaited(_syncWithPeer(peerIp, peerPort, peerPairing));
         }
       }
     } catch (_) {}
   }
 
-  Future<void> _syncWithPeer(String ip, int port) async {
+  Future<void> _syncWithPeer(String ip, int port, String remotePairingCode) async {
     final peerKey = '$ip:$port';
     if (!_inFlightPeers.add(peerKey)) return;
     HttpClient? client;
     try {
       client = HttpClient()..connectionTimeout = const Duration(seconds: 4);
 
-      // 1. Fetch remote history from peer
+      // 1. Fetch remote history from peer using mutual authentication token & pairing code
       final getReq = await client.getUrl(Uri.parse('http://$ip:$port/api/sync/history'));
+      getReq.headers.set('x-sync-token', syncToken);
+      getReq.headers.set('x-sync-pairing-code', remotePairingCode);
       final getRes = await getReq.close().timeout(const Duration(seconds: 8));
       if (getRes.statusCode == HttpStatus.ok) {
         final body = await _readBounded(getRes);
@@ -266,6 +308,8 @@ class LanSyncService {
       final localHistory = _storageService?.getWatchHistory() ?? [];
       if (localHistory.isNotEmpty) {
         final postReq = await client.postUrl(Uri.parse('http://$ip:$port/api/sync/push'));
+        postReq.headers.set('x-sync-token', syncToken);
+        postReq.headers.set('x-sync-pairing-code', remotePairingCode);
         postReq.headers.contentType = ContentType.json;
         postReq.write(jsonEncode(localHistory));
         final postRes = await postReq.close().timeout(const Duration(seconds: 8));

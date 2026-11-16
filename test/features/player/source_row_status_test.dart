@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/features/player/domain/source_row_status.dart';
-import 'package:skystream/features/player/domain/stream_resolver.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/features/player/domain/source_row_status.dart';
+import 'package:aether/features/player/domain/stream_resolver.dart';
 
 /// Two facts about each source row, kept apart on purpose: what the
 /// reachability check found, and what happened when the source was played.

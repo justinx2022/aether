@@ -22,7 +22,7 @@ import '../../explore/presentation/view_all_screen.dart';
 import '../../explore/presentation/widgets/explore_carousel.dart';
 import '../../explore/presentation/widgets/media_horizontal_list.dart';
 
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/no_scrollbar_behavior.dart';

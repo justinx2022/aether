@@ -10,7 +10,7 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
-  String get appTitle => 'SkyStream';
+  String get appTitle => 'Aether';
 
   @override
   String get languageName => '简体中文';
@@ -1883,7 +1883,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   AppLocalizationsZhHant() : super('zh_Hant');
 
   @override
-  String get appTitle => 'SkyStream';
+  String get appTitle => 'Aether';
 
   @override
   String get languageName => '繁體中文';

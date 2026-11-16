@@ -3,8 +3,8 @@ library;
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/addons/data/addon_client.dart';
-import 'package:skystream/core/addons/models/addon_manifest.dart';
+import 'package:aether/core/addons/data/addon_client.dart';
+import 'package:aether/core/addons/models/addon_manifest.dart';
 
 /// Live end-to-end check against the Streaming Catalogs add-on
 /// (https://github.com/rleroi/Stremio-Streaming-Catalogs-Addon).

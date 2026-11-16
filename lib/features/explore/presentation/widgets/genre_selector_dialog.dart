@@ -16,9 +16,7 @@ class GenreSelectorDialog extends ConsumerWidget {
     final genresAsync = ref.watch(genresProvider);
     final selectedGenre = ref.watch(exploreFilterProvider).selectedGenre;
 
-    return BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-      child: Dialog(
+    return Dialog(
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.all(20),
         child: Container(
@@ -131,7 +129,6 @@ class GenreSelectorDialog extends ConsumerWidget {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 }

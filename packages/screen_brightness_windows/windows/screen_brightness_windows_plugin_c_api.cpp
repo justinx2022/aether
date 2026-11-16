@@ -5,7 +5,7 @@
 // The upstream plugin's constructor issues DDC/CI (I2C over the display link)
 // to read the monitor's own brightness, and installs a window-proc delegate
 // that writes it back on WM_DESTROY and WM_CLOSE with no is_auto_reset_ guard.
-// SkyStream never uses screen brightness on desktop -- the only caller returns
+// Aether never uses screen brightness on desktop -- the only caller returns
 // early there -- so that traffic bought nothing and cost users a reset screen.
 //
 // The entry point still exists, and the package still declares a Windows

@@ -2,9 +2,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/gestures.dart' show kDoubleTapTimeout;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/player/domain/source_row_status.dart';
-import 'package:skystream/features/player/presentation/vlc/player_startup_view.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/features/player/domain/source_row_status.dart';
+import 'package:aether/features/player/presentation/vlc/player_startup_view.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 /// The one view the player shows from "getting links" until the first frame,
 /// and again when every source has failed.

@@ -18,7 +18,7 @@ library;
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/extensions/engine/js_bytecode_compiler.dart';
+import 'package:aether/core/extensions/engine/js_bytecode_compiler.dart';
 
 void main() {
   test('settle() drains, and drains again once empty', () async {

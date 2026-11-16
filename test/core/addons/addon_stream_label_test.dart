@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/addons/data/addon_playback_launcher.dart';
-import 'package:skystream/core/addons/models/addon_stream_source.dart';
+import 'package:aether/core/addons/data/addon_playback_launcher.dart';
+import 'package:aether/core/addons/models/addon_stream_source.dart';
 
 void main() {
   const converter = AddonStreamConverter();

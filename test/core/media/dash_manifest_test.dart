@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/media/dash_manifest.dart';
+import 'package:aether/core/media/dash_manifest.dart';
 
 void main() {
   // Shaped like the live SUN NXT manifest this was built against.

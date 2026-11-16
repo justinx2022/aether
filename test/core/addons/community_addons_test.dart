@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/addons/data/addon_client.dart';
+import 'package:aether/core/addons/data/addon_client.dart';
 
 /// The Discover tab renders Stremio's official community collection —
 /// https://api.strem.io/addonscollection.json — exactly like the official

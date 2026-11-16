@@ -10,10 +10,10 @@ import '../../../shared/widgets/thumbnail_error_placeholder.dart';
 import '../../../core/utils/image_fallbacks.dart';
 
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:skystream/core/utils/layout_constants.dart';
-import 'package:skystream/core/utils/responsive_breakpoints.dart';
+import 'package:aether/core/utils/layout_constants.dart';
+import 'package:aether/core/utils/responsive_breakpoints.dart';
 
-import 'package:skystream/shared/widgets/custom_widgets.dart';
+import 'package:aether/shared/widgets/custom_widgets.dart';
 
 import '../../library/presentation/library_provider.dart';
 import '../../library/presentation/library_state.dart';
@@ -25,7 +25,7 @@ import "widgets/premium_details_widgets.dart";
 import "../../../shared/widgets/expandable_text.dart";
 import "../../../shared/widgets/loading_indicator.dart";
 
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 class DetailsScreen extends ConsumerStatefulWidget {
   final MultimediaItem item;

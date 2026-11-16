@@ -560,7 +560,7 @@ func TestSavedTorrentStillStreamsWithoutAToken(t *testing.T) {
 }
 
 // TestInMemoryTorrentStillStreamsWithoutAToken covers the shape the app
-// actually uses, which the saved-torrent case above does not. SkyStream adds
+// actually uses, which the saved-torrent case above does not. Aether adds
 // its torrents with save_to_db unset — the payload the Dart, Kotlin and Swift
 // plugins send is {"action":"add","link":...} and nothing else — so the
 // torrent the media engine is then handed a URL for lives only in the engine's

@@ -185,7 +185,7 @@ options.
 `Cookie`, `Authorization`, `Origin` and custom headers have **no libVLC representation at all**.
 Pretending otherwise is what caused this, so the package no longer does: `unsupportedVlcHeaders()`
 names exactly which headers will not be sent, and a debug build prints them per source. A host app
-that must honour them has to proxy the media and inject them upstream — which is what SkyStream now
+that must honour them has to proxy the media and inject them upstream — which is what Aether now
 does through `LocalProxyService`.
 
 Covered by `test/vlc_http_headers_test.dart` and two channel-boundary tests in
@@ -217,7 +217,7 @@ failed for MPEG-TS and HLS before the change and passes for all four after it.
 ### 10. Android: leaving a stalled stream no longer freezes the app
 
 Switching source, or disposing the player, on a live stream whose download had stalled froze the
-whole app until Android killed it as not responding. SkyStream's ANR report had the main thread 15 s
+whole app until Android killed it as not responding. Aether's ANR report had the main thread 15 s
 deep in `VlcPlayerPlatformView.dispose` -> `MediaPlayer.stop` -> `libvlc_media_player_stop` ->
 `input_Close` -> `vlc_join`.
 
@@ -255,7 +255,7 @@ libVLC has no option to leave renditions out of the length, and the engine expos
 length to read instead. So the controller takes one from the host: `setDurationCap(Duration?)`
 publishes the smaller of libVLC's report and the cap from then on, until the next media. It only
 ever shortens, leaves an unknown length unknown, and is applied in Dart, so every backend gets it.
-SkyStream measures the video's own playlist and passes that.
+Aether measures the video's own playlist and passes that.
 
 Covered by `test/vlc_duration_cap_test.dart`, and on a real engine by
 `example/integration_test/hls_rendition_length_test.dart`, which serves a 20 s stream with and

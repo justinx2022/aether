@@ -11,7 +11,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/shared/widgets/no_scrollbar_behavior.dart';
+import 'package:aether/shared/widgets/no_scrollbar_behavior.dart';
 
 Widget _list() => MaterialApp(
   theme: ThemeData(useMaterial3: true),

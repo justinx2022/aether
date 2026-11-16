@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/search/data/search_history_store.dart';
-import 'package:skystream/features/search/presentation/search_history_provider.dart';
+import 'package:aether/features/search/data/search_history_store.dart';
+import 'package:aether/features/search/presentation/search_history_provider.dart';
 
 /// The settings box, standing in as a list.
 class _FakeStore implements SearchHistoryStore {

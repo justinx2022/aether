@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/providers/device_info_provider.dart';
-import 'package:skystream/features/player/presentation/player_platform_service.dart';
-import 'package:skystream/features/player/presentation/widgets/player_control_components.dart'
+import 'package:aether/core/providers/device_info_provider.dart';
+import 'package:aether/features/player/presentation/player_platform_service.dart';
+import 'package:aether/features/player/presentation/widgets/player_control_components.dart'
     show PlayerBottomBar, PlayerIconButton;
 
 import 'vlc_screen_harness.dart';

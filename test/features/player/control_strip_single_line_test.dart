@@ -9,10 +9,10 @@
 // here too, because it is the same [Row].
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/features/player/presentation/widgets/hotstar_player_style.dart';
-import 'package:skystream/features/player/presentation/widgets/player_control_components.dart'
+import 'package:aether/features/player/presentation/widgets/hotstar_player_style.dart';
+import 'package:aether/features/player/presentation/widgets/player_control_components.dart'
     show PlayerActionStrip, PlayerBottomBar, PlayerIconButton;
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 /// What five pinned transport buttons - seek back, play/pause, seek forward,
 /// lock, next - measure on a handset. The real control row is asserted in

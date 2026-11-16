@@ -5,8 +5,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/theme/app_theme.dart';
-import 'package:skystream/features/player/presentation/widgets/hotstar_player_style.dart';
+import 'package:aether/core/theme/app_theme.dart';
+import 'package:aether/features/player/presentation/widgets/hotstar_player_style.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

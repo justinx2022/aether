@@ -2,9 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/providers/device_info_provider.dart';
-import 'package:skystream/core/utils/layout_constants.dart';
-import 'package:skystream/core/utils/responsive_breakpoints.dart';
+import 'package:aether/core/providers/device_info_provider.dart';
+import 'package:aether/core/utils/layout_constants.dart';
+import 'package:aether/core/utils/responsive_breakpoints.dart';
 
 /// There were two answers to "is this a television" and they disagreed.
 ///

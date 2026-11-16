@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../features/settings/presentation/ai_settings_provider.dart';
 
-/// Core Service interfacing SkyStream with the Dahl Neural Gateway.
+/// Core Service interfacing Aether with the Dahl Neural Gateway.
 ///
 /// Handles autonomous scraper repair, 403-forbidden header negotiation,
 /// scene context generation, and dynamic audio/video filter recommendations.
@@ -20,7 +20,7 @@ class DahlService {
         receiveTimeout: const Duration(milliseconds: 6000),
         headers: <String, dynamic>{
           'Content-Type': 'application/json',
-          'User-Agent': 'SkyStream-NeuralCore/2.0',
+          'User-Agent': 'Aether-NeuralCore/2.0',
         },
       ),
     );

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/features/player/domain/episode_navigator.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/features/player/domain/episode_navigator.dart';
 
 void main() {
   Episode ep(

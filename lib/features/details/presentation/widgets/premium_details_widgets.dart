@@ -2,15 +2,15 @@ import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/utils/image_fallbacks.dart';
-import 'package:skystream/shared/widgets/cards_wrapper.dart';
-import 'package:skystream/shared/widgets/shimmer_placeholder.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/utils/image_fallbacks.dart';
+import 'package:aether/shared/widgets/cards_wrapper.dart';
+import 'package:aether/shared/widgets/shimmer_placeholder.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:skystream/shared/widgets/thumbnail_error_placeholder.dart';
-import 'package:skystream/core/recommendations/recommendations_service.dart';
-import 'package:skystream/core/router/app_router.dart';
-import 'package:skystream/core/utils/responsive_breakpoints.dart';
+import 'package:aether/shared/widgets/thumbnail_error_placeholder.dart';
+import 'package:aether/core/recommendations/recommendations_service.dart';
+import 'package:aether/core/router/app_router.dart';
+import 'package:aether/core/utils/responsive_breakpoints.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'details_layout_widgets.dart';

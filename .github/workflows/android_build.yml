@@ -83,13 +83,13 @@ jobs:
           storeFile=key.jks
           PROPERTIES
             chmod 600 android/key.properties android/app/key.jks
-          elif [ -f "android/app/skystream-release.jks" ]; then
-            echo "Using permanent SkyStream release keystore"
+          elif [ -f "android/app/aether-release.jks" ]; then
+            echo "Using permanent Aether release keystore"
             cat > android/key.properties << PROPERTIES
-          storePassword=skystream2026
-          keyPassword=skystream2026
-          keyAlias=skystream
-          storeFile=skystream-release.jks
+          storePassword=aether2026
+          keyPassword=aether2026
+          keyAlias=aether
+          storeFile=aether-release.jks
           PROPERTIES
             chmod 600 android/key.properties
           else

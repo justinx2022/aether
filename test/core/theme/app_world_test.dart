@@ -3,9 +3,9 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:skystream/core/theme/app_theme.dart';
-import 'package:skystream/core/theme/app_world.dart';
-import 'package:skystream/core/theme/theme_presets.dart';
+import 'package:aether/core/theme/app_theme.dart';
+import 'package:aether/core/theme/app_world.dart';
+import 'package:aether/core/theme/theme_presets.dart';
 
 /// The two worlds, as tokens.
 ///

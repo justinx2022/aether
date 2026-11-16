@@ -10,7 +10,7 @@ class AppLocalizationsNl extends AppLocalizations {
   AppLocalizationsNl([String locale = 'nl']) : super(locale);
 
   @override
-  String get appTitle => 'SkyStream';
+  String get appTitle => 'Aether';
 
   @override
   String get languageName => 'Nederlands';

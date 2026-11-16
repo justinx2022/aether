@@ -5,13 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'home_provider.dart';
 import 'home_state.dart';
 
-import 'package:skystream/features/home/presentation/widgets/continue_watching_section.dart';
-import 'package:skystream/features/home/presentation/widgets/because_you_watched_section.dart';
-import 'package:skystream/features/search/presentation/search_provider.dart';
-import 'package:skystream/features/tracking/data/sync_manager.dart';
-import 'package:skystream/features/tracking/domain/sync_progress_item.dart';
-import 'package:skystream/features/home/presentation/widgets/synced_progress_section.dart';
-import 'package:skystream/features/library/presentation/history_provider.dart';
+import 'package:aether/features/home/presentation/widgets/continue_watching_section.dart';
+import 'package:aether/features/home/presentation/widgets/because_you_watched_section.dart';
+import 'package:aether/features/search/presentation/search_provider.dart';
+import 'package:aether/features/tracking/data/sync_manager.dart';
+import 'package:aether/features/tracking/domain/sync_progress_item.dart';
+import 'package:aether/features/home/presentation/widgets/synced_progress_section.dart';
+import 'package:aether/features/library/presentation/history_provider.dart';
 
 import '../../settings/presentation/general_settings_provider.dart';
 import '../../explore/presentation/widgets/explore_carousel.dart';
@@ -27,18 +27,18 @@ import '../../../core/domain/entity/multimedia_item.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../shared/widgets/profile_app_bar_button.dart';
 
-import 'package:skystream/core/extensions/extension_manager.dart';
-import 'package:skystream/core/extensions/base_provider.dart';
-import 'package:skystream/core/router/app_router.dart';
+import 'package:aether/core/extensions/extension_manager.dart';
+import 'package:aether/core/extensions/base_provider.dart';
+import 'package:aether/core/router/app_router.dart';
 
 import 'delegates/home_search_delegate.dart';
 import '../../../shared/widgets/cards_wrapper.dart';
 import '../../../shared/widgets/custom_widgets.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/shimmer_placeholder.dart';
-import '../../../../core/utils/layout_constants.dart';
-import '../../../../core/utils/responsive_breakpoints.dart';
-import '../../../../core/providers/device_info_provider.dart';
+import '../../../core/utils/layout_constants.dart';
+import '../../../core/utils/responsive_breakpoints.dart';
+import '../../../core/providers/device_info_provider.dart';
 
 import 'dart:async';
 
@@ -69,6 +69,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+  }
+
+  static List<MultimediaItem> _getUniqueHistoryItems(List<dynamic> history, int limit) {
+    final seen = <String>{};
+    final result = <MultimediaItem>[];
+    for (final h in history) {
+      if (h is! HistoryItem) continue;
+      final title = h.item.title.trim().toLowerCase();
+      if (title.isNotEmpty && seen.add(title)) {
+        result.add(h.item);
+        if (result.length >= limit) break;
+      }
+    }
+    return result;
   }
 
   bool _isWidescreenForScroll() {
@@ -378,19 +392,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
               if (watchHistoryEnabled && history.isNotEmpty) ...[
                 // Netflix-style: Render up to 5 distinct "Because you watched" recommendation shelves
-                for (final uniqueItem in history
-                    .cast<HistoryItem>()
-                    .map((h) => h.item)
-                    .fold<List<MultimediaItem>>([], (list, it) {
-                      final title = it.title.trim().toLowerCase();
-                      if (title.isNotEmpty &&
-                          !list.any((existing) =>
-                              existing.title.trim().toLowerCase() == title)) {
-                        list.add(it);
-                      }
-                      return list;
-                    })
-                    .take(5))
+                for (final uniqueItem in _getUniqueHistoryItems(history, 5))
                   SliverToBoxAdapter(
                     key: ValueKey('because_watched_${uniqueItem.title}'),
                     child: BecauseYouWatchedSection(
@@ -596,7 +598,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final l10n = AppLocalizations.of(context)!;
     final extManager = ref.read(extensionManagerProvider.notifier);
     final activeProvider = ref.read(activeProviderProvider);
-    final providers = List<SkyStreamProvider>.from(extManager.getAllProviders())
+    final providers = List<AetherProvider>.from(extManager.getAllProviders())
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
     if (providers.isEmpty) {
@@ -749,8 +751,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 @visibleForTesting
 Future<void> showProviderSelectorDialog(
   BuildContext context, {
-  required List<SkyStreamProvider> providers,
-  required SkyStreamProvider? activeProvider,
+  required List<AetherProvider> providers,
+  required AetherProvider? activeProvider,
 }) {
   return showDialog<void>(
     context: context,
@@ -767,8 +769,8 @@ Future<void> showProviderSelectorDialog(
 /// dead controllers - the same lifetime bug that took down the text-input
 /// dialogs, and DesktopScrollWrapper listens on the chip controller.
 class _ProviderSelectorDialog extends StatefulWidget {
-  final List<SkyStreamProvider> providers;
-  final SkyStreamProvider? activeProvider;
+  final List<AetherProvider> providers;
+  final AetherProvider? activeProvider;
 
   const _ProviderSelectorDialog({
     required this.providers,

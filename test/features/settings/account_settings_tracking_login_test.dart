@@ -2,16 +2,16 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/services/notification_service.dart';
-import 'package:skystream/core/storage/secure_token_storage.dart';
-import 'package:skystream/core/storage/settings_repository.dart';
-import 'package:skystream/core/storage/storage_service.dart';
-import 'package:skystream/features/settings/presentation/account_settings_screen.dart';
-import 'package:skystream/features/settings/presentation/player_settings_provider.dart';
-import 'package:skystream/features/tracking/data/simkl_service.dart';
-import 'package:skystream/features/tracking/data/trakt_service.dart';
-import 'package:skystream/features/tracking/presentation/tracking_auth_provider.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/core/services/notification_service.dart';
+import 'package:aether/core/storage/secure_token_storage.dart';
+import 'package:aether/core/storage/settings_repository.dart';
+import 'package:aether/core/storage/storage_service.dart';
+import 'package:aether/features/settings/presentation/account_settings_screen.dart';
+import 'package:aether/features/settings/presentation/player_settings_provider.dart';
+import 'package:aether/features/tracking/data/simkl_service.dart';
+import 'package:aether/features/tracking/data/trakt_service.dart';
+import 'package:aether/features/tracking/presentation/tracking_auth_provider.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 /// Both device-code logins end in a `Future<bool>`. Master showed a toast for
 /// `true` and nothing whatsoever for `false` or for a throw, so an expired

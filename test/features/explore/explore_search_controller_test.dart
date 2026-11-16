@@ -1,12 +1,12 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/addons/data/addon_client.dart';
-import 'package:skystream/core/addons/data/addon_repository.dart';
-import 'package:skystream/core/addons/models/addon_manifest.dart';
-import 'package:skystream/core/addons/models/addon_meta.dart';
-import 'package:skystream/features/explore/data/explore_mode_provider.dart';
-import 'package:skystream/features/explore/presentation/controllers/explore_search_controller.dart';
+import 'package:aether/core/addons/data/addon_client.dart';
+import 'package:aether/core/addons/data/addon_repository.dart';
+import 'package:aether/core/addons/models/addon_manifest.dart';
+import 'package:aether/core/addons/models/addon_meta.dart';
+import 'package:aether/features/explore/data/explore_mode_provider.dart';
+import 'package:aether/features/explore/presentation/controllers/explore_search_controller.dart';
 
 /// Typing in the search field moves the controller's query along with the
 /// text, and submitting asks for that query's results. The results already

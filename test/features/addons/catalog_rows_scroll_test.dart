@@ -18,14 +18,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/addons/data/addon_client.dart';
-import 'package:skystream/core/addons/data/addon_repository.dart';
-import 'package:skystream/core/addons/models/addon_manifest.dart';
-import 'package:skystream/core/addons/models/addon_meta.dart';
-import 'package:skystream/core/theme/app_theme.dart';
-import 'package:skystream/features/addons/presentation/addons_screen.dart';
-import 'package:skystream/features/settings/presentation/general_settings_provider.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:aether/core/addons/data/addon_client.dart';
+import 'package:aether/core/addons/data/addon_repository.dart';
+import 'package:aether/core/addons/models/addon_manifest.dart';
+import 'package:aether/core/addons/models/addon_meta.dart';
+import 'package:aether/core/theme/app_theme.dart';
+import 'package:aether/features/addons/presentation/addons_screen.dart';
+import 'package:aether/features/settings/presentation/general_settings_provider.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
 
 const int _catalogCount = 40;
 

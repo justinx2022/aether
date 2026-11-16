@@ -4,8 +4,8 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/features/player/domain/clear_key.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/features/player/domain/clear_key.dart';
 
 void main() {
   // One channel's real values throughout: hex is what the media declares, the
