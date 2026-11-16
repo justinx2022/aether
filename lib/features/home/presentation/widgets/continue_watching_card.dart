@@ -15,6 +15,7 @@ import 'package:aether/core/utils/image_fallbacks.dart';
 import 'package:aether/core/utils/layout_constants.dart';
 
 import '../../../../core/extensions/extension_manager.dart';
+import '../../../details/presentation/details_controller.dart';
 import '../../../details/presentation/playback_launcher.dart';
 import '../../../../shared/widgets/cards_wrapper.dart';
 import '../../../../shared/widgets/loading_dialog.dart';
@@ -259,6 +260,21 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
 
         if (seamless) {
           final historyItem = widget.historyItem;
+          var itemToLaunch = item;
+          if ((itemToLaunch.episodes == null || itemToLaunch.episodes!.isEmpty) &&
+              item.url.isNotEmpty) {
+            final cached = ref
+                .read(detailsControllerProvider(item.url))
+                .details
+                .asData
+                ?.value;
+            if (cached != null &&
+                cached.episodes != null &&
+                cached.episodes!.isNotEmpty) {
+              itemToLaunch = itemToLaunch.copyWith(episodes: cached.episodes);
+            }
+          }
+
           final episode = (historyItem.lastEpisodeUrl != null)
               ? Episode(
                   name: historyItem.episodeTitle ??
@@ -290,7 +306,7 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
                 .read(playbackLauncherProvider)
                 .playResolved(
                   context,
-                  item: item,
+                  item: itemToLaunch,
                   videoUrl: videoUrl,
                   episode: episode,
                   streams: preloaded ?? const <StreamResult>[],

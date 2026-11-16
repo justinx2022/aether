@@ -141,7 +141,7 @@ class MediaKitSubtitleSheet extends StatelessWidget {
                   child: ListView(
                     shrinkWrap: true,
                     padding: const EdgeInsets.only(bottom: 12),
-                    children: _rows(l10n),
+                    children: _rows(context, l10n),
                   ),
                 ),
               ],
@@ -152,7 +152,7 @@ class MediaKitSubtitleSheet extends StatelessWidget {
     );
   }
 
-  List<Widget> _rows(AppLocalizations l10n) {
+  List<Widget> _rows(BuildContext context, AppLocalizations l10n) {
     final tracks = embeddedTracks.value;
     final activeId = activeEmbeddedId.value;
     final files = sideCars.tracks;
@@ -211,6 +211,44 @@ class MediaKitSubtitleSheet extends StatelessWidget {
         onReset: delay.value == Duration.zero
             ? null
             : () => onDelay(Duration.zero),
+      ),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (final preset in const [
+                -2000,
+                -1000,
+                -500,
+                -250,
+                0,
+                250,
+                500,
+                1000,
+                2000,
+              ])
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: ActionChip(
+                    label: Text(
+                      preset == 0
+                          ? '0'
+                          : (preset > 0
+                              ? '+${preset >= 1000 ? '${preset ~/ 1000}s' : '${preset}ms'}'
+                              : '-${(-preset) >= 1000 ? '${(-preset) ~/ 1000}s' : '${-preset}ms'}'),
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    backgroundColor: delay.value.inMilliseconds == preset
+                        ? Theme.of(context).colorScheme.primaryContainer
+                        : null,
+                    onPressed: () => onDelay(Duration(milliseconds: preset)),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     ];
   }

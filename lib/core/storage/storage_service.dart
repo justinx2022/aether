@@ -571,6 +571,8 @@ class StorageService {
       'episodePosterUrl': episodePosterUrl,
       'profileId': profileId,
       'timestamp': DateTime.now().millisecondsSinceEpoch,
+      if (item.episodes != null)
+        'episodes': item.episodes!.map((e) => e.toJson()).toList(),
     };
 
     // Save main entry (keyed by series/movie URL)
@@ -698,8 +700,11 @@ class StorageService {
       return (map['position'] as int?) ?? 0;
     }
 
-    // Fallback: If we have season/episode info, look into the main item entry
-    if (mainUrl != null && season != null && episode != null) {
+    // Fallback: If we have valid non-zero season/episode info, look into the main item entry
+    if (mainUrl != null &&
+        season != null &&
+        episode != null &&
+        (season > 0 || episode > 0)) {
       final mainKey = _getKey(mainUrl);
       if (_historyBox.containsKey(mainKey)) {
         final map = _historyBox.get(mainKey) as Map;
@@ -738,8 +743,11 @@ class StorageService {
       return (map['duration'] as int?) ?? 0;
     }
 
-    // Fallback: Look into main item entry
-    if (mainUrl != null && season != null && episode != null) {
+    // Fallback: Look into main item entry only for valid non-zero season/episode
+    if (mainUrl != null &&
+        season != null &&
+        episode != null &&
+        (season > 0 || episode > 0)) {
       final mainKey = _getKey(mainUrl);
       if (_historyBox.containsKey(mainKey)) {
         final map = _historyBox.get(mainKey) as Map;

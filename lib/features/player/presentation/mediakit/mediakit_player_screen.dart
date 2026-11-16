@@ -29,6 +29,7 @@ import '../../../settings/presentation/ai_settings_provider.dart';
 import '../../../../core/utils/app_utils.dart';
 import '../../../../core/utils/stream_quality_sorter.dart';
 import '../../../../l10n/generated/app_localizations.dart';
+import '../../../../core/storage/history_repository.dart';
 import '../../../details/presentation/details_controller.dart';
 import '../../../settings/presentation/player_settings_provider.dart';
 import '../../domain/episode_navigator.dart';
@@ -94,6 +95,8 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   Episode? _nextEpisodeOffer;
   bool _nextEpisodeDeclined = false;
   bool _hasPrewarmedNextEpisode = false;
+  bool _viewerChoseAudio = false;
+  double _savedVolume = 100.0;
 
   final List<StreamSubscription<Object?>> _subscriptions = [];
   Duration? _dragPosition;
@@ -436,6 +439,11 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
           _item = cached;
         }
       } catch (_) {}
+      if ((_item.episodes == null || _item.episodes!.isEmpty) &&
+          (_item.contentType == MultimediaContentType.series ||
+              _item.contentType == MultimediaContentType.anime)) {
+        unawaited(_fetchEpisodesIfMissing());
+      }
     }
 
     _currentVideoUrl = widget.videoUrl;
@@ -478,6 +486,27 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     _listenPlayerStreams();
     _startPlayback();
     _startControlsTimer();
+  }
+
+  Future<void> _fetchEpisodesIfMissing() async {
+    try {
+      final detailsNotifier = _read(
+        detailsControllerProvider(widget.item.url).notifier,
+      );
+      await detailsNotifier.loadDetails(widget.item);
+      if (_disposed || !mounted) return;
+      final fetched = _read(
+        detailsControllerProvider(widget.item.url),
+      ).details.asData?.value;
+      if (fetched != null &&
+          fetched.episodes != null &&
+          fetched.episodes!.isNotEmpty) {
+        setState(() {
+          _item = _item.copyWith(episodes: fetched.episodes);
+          _currentEpisode ??= _effectiveCurrentEpisode;
+        });
+      }
+    } catch (_) {}
   }
 
   /// Android can freeze or kill a backgrounded process at any moment, so the
@@ -609,6 +638,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
         await native.setProperty('cache-secs', '${plan.seconds}');
         await _applySubtitleStyle(native);
 
+        await native.setProperty('alang', 'eng,en,enUS,en-US');
         await native.setProperty('audio-pitch-correction', 'yes');
         await native.setProperty('user-agent', kDefaultBrowserUserAgent);
 
@@ -723,20 +753,50 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     if (next == null) return;
     _advancing = true;
     try {
+      _recorder?.record(
+        ProgressSample(position: _position, duration: _duration, token: _token),
+        force: true,
+      );
+      _recorder = null;
       _tracker?.finish();
+      _tracker = null;
+
       rollForwardHistory(read: _read, item: _item, next: next);
-      await _startEpisode(next);
+      await _startEpisode(next, isAdvance: true);
     } finally {
       _advancing = false;
     }
   }
 
-  Future<void> _startEpisode(Episode next) async {
-    _recorder?.record(
-      ProgressSample(position: _position, duration: _duration, token: _token),
-      force: true,
-    );
-    _tracker?.finish();
+  Future<void> _startEpisode(Episode next, {bool isAdvance = false}) async {
+    if (!isAdvance) {
+      _recorder?.record(
+        ProgressSample(position: _position, duration: _duration, token: _token),
+        force: true,
+      );
+      _tracker?.finish();
+    }
+    _recorder = null;
+    _tracker = null;
+
+    setState(() {
+      _currentEpisode = next;
+      _currentVideoUrl = next.url;
+      _position = Duration.zero;
+      _duration = Duration.zero;
+      _buffer = Duration.zero;
+      _isLoading = true;
+      _isSwitching = false;
+      _hasPlayedOnce = false;
+      _error = '';
+      _candidates = const [];
+      _resolved = null;
+      _attemptIndex = 0;
+      _nextEpisodeOffer = null;
+      _nextEpisodeDeclined = false;
+      _hasPrewarmedNextEpisode = false;
+    });
+
     await _player.stop();
     // The viewer can leave while the engine is stopping; the fields below are
     // rebuilt state, and touching them after dispose is a crash.
@@ -759,26 +819,9 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     // source's did, and the next episode's sheet starts unopened.
     _sideCars.clear();
     _viewerChoseSubtitle = false;
+    _viewerChoseAudio = false;
 
-    setState(() {
-      _currentEpisode = next;
-      _currentVideoUrl = next.url;
-      _position = Duration.zero;
-      _duration = Duration.zero;
-      _buffer = Duration.zero;
-      _isLoading = true;
-      _isSwitching = false;
-      _hasPlayedOnce = false;
-      _error = '';
-      _candidates = const [];
-      _resolved = null;
-      _attemptIndex = 0;
-      _nextEpisodeOffer = null;
-      _nextEpisodeDeclined = false;
-      _hasPrewarmedNextEpisode = false;
-    });
-
-    await _startPlayback();
+    await _startPlayback(isAdvance: isAdvance);
   }
 
   void _listenPlayerStreams() {
@@ -920,6 +963,26 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
           ], prefCode);
           if (preferred != null && preferred < list.length) {
             unawaited(_player.setSubtitleTrack(list[preferred]));
+          }
+        }
+
+        // Auto-select English audio track by default if multiple audio tracks exist and user hasn't chosen
+        if (!_viewerChoseAudio && tracks.audio.length > 1) {
+          final curAudio = _player.state.track.audio;
+          final isEnglish = (curAudio.language?.toLowerCase().startsWith('en') ?? false) ||
+              (curAudio.title?.toLowerCase().contains('eng') ?? false);
+          if (!isEnglish) {
+            final engTrack = tracks.audio.firstWhereOrNull((t) {
+              if (t.id == 'no' || t.id == 'auto') return false;
+              final lang = t.language?.toLowerCase() ?? '';
+              final title = t.title?.toLowerCase() ?? '';
+              return lang.startsWith('en') ||
+                  title.contains('english') ||
+                  title.contains('eng');
+            });
+            if (engTrack != null && engTrack.id != curAudio.id) {
+              unawaited(_player.setAudioTrack(engTrack));
+            }
           }
         }
       }),
@@ -1285,7 +1348,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     );
   }
 
-  Future<void> _startPlayback() async {
+  Future<void> _startPlayback({bool isAdvance = false}) async {
     _trace = PlaybackTrace('mediakit');
     setState(() {
       _isLoading = true;
@@ -1295,28 +1358,55 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     try {
       final ep = _effectiveCurrentEpisode;
       unawaited(_loadSkipSegments(ep));
-      final resumeLookup = resolveResumePoint(
-        read: _read,
-        item: _item,
-        episode: ep,
-        videoUrl: _currentVideoUrl,
-      );
 
-      final localResume = resumePointFor(
-        read: _read,
-        item: _item,
-        episode: ep,
-        videoUrl: _currentVideoUrl,
-      );
-
-      ResumePoint? resumePoint = localResume;
-      try {
-        resumePoint = await resumeLookup.timeout(
-          const Duration(milliseconds: 300),
-          onTimeout: () => localResume,
+      ResumePoint? resumePoint;
+      if (!isAdvance) {
+        final resumeLookup = resolveResumePoint(
+          read: _read,
+          item: _item,
+          episode: ep,
+          videoUrl: _currentVideoUrl,
         );
-      } catch (_) {
+
+        final localResume = resumePointFor(
+          read: _read,
+          item: _item,
+          episode: ep,
+          videoUrl: _currentVideoUrl,
+        );
+
         resumePoint = localResume;
+        try {
+          resumePoint = await resumeLookup.timeout(
+            const Duration(milliseconds: 300),
+            onTimeout: () => localResume,
+          );
+        } catch (_) {
+          resumePoint = localResume;
+        }
+      } else {
+        final repo = _read(historyRepositoryProvider);
+        final epPos = repo.getEpisodePosition(
+          _currentVideoUrl,
+          mainUrl: _item.url,
+          season: ep?.season,
+          episode: ep?.episode,
+        );
+        final epDur = repo.getEpisodeDuration(
+          _currentVideoUrl,
+          mainUrl: _item.url,
+          season: ep?.season,
+          episode: ep?.episode,
+        );
+        if (epPos > 0 &&
+            epDur > 0 &&
+            (epPos / epDur) < kCompletedFraction &&
+            (epPos / epDur) >= 0.01) {
+          resumePoint = ResumePoint(
+            position: Duration(milliseconds: epPos),
+            total: Duration(milliseconds: epDur),
+          );
+        }
       }
       _trace?.lap('resume');
 
@@ -1850,6 +1940,23 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
 
       if (_disposed || !mounted || _viewerChoseSubtitle || results.isEmpty) return;
 
+      final currentStream = _currentStreamUrl?.toLowerCase() ?? '';
+      results.sort((a, b) {
+        int scoreA = 0;
+        int scoreB = 0;
+        if (!a.isHearingImpaired) scoreA += 10;
+        if (!b.isHearingImpaired) scoreB += 10;
+        final nameA = a.name.toLowerCase();
+        final nameB = b.name.toLowerCase();
+        if (currentStream.contains('web') && nameA.contains('web')) scoreA += 5;
+        if (currentStream.contains('web') && nameB.contains('web')) scoreB += 5;
+        if (currentStream.contains('1080') && nameA.contains('1080')) scoreA += 3;
+        if (currentStream.contains('1080') && nameB.contains('1080')) scoreB += 3;
+        if (currentStream.contains('720') && nameA.contains('720')) scoreA += 2;
+        if (currentStream.contains('720') && nameB.contains('720')) scoreB += 2;
+        return scoreB.compareTo(scoreA);
+      });
+
       SideCarTrack? firstMatchingTrack;
       for (final sub in results) {
         final subUri = Uri.tryParse(sub.downloadUrl);
@@ -1984,6 +2091,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                               autofocus: track.id == current.id,
                               onTap: () {
                                 Navigator.of(sheetContext).maybePop();
+                                _viewerChoseAudio = true;
                                 if (track.id != current.id) {
                                   _holdThroughTrackChange();
                                   unawaited(_player.setAudioTrack(track));
@@ -2566,6 +2674,29 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     } else if (event.logicalKey == LogicalKeyboardKey.keyF) {
       _toggleFullscreen();
       return KeyEventResult.handled;
+    } else if (event.logicalKey == LogicalKeyboardKey.keyG ||
+        event.logicalKey == LogicalKeyboardKey.bracketLeft) {
+      _nudgeSubtitleDelay(const Duration(milliseconds: -250));
+      return KeyEventResult.handled;
+    } else if (event.logicalKey == LogicalKeyboardKey.keyH ||
+        event.logicalKey == LogicalKeyboardKey.bracketRight) {
+      _nudgeSubtitleDelay(const Duration(milliseconds: 250));
+      return KeyEventResult.handled;
+    } else if (event.logicalKey == LogicalKeyboardKey.keyN) {
+      if (_hasNextEpisode) {
+        unawaited(_advance());
+      }
+      return KeyEventResult.handled;
+    } else if (event.logicalKey == LogicalKeyboardKey.keyP) {
+      final prev = _previousEpisode;
+      if (prev != null) {
+        rollForwardHistory(read: _read, item: _item, next: prev);
+        unawaited(_startEpisode(prev));
+      }
+      return KeyEventResult.handled;
+    } else if (event.logicalKey == LogicalKeyboardKey.keyM) {
+      _toggleMute();
+      return KeyEventResult.handled;
     } else if (event.logicalKey == LogicalKeyboardKey.escape) {
       if (_isFullscreen) {
         _toggleFullscreen();
@@ -2575,6 +2706,52 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
+  }
+
+  void _showToast(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        ),
+        duration: const Duration(milliseconds: 1400),
+        behavior: SnackBarBehavior.floating,
+        width: 260,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: Colors.black87,
+      ),
+    );
+  }
+
+  void _nudgeSubtitleDelay(Duration delta) {
+    final current = _subtitlePlayback.delay;
+    final newDelay = current + delta;
+    _setSubtitleDelay(newDelay);
+    _showToast('Subtitle delay: ${_delayLabel(newDelay)}');
+  }
+
+  static String _delayLabel(Duration delay) {
+    final ms = delay.inMilliseconds;
+    final sign = ms < 0 ? '-' : '+';
+    final magnitude = ms.abs();
+    if (magnitude < 1000) return '$sign${magnitude}ms';
+    return '$sign${(magnitude / 1000).toStringAsFixed(1)}s';
+  }
+
+  void _toggleMute() {
+    final curVol = _player.state.volume;
+    if (curVol > 0) {
+      _savedVolume = curVol;
+      unawaited(_player.setVolume(0));
+      _showToast('Muted');
+    } else {
+      unawaited(_player.setVolume(_savedVolume > 0 ? _savedVolume : 100));
+      _showToast('Unmuted');
+    }
   }
 
   @override
@@ -3102,7 +3279,10 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
               onPressed: () {
                 _onUserActivity();
                 final prev = _previousEpisode;
-                if (prev != null) unawaited(_startEpisode(prev));
+                if (prev != null) {
+                  rollForwardHistory(read: _read, item: _item, next: prev);
+                  unawaited(_startEpisode(prev));
+                }
               },
             ),
           if (_hasNextEpisode)
@@ -3305,6 +3485,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                     currentEpisode: _effectiveCurrentEpisode,
                     onPick: (ep) {
                       Navigator.of(sheetContext).maybePop();
+                      rollForwardHistory(read: _read, item: _item, next: ep);
                       unawaited(_startEpisode(ep));
                     },
                   ),

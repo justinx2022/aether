@@ -49,6 +49,14 @@ class HistoryItem {
         provider: map['provider'] as String?,
         tmdbId: map['tmdbId'] as int?,
         imdbId: map['imdbId'] as String?,
+        episodes: map['episodes'] != null
+            ? (map['episodes'] as List)
+                .whereType<Map>()
+                .map<Episode>(
+                  (e) => Episode.fromJson(Map<String, dynamic>.from(e)),
+                )
+                .toList()
+            : null,
       ),
       position: (map['position'] as int?) ?? 0,
       duration: (map['duration'] as int?) ?? 0,

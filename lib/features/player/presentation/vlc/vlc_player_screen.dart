@@ -1537,6 +1537,17 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
         );
         if (_disposed || generation != _generation) return;
         if (match != null) await _controller.setAudioTrack(match.id);
+      } else {
+        // Default to English audio track if multiple available
+        final tracks = await _controller.getAudioTracks();
+        if (_disposed || generation != _generation) return;
+        if (tracks.length > 1) {
+          final eng = tracks.firstWhereOrNull((t) {
+            final name = t.name.toLowerCase();
+            return name.contains('eng') || name.contains('english');
+          });
+          if (eng != null) await _controller.setAudioTrack(eng.id);
+        }
       }
 
       final subtitle = _rememberedSubtitle;
