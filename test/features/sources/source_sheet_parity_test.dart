@@ -110,7 +110,14 @@ Future<Map<String, Rect>> _measure(
   }
   return {
     'panel': tester.getRect(find.byType(GlassSheetScaffold)),
-    'pane': tester.getRect(find.byType(BackdropFilter).first),
+    'pane': tester.getRect(
+      find
+          .descendant(
+            of: find.byType(GlassSheetScaffold),
+            matching: find.byType(ClipRRect),
+          )
+          .first,
+    ),
     'title': tester.getRect(find.text(titleText)),
     // The button's own box: with a filled background that circle is what the
     // eye lines up, not the glyph centred inside it.

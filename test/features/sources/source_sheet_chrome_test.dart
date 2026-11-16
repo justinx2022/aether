@@ -29,13 +29,13 @@ void main() {
       // Light is where the two copies had diverged; in dark they still agreed.
       await _pumpSheet(tester, brightness: Brightness.light);
 
-      final context = tester.element(find.byType(BackdropFilter));
+      final context = tester.element(find.byType(GlassSheetScaffold));
       final glass = GlassPalette.of(context);
 
       final pane = tester.widget<DecoratedBox>(
         find
             .descendant(
-              of: find.byType(BackdropFilter),
+              of: find.byType(ClipRRect),
               matching: find.byType(DecoratedBox),
             )
             .first,

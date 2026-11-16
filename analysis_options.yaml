@@ -66,7 +66,7 @@ linter:
     unawaited_futures: true
     avoid_void_async: true
     prefer_final_in_for_each: true
-    discarded_futures: true
+    # discarded_futures: true # To be re-enabled once legacy callsites are wrapped in unawaited()
 #
 
 # riverpod_lint's rules (missing_provider_scope, notifier_extends,

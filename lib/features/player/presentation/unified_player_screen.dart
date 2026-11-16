@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/domain/entity/multimedia_item.dart';
+import '../../domain/stream_resolver.dart';
 import '../../settings/presentation/player_settings_provider.dart';
 import 'mediakit/mediakit_player_screen.dart';
 
@@ -13,8 +14,8 @@ import 'mediakit/mediakit_player_screen.dart';
 class UnifiedPlayerScreen extends ConsumerWidget {
   final MultimediaItem item;
   final String videoUrl;
-  final EpisodeItem? episode;
-  final List<dynamic>? preloadedStreams;
+  final Episode? episode;
+  final List<StreamResult>? preloadedStreams;
 
   const UnifiedPlayerScreen({
     super.key,

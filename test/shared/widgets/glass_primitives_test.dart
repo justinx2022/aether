@@ -32,11 +32,11 @@ void main() {
   }
 
   group('GlassSurface', () {
-    testWidgets('paints its child through one blur layer', (tester) async {
+    testWidgets('paints its child through a clean surface layer', (tester) async {
       await tester.pumpWidget(host(const GlassSurface(child: Text('panel'))));
 
       expect(find.text('panel'), findsOneWidget);
-      expect(find.byType(BackdropFilter), findsOneWidget);
+      expect(find.byType(BackdropFilter), findsNothing);
     });
 
     testWidgets('a zero sigma is the same panel without a saveLayer', (
