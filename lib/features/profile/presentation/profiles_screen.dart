@@ -1013,8 +1013,8 @@ class _FirstRunSetupViewState extends ConsumerState<_FirstRunSetupView> {
 
   @override
   Widget build(BuildContext context) {
-    final dev = ref.watch(deviceProfileProvider);
-    final isTv = dev.isTv;
+    final dev = ref.watch(deviceProfileProvider).asData?.value;
+    final isTv = dev?.isTv ?? false;
 
     return Center(
       child: SingleChildScrollView(

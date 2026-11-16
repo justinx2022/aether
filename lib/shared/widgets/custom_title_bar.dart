@@ -2,7 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
-import '../../../core/router/app_router.dart' show immersiveRouteActive;
+import '../../features/player/presentation/player_platform_service.dart'
+    show immersiveRouteActive;
 
 class CustomTitleBar extends StatefulWidget {
   const CustomTitleBar({super.key});

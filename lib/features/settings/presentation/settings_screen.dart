@@ -347,7 +347,8 @@ class SettingsScreen extends ConsumerWidget {
                   height: 32,
                   child: CharacterAvatarWidget(
                     avatarId: activeProfile.avatarId,
-                    shape: BoxShape.circle,
+                    size: 32,
+                    showGlow: false,
                   ),
                 )
               : null,

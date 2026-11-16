@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/domain/entity/multimedia_item.dart';
-import '../../domain/stream_resolver.dart';
+import '../domain/stream_resolver.dart';
 import '../../settings/presentation/player_settings_provider.dart';
 import 'mediakit/mediakit_player_screen.dart';
 
