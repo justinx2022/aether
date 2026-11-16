@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/domain/entity/multimedia_item.dart';
-import '../domain/stream_resolver.dart';
-import '../../settings/presentation/player_settings_provider.dart';
 import 'mediakit/mediakit_player_screen.dart';
 
 /// Unified Player Abstraction
@@ -27,13 +25,7 @@ class UnifiedPlayerScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final playerSettings =
-        ref.watch(playerSettingsProvider).asData?.value ??
-        const PlayerSettings();
-
-    // If an external player application is explicitly preferred (e.g. external MPV/VLC intent)
-    // external launching is handled before falling back to the internal player.
-    // By default, the high-performance zero-copy MediaKit hardware-accelerated engine is used.
+    // MediaKit hardware-accelerated engine with zero-copy Direct3D/VAAPI rendering
     return MediaKitPlayerScreen(
       item: item,
       videoUrl: videoUrl,

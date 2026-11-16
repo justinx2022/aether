@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -612,17 +613,17 @@ class SettingsScreen extends ConsumerWidget {
                   : null),
           onTap: () async {
             if (updateState is UpdateAvailable) {
-              UpdateDialog.show(
+              unawaited(UpdateDialog.show(
                 context,
-                (updateState as UpdateAvailable).release,
-              );
+                updateState.release,
+              ));
             } else {
               await ref
                   .read(updateControllerProvider.notifier)
                   .checkForUpdates();
               final updated = ref.read(updateControllerProvider);
               if (updated is UpdateAvailable && context.mounted) {
-                UpdateDialog.show(context, updated.release);
+                unawaited(UpdateDialog.show(context, updated.release));
               } else if (updated is UpdateInitial && context.mounted) {
                 ref.read(notificationServiceProvider).showSuccess(
                       'Aether v1.0.0 is up to date!',

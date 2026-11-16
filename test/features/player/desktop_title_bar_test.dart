@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:aether/features/player/presentation/player_platform_service.dart';
+import 'package:aether/shared/widgets/custom_title_bar.dart';
 import 'package:aether/main.dart';
 import 'package:window_manager/window_manager.dart';
 

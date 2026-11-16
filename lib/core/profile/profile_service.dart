@@ -126,7 +126,7 @@ class ProfileController extends Notifier<ProfileState> {
     final updated = [...state.profiles, newProfile];
     await _saveProfiles(updated);
 
-    UserProfile nextActive = state.activeProfile ?? newProfile;
+    final UserProfile nextActive = state.activeProfile ?? newProfile;
     if (state.activeProfile == null) {
       await _storage.setString(_kActiveProfileIdKey, newProfile.id);
     }

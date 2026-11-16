@@ -53,8 +53,8 @@ import 'shared/widgets/tv_logical_scale.dart';
 import 'core/widgets/m3_toast_overlay.dart';
 import 'features/settings/presentation/general_settings_provider.dart';
 import 'features/settings/presentation/full_screen_mode_provider.dart';
-import 'features/player/presentation/player_platform_service.dart'
-    show immersiveRouteActive;
+export 'shared/widgets/custom_title_bar.dart';
+export 'core/widgets/launch_error_app.dart';
 
 void main() async {
   // First statement in the process: a framework or async error raised while

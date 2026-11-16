@@ -79,11 +79,10 @@ lib/generated_plugin_registrant.dart
 # Project Specific
 *.g.dart
 *.sky
-assets/plugins/
 # Torrent Server Binaries (re-downloadable via scripts/download_torrserver.sh)
 packages/flutter_torrent_server/go_src/.gradle/
 /coverage/
-plugins/
+/plugins/
 keystore/
 aether-plugins/
 aether-tools/

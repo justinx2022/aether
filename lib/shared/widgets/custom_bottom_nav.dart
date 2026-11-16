@@ -1,12 +1,10 @@
 import 'dart:math' as math;
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:aether/l10n/generated/app_localizations.dart';
 
 import '../../core/theme/app_world.dart';
-import '../../core/theme/design_tokens.dart';
 import '../focus/app_focus.dart';
 
 class CustomBottomNavBar extends StatelessWidget {

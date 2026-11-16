@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_world.dart';
@@ -55,7 +53,6 @@ class GlassSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = AppWorldTokens.colorsOf(context);
     final radius = borderRadius ?? AppRadius.panel;
-    final reduce = AppMotion.reduced(context);
 
     Widget panel = DecoratedBox(
       decoration: BoxDecoration(

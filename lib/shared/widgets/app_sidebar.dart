@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -170,7 +169,6 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
     // panel.
     final world = AppWorldTokens.colorsOf(context);
     final dockRadius = BorderRadius.circular(AppRadius.xl);
-    final reduceMotion = AppMotion.reduced(context);
 
     return Material(
       color: Colors.transparent,

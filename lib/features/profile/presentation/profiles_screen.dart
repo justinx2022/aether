@@ -1,6 +1,4 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/profile/user_profile.dart';
@@ -393,7 +391,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
     final currentAvatar = ProfileAvatars.get(profile.avatarId);
     String selectedCategory = currentAvatar.category;
     final List<String> selectedGenres = List.from(profile.preferredGenres);
-    String feedMode = profile.feedMode;
+    final feedMode = profile.feedMode;
     bool isKids = profile.isKids;
 
     final availableGenres = [
@@ -1177,7 +1175,7 @@ class _FirstRunSetupViewState extends ConsumerState<_FirstRunSetupView> {
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
                           itemCount: ProfileAvatars.all.length,
-                          separatorBuilder: (_, __) => const SizedBox(width: 14),
+                          separatorBuilder: (_, _) => const SizedBox(width: 14),
                           itemBuilder: (context, idx) {
                             final av = ProfileAvatars.all[idx];
                             final isSel = av.id == _selectedAvatarId;
