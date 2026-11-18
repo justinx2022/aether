@@ -106,6 +106,86 @@ pub extern "C" fn aether_filter_and_sort(
     }
 }
 
+/// Hardware SHA-256 hash returned as hexadecimal string.
+/// The caller must free with [aether_string_free].
+#[no_mangle]
+pub extern "C" fn aether_crypto_sha256(input_ptr: *const c_char) -> *mut c_char {
+    let result = catch_unwind(|| {
+        if input_ptr.is_null() {
+            return CString::new("").unwrap().into_raw();
+        }
+        let input_str = unsafe {
+            match CStr::from_ptr(input_ptr).to_str() {
+                Ok(s) => s,
+                Err(_) => return CString::new("").unwrap().into_raw(),
+            }
+        };
+        let hash = crate::extensions::AetherCrypto::sha256(input_str.as_bytes());
+        CString::new(hash).unwrap_or_default().into_raw()
+    });
+
+    match result {
+        Ok(ptr) => ptr,
+        Err(_) => CString::new("").unwrap_or_default().into_raw(),
+    }
+}
+
+/// Registers an Aether Native Extension manifest JSON.
+#[no_mangle]
+pub extern "C" fn aether_provider_register(manifest_json_ptr: *const c_char) -> bool {
+    let result = catch_unwind(|| {
+        if manifest_json_ptr.is_null() {
+            return false;
+        }
+        let json_str = unsafe {
+            match CStr::from_ptr(manifest_json_ptr).to_str() {
+                Ok(s) => s,
+                Err(_) => return false,
+            }
+        };
+        match serde_json::from_str::<crate::extensions::ProviderManifest>(json_str) {
+            Ok(manifest) => {
+                crate::extensions::global_registry().register(manifest);
+                true
+            }
+            Err(_) => false,
+        }
+    });
+
+    result.unwrap_or(false)
+}
+
+/// Resolves stream candidates for a [StreamResolutionRequest] JSON.
+/// Returns a JSON-serialized array of [StreamSource].
+/// Caller must free with [aether_string_free].
+#[no_mangle]
+pub extern "C" fn aether_provider_resolve_streams(req_json_ptr: *const c_char) -> *mut c_char {
+    let result = catch_unwind(|| {
+        if req_json_ptr.is_null() {
+            return CString::new("[]").unwrap().into_raw();
+        }
+        let json_str = unsafe {
+            match CStr::from_ptr(req_json_ptr).to_str() {
+                Ok(s) => s,
+                Err(_) => return CString::new("[]").unwrap().into_raw(),
+            }
+        };
+        let req = match serde_json::from_str::<crate::extensions::StreamResolutionRequest>(json_str) {
+            Ok(r) => r,
+            Err(_) => return CString::new("[]").unwrap().into_raw(),
+        };
+
+        let streams = crate::extensions::global_registry().resolve_streams_mock(&req);
+        let out_json = serde_json::to_string(&streams).unwrap_or_else(|_| "[]".to_string());
+        CString::new(out_json).unwrap_or_default().into_raw()
+    });
+
+    match result {
+        Ok(ptr) => ptr,
+        Err(_) => CString::new("[]").unwrap_or_default().into_raw(),
+    }
+}
+
 /// Frees a C-string allocated by this library.
 #[no_mangle]
 pub extern "C" fn aether_string_free(ptr: *mut c_char) {

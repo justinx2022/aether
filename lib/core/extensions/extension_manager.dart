@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'aether_native_provider.dart';
 import 'base_provider.dart';
 
 import 'dart:io';
@@ -142,7 +143,7 @@ class ExtensionManager extends _$ExtensionManager {
   List<AetherProvider> build() {
     _engine = ref.watch(jsEngineProvider);
     _storageService = ref.watch(pluginStorageServiceProvider);
-    return [];
+    return [AetherNativeProvider()];
   }
 
   /// Called by the extensions feature when installed plugins change, so core
@@ -292,6 +293,10 @@ class ExtensionManager extends _$ExtensionManager {
           }
         }
         state = newState;
+      }
+
+      if (!state.any((p) => p.packageName == AetherNativeProvider.kPackageName)) {
+        state = [AetherNativeProvider(), ...state];
       }
 
       ref.read(pluginSyncCompleteProvider.notifier).set(true);
@@ -590,6 +595,7 @@ class ExtensionManager extends _$ExtensionManager {
     String providerPackageName,
     Set<String> installedPackageNames,
   ) {
+    if (providerPackageName == AetherNativeProvider.kPackageName) return true;
     if (installedPackageNames.contains(providerPackageName)) return true;
     final sep = providerPackageName.lastIndexOf('::');
     if (sep > 0) {
@@ -621,7 +627,12 @@ class ExtensionManager extends _$ExtensionManager {
 
   AetherProvider? getProvider(String packageName) {
     try {
-      return state.firstWhere((p) => p.packageName == packageName);
+      return state.firstWhere(
+        (p) => p.packageName == packageName,
+        orElse: () => packageName == AetherNativeProvider.kPackageName
+            ? AetherNativeProvider()
+            : throw StateError('Not found'),
+      );
     } catch (_) {
       return null;
     }
