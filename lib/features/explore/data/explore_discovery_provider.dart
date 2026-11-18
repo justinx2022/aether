@@ -91,7 +91,14 @@ final exploreDiscoveryProvider =
 
       final results = await Future.wait(futures);
       for (final list in results) {
-        tmdbItems.addAll(list);
+        for (final item in list) {
+          final effectiveItem = item.url.isNotEmpty
+              ? item
+              : item.copyWith(
+                  url: 'aether:discovery:${item.id}:${Uri.encodeComponent(item.title)}',
+                );
+          tmdbItems.add(effectiveItem);
+        }
       }
     } catch (_) {
       // Gracefully continue to provider catalog

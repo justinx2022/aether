@@ -830,9 +830,10 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
       // binary.
       options: <String>[
         '--http-reconnect',
-        if (Platform.isWindows && settings.hardwareDecoding) ...[
+        '--no-video-title-show',
+        if (settings.hardwareDecoding) ...[
           '--avcodec-hw=any',
-          '--directx-hw-yuv',
+          if (Platform.isWindows) '--directx-hw-yuv',
           '--drop-late-frames',
           '--skip-frames',
         ],

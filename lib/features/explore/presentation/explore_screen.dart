@@ -913,18 +913,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                         title: item.title,
                         heroTag: uniqueTag,
                         onTap: () {
-                          if (item.provider != null && item.provider!.isNotEmpty) {
-                            DetailsRoute($extra: DetailsRouteExtra(item: item))
-                                .push<void>(context);
-                          } else {
-                            TmdbDetailsRoute(
-                              movieId: item.id,
-                              mediaType: item.tmdbMediaType,
-                              heroTag: uniqueTag,
-                              placeholderPoster: item.posterImageUrl,
-                              source: item.source,
-                            ).push<void>(context);
-                          }
+                          DetailsRoute($extra: DetailsRouteExtra(item: item))
+                              .push<void>(context);
                         },
                       );
                     },

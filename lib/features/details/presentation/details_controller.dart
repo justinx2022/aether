@@ -340,17 +340,16 @@ class DetailsController extends _$DetailsController {
       }
 
       // Cards whose ids belong to metadata services, not to any installed
-      // plugin. Their ids cannot be resolved, so they are rendered from what
-      // the card already carries. `dev.justin.catalogue` is not one of these:
-      // it parses its own row token, so its items are fetched through it like
-      // any other plugin's, which is what gives a series its episode list.
+      // plugin. Their ids cannot be resolved directly, so we resolve via
+      // the active provider's catalog search.
       final isCatalogItem = item.provider == 'cinemeta' ||
           item.provider == 'tmdb' ||
           item.url.startsWith('cinemeta:') ||
-          item.url.startsWith('tmdb:');
+          item.url.startsWith('tmdb:') ||
+          item.url.startsWith('aether:');
 
       AetherProvider? provider;
-      if (!isCatalogItem && item.provider != null) {
+      if (!isCatalogItem && item.provider != null && item.provider!.isNotEmpty) {
         try {
           provider = manager.getAllProviders().firstWhere(
             (p) => p.packageName == item.provider || p.name == item.provider,
@@ -360,24 +359,37 @@ class DetailsController extends _$DetailsController {
         }
       }
 
-      if (!isCatalogItem) {
-        provider ??= active;
-      }
+      // Attach active provider so Explore and catalog items can resolve real streams & episodes!
+      provider ??= active;
 
       MultimediaItem? fetchedItem;
       if (provider != null) {
         try {
-          fetchedItem = await provider.getDetails(item.url);
+          if (!isCatalogItem && item.url.isNotEmpty) {
+            fetchedItem = await provider.getDetails(item.url);
+          }
         } catch (e) {
           if (kDebugMode) {
             debugPrint('Provider getDetails failed: $e. Attempting title search fallback.');
           }
+        }
+
+        // Title search fallback: resolve real episodes and streams via active provider search!
+        if (fetchedItem == null && item.title.trim().isNotEmpty) {
           try {
-            final searchResults = await provider.search(item.title);
+            final searchResults = await provider.search(item.title.trim());
             if (searchResults.isNotEmpty) {
-              fetchedItem = await provider.getDetails(searchResults.first.url);
+              final match = searchResults.firstWhere(
+                (r) => r.title.trim().toLowerCase() == item.title.trim().toLowerCase(),
+                orElse: () => searchResults.first,
+              );
+              fetchedItem = await provider.getDetails(match.url);
             }
-          } catch (_) {}
+          } catch (e) {
+            if (kDebugMode) {
+              debugPrint('Provider title search fallback failed: $e');
+            }
+          }
         }
       }
 
