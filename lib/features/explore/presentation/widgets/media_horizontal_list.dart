@@ -247,13 +247,13 @@ class _MediaHorizontalListState extends State<MediaHorizontalList> {
                         if (widget.onTap != null) {
                           widget.onTap!(item);
                         } else {
-                          TmdbDetailsRoute(
-                            movieId: item.id,
-                            mediaType: item.tmdbMediaType,
-                            heroTag: uniqueTag,
-                            placeholderPoster: imageUrl,
-                            source: item.source,
-                          ).push<void>(context);
+                          final itemToOpen = item.url.isNotEmpty
+                              ? item
+                              : item.copyWith(
+                                  url: 'aether:explore:${item.id}:${Uri.encodeComponent(item.title)}',
+                                );
+                          DetailsRoute($extra: DetailsRouteExtra(item: itemToOpen))
+                              .push<void>(context);
                         }
                       },
                     ),

@@ -459,15 +459,12 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
   }
 
   void _navigateToDetails(BuildContext context, MultimediaItem movie) {
-    // Standardize media type mapping (prevents TMDB ID collisions)
-    final String mediaType = movie.tmdbMediaType;
-
-    TmdbDetailsRoute(
-      movieId: movie.id,
-      mediaType: mediaType,
-      heroTag: 'hero_${movie.id}',
-      source: movie.source,
-    ).push<void>(context);
+    final itemToOpen = movie.url.isNotEmpty
+        ? movie
+        : movie.copyWith(
+            url: 'aether:explore:${movie.id}:${Uri.encodeComponent(movie.title)}',
+          );
+    DetailsRoute($extra: DetailsRouteExtra(item: itemToOpen)).push<void>(context);
   }
 
   Widget _buildCarouselItem(
