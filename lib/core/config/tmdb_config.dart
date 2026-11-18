@@ -16,36 +16,37 @@ class TmdbConfig {
   /// Only the fallback for when the user has not configured a key.
   static const String buildTimeApiKey = String.fromEnvironment('TMDB_API_KEY');
 
+  /// Embedded zero-configuration background key so the user never has to set up anything.
+  static const String _defaultInternalKey = '281fe4bf4593ccaa494d6027ec02dd94';
+
   /// User-supplied key from Settings, mirrored here from storage at boot by [setUserApiKey].
   static String _userApiKey = '';
 
-  /// User-supplied key from Nuvio plugins screen, mirrored here by [setNuvioApiKey].
-  static String _nuvioApiKey = '';
-
-  /// The effective TMDB key: Settings first, then Nuvio plugins, then the
-  /// build-time developer key.
+  /// The effective TMDB key: user key first, then build-time key, then
+  /// the embedded background key. It is never empty and needs zero setup.
   static String get apiKey {
     if (_userApiKey.isNotEmpty) {
       return _userApiKey;
-    } else if (_nuvioApiKey.isNotEmpty) {
-      return _nuvioApiKey;
-    } else {
+    } else if (buildTimeApiKey.isNotEmpty) {
       return buildTimeApiKey;
+    } else {
+      return _defaultInternalKey;
     }
   }
 
-  /// True when the key came from the user (Settings or Nuvio plugins) rather than the build.
-  static bool get usingUserApiKey =>
-      _userApiKey.isNotEmpty || _nuvioApiKey.isNotEmpty;
+  /// True when the key came from the user rather than background defaults.
+  static bool get usingUserApiKey => _userApiKey.isNotEmpty;
 
   /// Called at boot and whenever the user saves a new key in Settings.
   static void setUserApiKey(String? key) {
     _userApiKey = key?.trim() ?? '';
   }
 
-  /// Called at boot and whenever the user saves a new key in Nuvio plugins screen.
+  /// Backward-compatibility helper for previously cached keys.
   static void setNuvioApiKey(String? key) {
-    _nuvioApiKey = key?.trim() ?? '';
+    if (_userApiKey.isEmpty && key != null && key.trim().isNotEmpty) {
+      _userApiKey = key.trim();
+    }
   }
 
   static const String baseUrl = 'https://api.themoviedb.org/3';

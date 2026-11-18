@@ -17,7 +17,6 @@ import 'general_settings_provider.dart';
 import '../../../core/network/doh_service.dart';
 
 import '../../../core/logger/app_logger.dart';
-import '../../../core/config/tmdb_config.dart';
 import '../../../core/config/sync_config.dart';
 import '../../tracking/presentation/tracking_auth_provider.dart';
 import '../../tracking/data/simkl_service.dart';
@@ -527,9 +526,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                     title: 'TMDB API key',
                     subtitle: generalSettings.tmdbApiKey.isNotEmpty
                         ? 'Custom key saved'
-                        : (TmdbConfig.buildTimeApiKey.isNotEmpty
-                              ? 'Using built-in key'
-                              : 'Not set — Stream and Explore need this'),
+                        : 'Inbuilt zero-setup metadata active (automatic background resolution)',
                     onTap: () => showTmdbApiKeyDialog(context, ref),
                   ),
                   SettingsTile(

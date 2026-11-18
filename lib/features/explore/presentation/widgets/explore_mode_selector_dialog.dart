@@ -40,7 +40,7 @@ Future<void> showExploreModeSelectorDialog(
                   value: ExploreModeType.movies,
                   icon: Icons.movie_outlined,
                   title: 'Movies & Shows',
-                  subtitle: 'Discover movies and series via TMDB',
+                  subtitle: 'Inbuilt discovery for movies and series',
                   isSelected: currentMode == ExploreModeType.movies,
                   autofocus: currentMode == ExploreModeType.movies,
                   onTap: () {

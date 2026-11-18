@@ -71,7 +71,26 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: LayoutConstants.spacingLg),
 
-                // 2. Subtitles & Styling
+                // 2. Performance & Fluid Motion (High-Refresh, Glass, Search)
+                _buildPerformanceExperienceGroup(
+                  context,
+                  ref,
+                  l10n,
+                  generalSettings,
+                ),
+                const SizedBox(height: LayoutConstants.spacingLg),
+
+                // 3. Appearance & Display
+                _buildAppearanceDisplayGroup(
+                  context,
+                  ref,
+                  l10n,
+                  themeMode,
+                  generalSettings,
+                ),
+                const SizedBox(height: LayoutConstants.spacingLg),
+
+                // 4. Subtitles & Styling
                 _buildSubtitlesStylingGroup(
                   context,
                   ref,
@@ -80,11 +99,11 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: LayoutConstants.spacingLg),
 
-                // 3. Extensions & Addons
+                // 5. Extensions & Addons
                 _buildExtensionsAddonsGroup(context, l10n),
                 const SizedBox(height: LayoutConstants.spacingLg),
 
-                // 4. Profiles & Cloud Sync
+                // 6. Profiles & Cloud Sync
                 _buildProfilesCloudSyncGroup(
                   context,
                   ref,
@@ -95,32 +114,13 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: LayoutConstants.spacingLg),
 
-                // 5. Network & Debrid
+                // 7. Network & Debrid
                 _buildNetworkDebridGroup(
                   context,
                   ref,
                   l10n,
                   generalSettings,
                   dohState,
-                ),
-                const SizedBox(height: LayoutConstants.spacingLg),
-
-                // 6. Appearance & Display
-                _buildAppearanceDisplayGroup(
-                  context,
-                  ref,
-                  l10n,
-                  themeMode,
-                  generalSettings,
-                ),
-                const SizedBox(height: LayoutConstants.spacingLg),
-
-                // 7. Performance & Fluid Motion
-                _buildPerformanceExperienceGroup(
-                  context,
-                  ref,
-                  l10n,
-                  generalSettings,
                 ),
                 const SizedBox(height: LayoutConstants.spacingLg),
 
@@ -475,7 +475,7 @@ class SettingsScreen extends ConsumerWidget {
         SettingsTile(
           icon: Icons.integration_instructions_rounded,
           title: 'Integrations & Metadata',
-          subtitle: 'TMDB API key, AnimeSkip & IntroDB skip segments',
+          subtitle: 'Inbuilt metadata, AnimeSkip & IntroDB skip segments',
           isLast: true,
           onTap: () => const AccountSettingsRoute().go(context),
         ),
