@@ -3,31 +3,35 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
-import 'package:aether/features/library/presentation/history_provider.dart';
-
-import '../../../../core/domain/entity/multimedia_item.dart';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/extensions/extension_manager.dart';
 import 'package:aether/core/router/app_router.dart';
-import 'package:aether/core/addons/models/addon_meta.dart'
-    show kAddonItemSource;
-import 'package:aether/core/utils/image_fallbacks.dart';
-import 'package:aether/core/utils/layout_constants.dart';
-
-import '../../../../core/extensions/extension_manager.dart';
-import '../../../details/presentation/details_controller.dart';
-import '../../../details/presentation/playback_launcher.dart';
-import '../../../../shared/widgets/cards_wrapper.dart';
-import '../../../../shared/widgets/loading_dialog.dart';
-
-import 'package:aether/l10n/generated/app_localizations.dart';
 import 'package:aether/core/services/notification_service.dart';
+import 'package:aether/core/theme/app_world.dart';
+import 'package:aether/core/utils/image_fallbacks.dart';
+import 'package:aether/core/utils/image_utils.dart';
+import 'package:aether/core/utils/layout_constants.dart';
+import 'package:aether/features/details/presentation/details_controller.dart';
+import 'package:aether/features/details/presentation/playback_launcher.dart';
+import 'package:aether/features/library/presentation/history_provider.dart';
+import 'package:aether/features/settings/presentation/player_settings_provider.dart';
+import 'package:aether/l10n/generated/app_localizations.dart';
+import 'package:aether/shared/focus/app_focus.dart';
+import 'package:aether/shared/widgets/cards_wrapper.dart';
+import 'package:aether/shared/widgets/cinema_badge.dart';
+import 'package:aether/shared/widgets/loading_dialog.dart';
 
-import '../../../../shared/focus/app_focus.dart';
-import '../../../../shared/widgets/cinema_badge.dart';
-import '../../../../core/theme/app_world.dart';
-import '../../../settings/presentation/player_settings_provider.dart';
-
+/// Apple TV-inspired Continue Watching card.
+///
+/// Features:
+/// - 16:9 cinematic aspect ratio with squircle curvature.
+/// - Multi-stop cinematic dark vignette.
+/// - Floating frosted-glass central Play action pill with smooth scale/glow on hover/focus.
+/// - Elegant metadata hierarchy (series tag, episode title, remaining duration pill).
+/// - Apple-style glowing progress gauge with rounded endcaps.
+/// - Seamless zero-lag click-to-play with details fallback.
 class ContinueWatchingCard extends ConsumerStatefulWidget {
   final HistoryItem historyItem;
   final double width;
@@ -46,58 +50,9 @@ class ContinueWatchingCard extends ConsumerStatefulWidget {
 }
 
 class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
-  /// Black wash over the whole card when nothing is pointing at it. It is the
-  /// *field* that gets dimmed, so a rail of eight rich backdrops reads as one
-  /// calm surface instead of eight competing pictures.
-  static const double _washAtRest = 0.20;
-
-  /// Black wash when the pointer is over the card or the D-pad ring is on it.
-  ///
-  /// Attention REVEALS the artwork; it does not bury it. The card previously
-  /// went the other way (0.20 -> 0.40 on hover), which put attention and
-  /// legibility at opposite ends: the one card you were looking at was the
-  /// least readable thing on the shelf. Every ten-foot shelf worth copying
-  /// dims the field and lifts the focused item, so this is the direction.
-  ///
-  /// Not zero: a whisper of veil keeps the lift from reading as a hard "image
-  /// pops in" flash on a 3 m viewing distance, and keeps the card sitting in
-  /// the app's dark surface rather than punching a hole in it.
-  static const double _washAttended = 0.05;
-
-  /// Track of the resume gauge, as white alpha over the bottom scrim.
-  ///
-  /// A fully transparent track (what this card shipped with) is not a gauge at
-  /// all — with no unfilled remainder to compare against, 15% watched and 95%
-  /// watched are both "a white sliver at the bottom", and on a bright frame
-  /// the sliver competes with the artwork underneath it. 0.40 is chosen, not
-  /// picked: composited over the black87 foot of the scrim the track lands at
-  /// roughly 40% grey on a dark frame and 48% on a bright one, which is 3.5:1
-  /// and 3.7:1 against the surrounding scrim — i.e. it clears the 3:1 that
-  /// WCAG 1.4.11 asks of a non-text UI component in both extremes — while the
-  /// pure-white fill still reads 4.3:1 against the track itself, so the two
-  /// halves of the gauge can never be confused.
-  static const double _progressTrackOpacity = 0.40;
-
-  /// Height of the resume gauge, unchanged at 4 dp and deliberately so.
-  ///
-  /// A television reports 960x540 dp, so 4 dp is 1/135 of the screen height:
-  /// about 5 mm on a 55" set, which subtends ~5.8 arcmin at 3 m — comfortably
-  /// above the ~3-4 arcmin where a hairline starts to disappear. On a phone at
-  /// 25 cm the same 4 dp subtends ~8.7 arcmin. The bar was never too thin; it
-  /// was missing its track.
-  static const double _progressBarHeight = 4;
-
   bool _isHovered = false;
   bool _isFocused = false;
 
-  /// True when the card is the one the viewer is aimed at: under a mouse, or
-  /// focused from a remote or a keyboard.
-  ///
-  /// Focus reached under a thumb is not aiming - a card autofocused for the
-  /// remote would sit revealed on a phone nobody had touched - so focus goes
-  /// through [showFocusIndicator], which listens for the input changing, and
-  /// the card cannot get stuck in the wrong state when it does. Build-time
-  /// only, for that reason.
   bool get _isAttended => _isHovered || showFocusIndicator(context, _isFocused);
 
   static String _normalizeMatchKey(String value) {
@@ -173,8 +128,97 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
     return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
+  String _formatRemaining(int posMs, int durMs) {
+    final diff = durMs - posMs;
+    if (diff <= 0) return '';
+    final d = Duration(milliseconds: diff);
+    if (d.inHours > 0) {
+      final m = d.inMinutes.remainder(60);
+      return m > 0 ? '${d.inHours}h ${m}m left' : '${d.inHours}h left';
+    }
+    final mins = d.inMinutes;
+    return mins > 0 ? '${mins}m left' : '${d.inSeconds}s left';
+  }
+
+  void _showContextMenu(BuildContext context, MultimediaItem item) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        margin: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF161618),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.6),
+              blurRadius: 30,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Text(
+                item.title,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const Divider(color: Colors.white12, height: 20),
+            ListTile(
+              leading: const Icon(Icons.info_outline_rounded, color: Colors.white70),
+              title: Text(l10n.viewDetails, style: const TextStyle(color: Colors.white)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              onTap: () {
+                Navigator.pop(context);
+                unawaited(
+                  DetailsRoute($extra: DetailsRouteExtra(item: item))
+                      .push<void>(context),
+                );
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.delete_outline_rounded, color: theme.colorScheme.error),
+              title: Text(
+                l10n.removeFromHistory,
+                style: TextStyle(color: theme.colorScheme.error),
+              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              onTap: () {
+                ref
+                    .read(watchHistoryProvider.notifier)
+                    .removeFromHistory(item.url);
+                Navigator.pop(context);
+                ref
+                    .read(notificationServiceProvider)
+                    .showSuccess(
+                      l10n.removedFromHistory(item.title),
+                      title: 'Watch History',
+                      icon: Icons.history_rounded,
+                    );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final item = widget.historyItem.item;
     final double progress = (widget.historyItem.duration > 0)
         ? (widget.historyItem.position / widget.historyItem.duration).clamp(
@@ -198,7 +242,16 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
             widget.historyItem.season != null &&
             widget.historyItem.episode != null &&
             (widget.historyItem.season! > 0 || widget.historyItem.episode! > 0)
-        ? "S${widget.historyItem.season} E${widget.historyItem.episode}${widget.historyItem.episodeTitle != null && widget.historyItem.episodeTitle!.isNotEmpty && !widget.historyItem.episodeTitle!.startsWith("Episode") ? " - ${widget.historyItem.episodeTitle}" : ""}"
+        ? 'S${widget.historyItem.season} · E${widget.historyItem.episode}'
+        : null;
+
+    final episodeTitle = widget.historyItem.episodeTitle?.trim();
+    final hasCustomTitle = episodeTitle != null &&
+        episodeTitle.isNotEmpty &&
+        !episodeTitle.toLowerCase().startsWith('episode');
+
+    final remainingText = !isLivestream && widget.historyItem.duration > 0
+        ? _formatRemaining(widget.historyItem.position, widget.historyItem.duration)
         : null;
 
     return CardsWrapper(
@@ -227,9 +280,6 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
           final liveItem = refreshedItem ?? item;
           if (!context.mounted || canceled) return;
 
-          // The item URL is the stream for a livestream, so there is nothing
-          // left to resolve — but which player plays it is still the user's
-          // setting, and the launcher is what reads it.
           unawaited(
             ref
                 .read(playbackLauncherProvider)
@@ -237,20 +287,6 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
           );
           unawaited(
             ref.read(watchHistoryProvider.notifier).removeFromHistory(item.url),
-          );
-          return;
-        }
-
-        // Add-on content has no plugin behind it — reopen it in the add-on
-        // stack, which knows how to resolve its streams.
-        if (item.source == kAddonItemSource) {
-          unawaited(
-            AddonDetailRoute(
-              type: item.contentType == MultimediaContentType.movie
-                  ? 'movie'
-                  : 'series',
-              id: item.url,
-            ).push<void>(context),
           );
           return;
         }
@@ -320,68 +356,8 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
               .push<void>(context),
         );
       },
-      onLongPress: () {
-        showModalBottomSheet<void>(
-          context: context,
-          builder: (context) => Container(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(item.title, style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 8),
-                ListTile(
-                  leading: const Icon(Icons.info_outline),
-                  title: Text(AppLocalizations.of(context)!.viewDetails),
-                  onTap: () {
-                    Navigator.pop(context);
-                    unawaited(
-                      DetailsRoute($extra: DetailsRouteExtra(item: item))
-                          .push<void>(context),
-                    );
-                  },
-                ),
-                ListTile(
-                  leading: Icon(
-                    Icons.delete_outline,
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                  title: Text(
-                    AppLocalizations.of(context)!.removeFromHistory,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                  ),
-                  onTap: () {
-                    ref
-                        .read(watchHistoryProvider.notifier)
-                        .removeFromHistory(item.url);
-                    Navigator.pop(context);
-                    ref
-                        .read(notificationServiceProvider)
-                        .showSuccess(
-                          AppLocalizations.of(context)!
-                              .removedFromHistory(item.title),
-                          title: 'Watch History',
-                          icon: Icons.history_rounded,
-                        );
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.close),
-                  title: Text(AppLocalizations.of(context)!.cancel),
-                  onTap: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+      onLongPress: () => _showContextMenu(context, item),
       borderRadius: BorderRadius.circular(LayoutConstants.radiusLg),
-      // Read the focus state out of the wrapper's own node rather than nesting
-      // a second Focus inside it: a nested node would add a second D-pad stop
-      // to every card in the rail.
       onFocusChange: (hasFocus) {
         if (_isFocused == hasFocus) return;
         setState(() => _isFocused = hasFocus);
@@ -391,196 +367,290 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
         onExit: (_) => setState(() => _isHovered = false),
         child: SizedBox(
           width: widget.width,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(LayoutConstants.radiusLg),
-            child: Stack(
-              children: [
-                // Banner background
-                Positioned.fill(
-                  child: Container(
-                    color: Theme.of(context).colorScheme.surfaceContainer,
-                    child: bannerUrl != null
-                        ? CachedNetworkImage(
-                            imageUrl: bannerUrl,
-                            fit: BoxFit.cover,
-                            placeholder: (_, _) => const SizedBox.shrink(),
-                            errorWidget: (_, _, _) => const SizedBox.shrink(),
-                          )
-                        : null,
-                  ),
+          child: AnimatedScale(
+            scale: _isAttended ? 1.03 : 1.0,
+            duration: const Duration(milliseconds: 240),
+            curve: Curves.easeOutCubic,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 240),
+              curve: Curves.easeOutCubic,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(LayoutConstants.radiusLg),
+                border: Border.all(
+                  color: _isAttended
+                      ? Colors.white.withOpacity(0.35)
+                      : Colors.white.withOpacity(0.08),
+                  width: _isAttended ? 1.5 : 1.0,
                 ),
-
-                // Field wash (full card). Lifts on attention, see _washAttended.
-                //
-                // Painted UNDER the scrim, the badge and the gauge, so none of
-                // those change legibility when the card is picked out: the only
-                // thing the reveal moves is the artwork.
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                      color: Colors.black.withValues(
-                        alpha: _isAttended ? _washAttended : _washAtRest,
+                boxShadow: _isAttended
+                    ? [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.55),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                        BoxShadow(
+                          color: theme.colorScheme.primary.withOpacity(0.25),
+                          blurRadius: 16,
+                          spreadRadius: 1,
+                        ),
+                      ]
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.35),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(LayoutConstants.radiusLg),
+                child: Stack(
+                  children: [
+                    // Backdrop Artwork
+                    Positioned.fill(
+                      child: Container(
+                        color: const Color(0xFF141416),
+                        child: bannerUrl != null
+                            ? CachedNetworkImage(
+                                imageUrl: bannerUrl,
+                                fit: BoxFit.cover,
+                                memCacheWidth: ImageUtils.coverDecodeWidth(
+                                  context,
+                                  width: widget.width,
+                                  sourceAspectRatio: 16 / 9,
+                                ),
+                                placeholder: (_, _) => const SizedBox.shrink(),
+                                errorWidget: (_, _, _) =>
+                                    const SizedBox.shrink(),
+                              )
+                            : null,
                       ),
                     ),
-                  ),
-                ),
 
-                // Bottom scrim + info column.
-                //
-                // The scrim is attached to the text block instead of being a
-                // fixed-height band, so it is exactly as tall as the text it
-                // has to protect, in all 43 locales and for one- or two-line
-                // titles alike. A fixed 64 dp band was shorter than the block:
-                // a two-line "S2 E5 — …" label plus the 24/28 dp padding runs
-                // to ~100 dp, which left the top line standing on bare artwork
-                // and leaning entirely on the field wash for contrast. That
-                // was survivable while the wash got heavier on attention; it
-                // is not survivable now that the wash gets lighter.
-                //
-                // It sits before the badge and the gauge so that it cannot
-                // paint over them. The 12 dp foot is the resume gauge's 4 dp
-                // plus 8 dp of air. It used to be 28, to clear a duration
-                // badge that sat in this same corner; the badge reads at the
-                // top right now, so the text drops back down to where the
-                // scrim is actually at its darkest.
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: IgnorePointer(
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                          colors: [Colors.black87, Colors.transparent],
+                    // Multi-stop Cinematic Gradient Scrim
+                    Positioned.fill(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            stops: const [0.0, 0.45, 0.75, 1.0],
+                            colors: [
+                              Colors.black.withOpacity(0.35),
+                              Colors.transparent,
+                              Colors.black.withOpacity(0.65),
+                              Colors.black.withOpacity(0.92),
+                            ],
+                          ),
                         ),
                       ),
-                      padding: const EdgeInsets.fromLTRB(12, 24, 12, 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
+                    ),
+
+                    // Top Indicators (Live / Cinema Badge & Remaining Time)
+                    Positioned(
+                      top: 10,
+                      left: 10,
+                      right: 10,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          if (hasEpisodes || isLivestream) ...[
-                            Text(
-                              item.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white60,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                          ],
                           if (isLivestream)
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
+                                horizontal: 8,
+                                vertical: 3,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.red.withValues(alpha: 0.20),
-                                borderRadius: BorderRadius.circular(
-                                  LayoutConstants.radiusSm,
-                                ),
+                                color: Colors.red.withOpacity(0.85),
+                                borderRadius: BorderRadius.circular(100),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.red.withOpacity(0.5),
+                                    blurRadius: 8,
+                                  ),
+                                ],
                               ),
-                              child: const Text(
-                                'LIVE',
-                                style: TextStyle(
-                                  color: Colors.red,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.5,
-                                ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  CircleAvatar(
+                                    radius: 3,
+                                    backgroundColor: Colors.white,
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'LIVE',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 0.6,
+                                    ),
+                                  ),
+                                ],
                               ),
                             )
+                          else if (isSeries || isAnime)
+                            CinemaBadge(label: isAnime ? 'ANIME' : 'SERIES')
                           else
-                            Text(
-                              episodeLabel ?? item.title,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
+                            const SizedBox.shrink(),
+
+                          if (remainingText != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.55),
+                                borderRadius: BorderRadius.circular(100),
+                                border: Border.all(color: Colors.white12),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.access_time_rounded,
+                                    size: 11,
+                                    color: Colors.white70,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    remainingText,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                         ],
                       ),
                     ),
-                  ),
-                ),
 
-                // Duration badge (top-right).
-                if (!isLivestream)
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: CinemaBadge(
-                      label:
-                          '${_formatDuration(widget.historyItem.position)} / ${_formatDuration(widget.historyItem.duration)}',
-                      fontSize: 9,
-                    ),
-                  ),
-
-                // Center Quick Play Icon on Attention
-                if (_isAttended)
-                  Positioned.fill(
-                    child: Center(
-                      child: Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.55),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.35),
-                            width: 1.2,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppWorldTokens.colorsOf(
-                                context,
-                              ).accent.withValues(alpha: 0.3),
-                              blurRadius: 16,
-                              spreadRadius: 1,
+                    // Centered Apple TV Floating Frosted Play Button
+                    Positioned.fill(
+                      child: Center(
+                        child: AnimatedScale(
+                          scale: _isAttended ? 1.05 : 0.88,
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeOutCubic,
+                          child: AnimatedOpacity(
+                            opacity: _isAttended ? 1.0 : 0.0,
+                            duration: const Duration(milliseconds: 200),
+                            child: Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white.withOpacity(0.28),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.55),
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.4),
+                                    blurRadius: 16,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.play_arrow_rounded,
+                                color: Colors.white,
+                                size: 30,
+                              ),
                             ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Bottom Metadata & Progress
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Show Header / Category Tag
+                            if (hasEpisodes) ...[
+                              Text(
+                                item.title.toUpperCase(),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.7),
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.9,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                            ],
+
+                            // Episode Title / Main Title
+                            Text(
+                              hasEpisodes
+                                  ? (episodeLabel != null
+                                      ? '$episodeLabel${hasCustomTitle ? ' · "$episodeTitle"' : ''}'
+                                      : (episodeTitle ?? item.title))
+                                  : item.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+
+                            // Apple TV Glowing Progress Gauge
+                            if (!isLivestream)
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(100),
+                                child: Container(
+                                  height: 3.5,
+                                  width: double.infinity,
+                                  color: Colors.white.withOpacity(0.20),
+                                  child: FractionallySizedBox(
+                                    alignment: Alignment.centerLeft,
+                                    widthFactor: progress,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: theme.colorScheme.primary,
+                                        borderRadius:
+                                            BorderRadius.circular(100),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: theme.colorScheme.primary
+                                                .withOpacity(0.8),
+                                            blurRadius: 6,
+                                            spreadRadius: 1,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
-                        child: const Icon(
-                          Icons.play_arrow_rounded,
-                          color: Colors.white,
-                          size: 26,
-                        ),
                       ),
                     ),
-                  ),
-
-                // Resume gauge (bottom edge). Track and fill with world accent.
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: IgnorePointer(
-                    child: SizedBox(
-                      height: _progressBarHeight,
-                      child: LinearProgressIndicator(
-                        value: progress,
-                        backgroundColor: Colors.white.withValues(
-                          alpha: _progressTrackOpacity,
-                        ),
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          AppWorldTokens.colorsOf(context).accent,
-                        ),
-                      ),
-                    ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),

@@ -23,7 +23,6 @@ import '../../../../core/utils/responsive_breakpoints.dart';
 import '../../../../core/providers/device_info_provider.dart';
 import '../../../../shared/widgets/shimmer_placeholder.dart';
 import '../../../../core/domain/entity/multimedia_item.dart';
-import '../../addons/presentation/addons_screen.dart';
 import 'widgets/explore_mode_selector_dialog.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/router/app_router.dart';
@@ -196,14 +195,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                           );
                           tooltipMsg = l10n.exploreAnime;
                           break;
-                        case ExploreModeType.stremio:
-                          iconWidget = Icon(
-                            Icons.extension_outlined,
-                            color: onSurfaceColor,
-                            size: 18,
-                          );
-                          tooltipMsg = 'Stremio Add-ons';
-                          break;
                       }
 
                       return Tooltip(
@@ -227,8 +218,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                 ),
                 child: Consumer(
                   builder: (context, ref, _) {
-                    final mode = ref.watch(exploreModeProvider);
-                    final isStremio = mode == ExploreModeType.stremio;
                     final filters = ref.watch(exploreFilterProvider);
                     final hasActiveFilter =
                         filters.selectedGenre != null ||
@@ -237,30 +226,24 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
 
                     return CardsWrapper(
                       onTap: () {
-                        if (isStremio) {
-                          const AddonsRoute().go(context);
-                        } else {
-                          unawaited(
-                            showDialog<void>(
-                              context: context,
-                              builder: (context) => const UnifiedFilterDialog(),
-                            ),
-                          );
-                        }
+                        unawaited(
+                          showDialog<void>(
+                            context: context,
+                            builder: (context) => const UnifiedFilterDialog(),
+                          ),
+                        );
                       },
                       borderRadius: BorderRadius.circular(50),
                       child: Tooltip(
-                        message: isStremio ? 'Stremio Settings' : 'Filter',
+                        message: 'Filter',
                         child: CircleAvatar(
-                          backgroundColor: (!isStremio && hasActiveFilter)
+                          backgroundColor: hasActiveFilter
                               ? Theme.of(context).colorScheme.primary
                               : Theme.of(context).colorScheme.onSurface
                                     .withValues(alpha: 0.1),
                           radius: 18,
                           child: Icon(
-                            isStremio
-                                ? Icons.dashboard_customize_rounded
-                                : Icons.tune,
+                            Icons.tune,
                             color: Theme.of(context).colorScheme.onSurface,
                             size: 18,
                           ),
@@ -314,12 +297,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
         return _buildScrollView(context);
       case ExploreModeType.anime:
         return AnilistExploreScreen(
-          scrollController: _scrollController,
-          firstActionFocusNode: _firstActionFocusNode,
-          onControllerReady: (c) => setState(() => _carouselController = c),
-        );
-      case ExploreModeType.stremio:
-        return AddonCatalogsTabView(
           scrollController: _scrollController,
           firstActionFocusNode: _firstActionFocusNode,
           onControllerReady: (c) => setState(() => _carouselController = c),

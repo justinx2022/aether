@@ -18,7 +18,6 @@ import '../../../search/presentation/widgets/search_suggestion_row.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
 import '../../../../core/utils/responsive_breakpoints.dart';
 import '../../../../core/domain/entity/multimedia_item.dart';
-import '../../../../core/addons/models/addon_meta.dart' show kAddonItemSource;
 import '../../../../shared/widgets/cards_wrapper.dart';
 import '../../data/explore_mode_provider.dart';
 
@@ -352,8 +351,6 @@ class _SearchSuggestionsListState
           context,
           item,
           heroTag: 'search_${item.url}',
-          isStremioMode:
-              ref.read(exploreModeProvider) == ExploreModeType.stremio,
         );
       },
     );
@@ -365,29 +362,7 @@ void _navigateToItem(
   MultimediaItem item, {
   String? heroTag,
   String? placeholderPoster,
-  bool isStremioMode = false,
 }) {
-  final isAddon =
-      item.source == kAddonItemSource ||
-      item.url.startsWith('addon:') ||
-      isStremioMode ||
-      item.url.startsWith('tt') ||
-      item.url.startsWith('kitsu:');
-
-  if (isAddon) {
-    final listed = parseAddonSearchItemUrl(item.url);
-    AddonDetailRoute(
-      type:
-          listed?.type ??
-          (item.contentType == MultimediaContentType.series
-              ? 'series'
-              : 'movie'),
-      id: listed?.id ?? item.url,
-      addonUrl: listed?.addonUrl,
-    ).push<void>(context);
-    return;
-  }
-
   TmdbDetailsRoute(
     movieId: item.id,
     mediaType: item.tmdbMediaType,
@@ -565,8 +540,6 @@ class _SearchResultsGridState extends ConsumerState<_SearchResultsGrid> {
               item,
               heroTag: uniqueTag,
               placeholderPoster: imageUrl,
-              isStremioMode:
-                  ref.read(exploreModeProvider) == ExploreModeType.stremio,
             );
           },
         );

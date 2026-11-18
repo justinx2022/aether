@@ -217,6 +217,9 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   Timer? _hideControlsTimer;
   double _playbackSpeed = 1.0;
   bool _isFullscreen = false;
+  bool _isPipMode = false;
+  Size? _prePipWindowSize;
+  Offset? _prePipWindowPosition;
   BoxFit _fit = BoxFit.contain;
   PlayerSettings? _settings;
 
@@ -579,6 +582,8 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
             'timeout=10000000,reconnect_streamed=1,reconnect_delay_max=2',
           );
           await native.setProperty('demuxer-lavf-o', 'allowed_extensions=ALL');
+          // Prefer English audio tracks by default across all containers
+          await native.setProperty('alang', 'eng,en,enUS,en-US');
         } else if (!kIsWeb && Platform.isWindows) {
           await native.setProperty('hwdec', 'auto-safe');
 
@@ -615,6 +620,8 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
             'timeout=10000000,reconnect_streamed=1,reconnect_delay_max=2',
           );
           await native.setProperty('demuxer-lavf-o', 'allowed_extensions=ALL');
+          // Prefer English audio tracks by default across all containers
+          await native.setProperty('alang', 'eng,en,enUS,en-US');
         }
 
         if (_settings?.hardwareDecoding == false) {
@@ -1857,6 +1864,50 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     }
   }
 
+  Future<void> _togglePip() async {
+    _onUserActivity();
+    if (kIsWeb) return;
+    if (Platform.isAndroid || Platform.isIOS) {
+      final platformService = PlayerPlatformService();
+      await platformService.enterPip(_player.state.playing);
+      return;
+    }
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      if (!_isPipMode) {
+        if (_isFullscreen) {
+          await _toggleFullscreen();
+        }
+        try {
+          _prePipWindowSize = await windowManager.getSize();
+          _prePipWindowPosition = await windowManager.getPosition();
+          await windowManager.setAlwaysOnTop(true);
+          await windowManager.setSize(const Size(460, 258));
+        } catch (_) {}
+        if (mounted) {
+          setState(() {
+            _isPipMode = true;
+            _controlsVisible = false;
+          });
+        }
+      } else {
+        try {
+          await windowManager.setAlwaysOnTop(false);
+          if (_prePipWindowSize != null) {
+            await windowManager.setSize(_prePipWindowSize!);
+          }
+          if (_prePipWindowPosition != null) {
+            await windowManager.setPosition(_prePipWindowPosition!);
+          }
+        } catch (_) {}
+        if (mounted) {
+          setState(() {
+            _isPipMode = false;
+          });
+        }
+      }
+    }
+  }
+
   /// Replaces the picture's fit - chosen in the More sheet, since it changes
   /// the shape of the picture rather than the playback.
   void _setFit(BoxFit fit) {
@@ -2561,6 +2612,15 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     if (!kIsWeb &&
         (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
       try {
+        if (_isPipMode) {
+          windowManager.setAlwaysOnTop(false);
+          if (_prePipWindowSize != null) {
+            windowManager.setSize(_prePipWindowSize!);
+          }
+          if (_prePipWindowPosition != null) {
+            windowManager.setPosition(_prePipWindowPosition!);
+          }
+        }
         windowManager
             .isFullScreen()
             .then((isFull) {
@@ -2696,6 +2756,9 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
       return KeyEventResult.handled;
     } else if (event.logicalKey == LogicalKeyboardKey.keyM) {
       _toggleMute();
+      return KeyEventResult.handled;
+    } else if (event.logicalKey == LogicalKeyboardKey.keyI) {
+      _togglePip();
       return KeyEventResult.handled;
     } else if (event.logicalKey == LogicalKeyboardKey.escape) {
       if (_isFullscreen) {
@@ -3133,7 +3196,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                     ),
 
                   // Player Controls Layer (Top & Bottom Bars)
-                  if (!_isLoading && _error.isEmpty && !_isScreenLocked)
+                  if (!_isLoading && _error.isEmpty && !_isScreenLocked && !_isPipMode)
                     AnimatedOpacity(
                       opacity: _controlsVisible ? 1.0 : 0.0,
                       duration: const Duration(milliseconds: 200),
@@ -3142,6 +3205,64 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                         child: Stack(
                           children: [_buildTopBar(), _buildBottomBar()],
                         ),
+                      ),
+                    ),
+
+                  // Desktop / Mobile PiP HUD Overlay
+                  if (_isPipMode)
+                    Positioned.fill(
+                      child: Stack(
+                        children: [
+                          Center(
+                            child: IconButton(
+                              iconSize: 44,
+                              icon: Icon(
+                                _playing
+                                    ? Icons.pause_circle_filled_rounded
+                                    : Icons.play_circle_fill_rounded,
+                                color: Colors.white.withValues(alpha: 0.85),
+                              ),
+                              onPressed: _togglePlayPause,
+                            ),
+                          ),
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.7),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: Colors.white24,
+                                  width: 0.5,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.open_in_full_rounded,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
+                                    tooltip: 'Exit PiP',
+                                    onPressed: _togglePip,
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.close_rounded,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
+                                    tooltip: 'Close Player',
+                                    onPressed: _exitPlayer,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                 ],
@@ -3379,6 +3500,22 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
               tooltip: _isFullscreen ? 'Exit Fullscreen' : 'Fullscreen',
               isTv: _isTv,
               onPressed: _toggleFullscreen,
+            ),
+          if (!kIsWeb &&
+              (Platform.isWindows ||
+                  Platform.isLinux ||
+                  Platform.isMacOS ||
+                  Platform.isAndroid))
+            PlayerIconButton(
+              icon: _isPipMode
+                  ? Icons.picture_in_picture_alt_rounded
+                  : Icons.picture_in_picture_outlined,
+              tooltip: _isPipMode
+                  ? 'Exit Picture in Picture'
+                  : 'Picture in Picture',
+              highlight: _isPipMode,
+              isTv: _isTv,
+              onPressed: _togglePip,
             ),
           PlayerIconButton(
             icon: _isDialogueBoostEnabled

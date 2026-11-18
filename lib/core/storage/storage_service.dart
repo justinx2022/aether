@@ -1060,4 +1060,106 @@ class StorageService {
       if (kDebugMode) debugPrint('Error clearing temp dir: $e');
     }
   }
+
+  // --- Backup & Restore ---
+
+  Map<String, dynamic> exportAllData() {
+    final libraryMap = <String, dynamic>{};
+    for (final key in _libraryBox.keys) {
+      final val = _libraryBox.get(key);
+      if (val is Map) {
+        libraryMap[key.toString()] = Map<String, dynamic>.from(val);
+      }
+    }
+
+    final historyMap = <String, dynamic>{};
+    for (final key in _historyBox.keys) {
+      final val = _historyBox.get(key);
+      if (val is Map) {
+        historyMap[key.toString()] = Map<String, dynamic>.from(val);
+      }
+    }
+
+    final settingsMap = <String, dynamic>{};
+    for (final key in _settingsBox.keys) {
+      final val = _settingsBox.get(key);
+      if (val is String || val is num || val is bool) {
+        settingsMap[key.toString()] = val;
+      }
+    }
+
+    final extensionsMap = <String, dynamic>{};
+    for (final key in _extensionsBox.keys) {
+      final val = _extensionsBox.get(key);
+      if (val is Map) {
+        extensionsMap[key.toString()] = Map<String, dynamic>.from(val);
+      } else if (val is String || val is num || val is bool) {
+        extensionsMap[key.toString()] = val;
+      }
+    }
+
+    return {
+      'app': 'Aether',
+      'version': 1,
+      'exportedAt': DateTime.now().toIso8601String(),
+      'library': libraryMap,
+      'history': historyMap,
+      'settings': settingsMap,
+      'extensions': extensionsMap,
+    };
+  }
+
+  Future<int> importAllData(Map<String, dynamic> data) async {
+    int restoredCount = 0;
+    if (data['library'] is Map) {
+      final lib = data['library'] as Map;
+      for (final entry in lib.entries) {
+        if (entry.value is Map) {
+          await _libraryBox.put(
+            entry.key,
+            Map<String, dynamic>.from(entry.value as Map),
+          );
+          restoredCount++;
+        }
+      }
+    }
+
+    if (data['history'] is Map) {
+      final hist = data['history'] as Map;
+      for (final entry in hist.entries) {
+        if (entry.value is Map) {
+          await _historyBox.put(
+            entry.key,
+            Map<String, dynamic>.from(entry.value as Map),
+          );
+          restoredCount++;
+        }
+      }
+    }
+
+    if (data['settings'] is Map) {
+      final sett = data['settings'] as Map;
+      for (final entry in sett.entries) {
+        await _settingsBox.put(entry.key, entry.value);
+        restoredCount++;
+      }
+    }
+
+    if (data['extensions'] is Map) {
+      final ext = data['extensions'] as Map;
+      for (final entry in ext.entries) {
+        if (entry.value is Map) {
+          await _extensionsBox.put(
+            entry.key,
+            Map<String, dynamic>.from(entry.value as Map),
+          );
+        } else {
+          await _extensionsBox.put(entry.key, entry.value);
+        }
+        restoredCount++;
+      }
+    }
+
+    return restoredCount;
+  }
 }

@@ -11,36 +11,28 @@ import 'package:flutter_test/flutter_test.dart';
 // Entry point: pulls in routing, shell, settings and everything they touch.
 import 'package:aether/main.dart' as app;
 
-// Screens and sheets that the plugin/add-on work keeps changing.
-import 'package:aether/features/addons/presentation/addon_sources_sheet.dart';
-import 'package:aether/features/addons/presentation/addons_screen.dart';
+// Core screens and widgets
 import 'package:aether/features/details/presentation/details_screen.dart';
 import 'package:aether/features/details/presentation/tmdb_movie_details_screen.dart';
-import 'package:aether/features/details/presentation/widgets/episode_picker_sheet.dart';
 import 'package:aether/features/details/presentation/widgets/movie_seasons_list.dart';
 import 'package:aether/features/extensions/screens/extensions_screen.dart';
-import 'package:aether/features/nuvio/presentation/nuvio_plugins_view.dart';
-import 'package:aether/features/nuvio/presentation/nuvio_scraper_settings_dialog.dart';
 import 'package:aether/features/player/presentation/vlc/vlc_player_screen.dart';
-import 'package:aether/features/sources/presentation/plugin_sources_sheet.dart';
-import 'package:aether/features/sources/presentation/source_sheet_widgets.dart';
+import 'package:aether/features/player/presentation/mediakit/mediakit_player_screen.dart';
+import 'package:aether/features/home/presentation/widgets/continue_watching_card.dart';
+import 'package:aether/features/home/presentation/widgets/continue_watching_section.dart';
+import 'package:aether/features/explore/presentation/widgets/hover_border_gradient.dart';
 
 void main() {
-  test('every screen touched by plugin work still compiles', () {
-    // Referencing the symbols keeps the imports (and therefore the
-    // compilation) from being tree-shaken away by an over-eager analyzer.
+  test('every active screen and unified widget still compiles', () {
     expect(app.main, isNotNull);
-    expect(AddonSourcesSheet, isNotNull);
-    expect(AddonsScreen, isNotNull);
     expect(DetailsScreen, isNotNull);
     expect(TmdbMovieDetailsScreen, isNotNull);
-    expect(EpisodePickerSheet, isNotNull);
     expect(MovieSeasonsList, isNotNull);
     expect(ExtensionsScreen, isNotNull);
-    expect(NuvioPluginsView, isNotNull);
-    expect(NuvioScraperSettingsDialog, isNotNull);
     expect(VlcPlayerScreen, isNotNull);
-    expect(PluginSourcesSheet, isNotNull);
-    expect(SourcesMode.play, isNotNull);
+    expect(MediaKitPlayerScreen, isNotNull);
+    expect(ContinueWatchingCard, isNotNull);
+    expect(ContinueWatchingSection, isNotNull);
+    expect(HoverBorderGradient, isNotNull);
   });
 }

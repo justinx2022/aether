@@ -28,9 +28,7 @@ import 'core/utils/app_utils.dart';
 import 'core/widgets/launch_error_app.dart';
 import 'shared/widgets/custom_title_bar.dart';
 import 'features/extensions/providers/extensions_controller.dart';
-import 'core/addons/data/addon_repository.dart';
 import 'core/models/extension_update_report.dart';
-import 'core/nuvio/data/nuvio_repository.dart';
 import 'features/extensions/widgets/extensions_sync_bridge.dart';
 import 'core/providers/update_provider.dart';
 import 'core/widgets/update_dialog.dart';
@@ -240,11 +238,14 @@ class MyApp extends ConsumerStatefulWidget {
   ConsumerState<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends ConsumerState<MyApp> {
+class _MyAppState extends ConsumerState<MyApp> with WindowListener {
   @override
   void initState() {
     super.initState();
     FocusManager.instance.addEarlyKeyEventHandler(_handleEarlyKeyEvent);
+    if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
+      windowManager.addListener(this);
+    }
     // Brings back the ten-foot layout if the last session was left in it.
     // Applied here rather than in `main` because it reads through a provider,
     // which needs the scope this widget sits inside.
@@ -259,8 +260,21 @@ class _MyAppState extends ConsumerState<MyApp> {
 
   @override
   void dispose() {
+    if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
+      windowManager.removeListener(this);
+    }
     FocusManager.instance.removeEarlyKeyEventHandler(_handleEarlyKeyEvent);
     super.dispose();
+  }
+
+  @override
+  void onWindowMinimize() {
+    if (kDebugMode) debugPrint('[Lifecycle] Window minimized -> idle power throttle');
+  }
+
+  @override
+  void onWindowRestore() {
+    if (kDebugMode) debugPrint('[Lifecycle] Window restored');
   }
 
   KeyEventResult _handleEarlyKeyEvent(KeyEvent event) {
@@ -382,25 +396,10 @@ class _MyAppState extends ConsumerState<MyApp> {
     await Future<void>.delayed(_extensionsCheckDelay);
     if (!mounted) return;
 
-    final reports = await Future.wait(<Future<ExtensionUpdateReport>>[
-      _updating(
-        'Aether plugins',
-        () => ref.read(extensionsControllerProvider.notifier).autoUpdate(),
-      ),
-      _updating(
-        'Nuvio scrapers',
-        () => ref.read(nuvioRepositoryProvider.notifier).autoUpdate(),
-      ),
-      _updating(
-        'Stremio add-ons',
-        () async => ExtensionUpdateReport(
-          updated: await ref
-              .read(addonRepositoryProvider.notifier)
-              .autoUpdate(),
-        ),
-      ),
-    ]);
-    final report = ExtensionUpdateReport.merge(reports);
+    final report = await _updating(
+      'Aether plugins',
+      () => ref.read(extensionsControllerProvider.notifier).autoUpdate(),
+    );
     if (report.isEmpty || !mounted) return;
     _announceExtensionUpdates(report);
   }

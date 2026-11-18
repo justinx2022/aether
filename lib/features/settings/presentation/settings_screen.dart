@@ -295,32 +295,20 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  // --- 3. Extensions & Addons ---
+  // --- 3. Extensions ---
   Widget _buildExtensionsAddonsGroup(
     BuildContext context,
     AppLocalizations l10n,
   ) {
     return SettingsGroup(
-      title: 'Extensions & Addons',
+      title: 'Extensions',
       children: [
         SettingsTile(
           icon: Icons.extension_rounded,
           title: 'Aether Providers',
           subtitle: l10n.installRemoveProviders,
-          onTap: () => const ExtensionsRoute().go(context),
-        ),
-        SettingsTile(
-          icon: Icons.hub_rounded,
-          title: 'Nuvio Plugins',
-          subtitle: 'Manage and configure Nuvio scrapers',
-          onTap: () => const NuvioPluginsRoute().go(context),
-        ),
-        SettingsTile(
-          icon: Icons.dashboard_customize_rounded,
-          title: 'Stremio Add-ons',
-          subtitle: 'Manage and discover installed add-ons',
           isLast: true,
-          onTap: () => const AddonsRoute().go(context),
+          onTap: () => const ExtensionsRoute().go(context),
         ),
       ],
     );

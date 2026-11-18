@@ -41,8 +41,8 @@ class _ContinueWatchingSectionState
 
     final isLarge = context.isTabletOrLarger;
 
-    final double width = isLarge ? 360.0 : 280.0;
-    final double listHeight = isLarge ? 200.0 : 150.0;
+    final double width = isLarge ? 340.0 : 270.0;
+    final double listHeight = isLarge ? 215.0 : 172.0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

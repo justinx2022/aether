@@ -17,15 +17,12 @@ import 'package:aether/l10n/generated/app_localizations.dart';
 import '../../../../core/utils/layout_constants.dart';
 import 'widgets/tmdb_details_desktop_hero.dart';
 import 'widgets/provider_search_section.dart';
-import 'widgets/nuvio_sources_card.dart';
 import 'widgets/tmdb_details_stats_section.dart';
 import 'widgets/movie_cast_list.dart';
 import '../data/lightweight_details_provider.dart';
 import 'widgets/movie_trailers_carousel.dart';
 import 'widgets/movie_production_companies.dart';
 import 'widgets/movie_seasons_list.dart';
-import 'widgets/episode_picker_sheet.dart';
-import '../../sources/presentation/plugin_sources_sheet.dart';
 import '../../../../shared/widgets/thumbnail_error_placeholder.dart';
 import '../../../../shared/widgets/shimmer_placeholder.dart';
 import '../../../../shared/widgets/cinema_badge.dart';
@@ -112,24 +109,6 @@ class _TmdbMovieDetailsScreenState
     }
 
     _scrollOffset.value = offset;
-  }
-
-  /// Movies open the sources sheet straight away; a series asks which episode
-  /// first. The button used to be rendered only `if (isMovie)`, so every
-  /// series poster looked like it had no plugin playback at all.
-  void _openPluginSources(TmdbDetails data, bool isMovie) {
-    if (isMovie) {
-      PluginSourcesSheet.open(context, data);
-      return;
-    }
-    final seasons = data.seasons;
-    EpisodePickerSheet.open(
-      context,
-      movieId: widget.movieId,
-      seasons: seasons,
-      target: data,
-      source: widget.source,
-    );
   }
 
   @override
@@ -274,11 +253,6 @@ class _TmdbMovieDetailsScreenState
         data: data,
         isMovie: isMovie,
         source: widget.source,
-        nuvioCard: NuvioSourcesCard(
-          isMovie: isMovie,
-          compact: true,
-          onOpen: () => _openPluginSources(data, isMovie),
-        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -600,11 +574,6 @@ class _TmdbMovieDetailsScreenState
                   parentMediaType: isMovie ? 'movie' : 'tv',
                   tmdbId: data.tmdbId,
                   imdbId: data.imdbId,
-                ),
-                const SizedBox(height: LayoutConstants.spacingMd),
-                NuvioSourcesCard(
-                  isMovie: isMovie,
-                  onOpen: () => _openPluginSources(data, isMovie),
                 ),
                 // No spacer here: the card already carries a 16 dp foot inside
                 // its own padding, and the block below brings its own 8. A

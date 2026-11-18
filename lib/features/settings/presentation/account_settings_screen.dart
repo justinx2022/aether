@@ -26,6 +26,7 @@ import '../../tracking/data/mal_service.dart';
 import '../../tracking/data/anilist_service.dart';
 import '../../../core/storage/settings_repository.dart';
 import '../../../core/services/notification_service.dart';
+import '../../../core/services/backup_service.dart';
 
 class AccountSettingsScreen extends ConsumerStatefulWidget {
   final bool isEmbedded;
@@ -682,6 +683,52 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                     isLast: true,
                     onTap: () =>
                         showDownloadChunksDialog(context, ref, generalSettings),
+                  ),
+                ],
+              ),
+              const SizedBox(height: LayoutConstants.spacingLg),
+              SettingsGroup(
+                title: 'Data & Backup',
+                children: [
+                  SettingsTile(
+                    icon: Icons.upload_file_rounded,
+                    title: 'Export Backup',
+                    subtitle:
+                        'Save bookmarks, history, settings and extensions to JSON',
+                    onTap: () async {
+                      await ref.read(backupServiceProvider).exportBackup();
+                    },
+                  ),
+                  SettingsTile(
+                    icon: Icons.restore_page_rounded,
+                    title: 'Restore from Backup',
+                    subtitle:
+                        'Restore library, watch history, settings and extensions',
+                    isLast: true,
+                    onTap: () async {
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Restore Backup'),
+                          content: const Text(
+                            'Restoring will import bookmarks, watch history, settings, and installed extensions from your backup file. Continue?',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, true),
+                              child: const Text('Restore'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirmed == true) {
+                        await ref.read(backupServiceProvider).importBackup();
+                      }
+                    },
                   ),
                 ],
               ),

@@ -130,11 +130,22 @@ class _HoverBorderGradientState extends State<HoverBorderGradient>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (MediaQuery.disableAnimationsOf(context)) {
-      _controller.stop();
-      _controller.value = 0;
-    } else if (!_controller.isAnimating) {
-      _controller.repeat();
+    _syncAnimation();
+  }
+
+  void _syncAnimation() {
+    if (!mounted) return;
+    final reduceMotion = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    final shouldAnimate = (_isHovered || _isFocused) && !reduceMotion;
+    if (shouldAnimate) {
+      if (!_controller.isAnimating) {
+        _controller.repeat();
+      }
+    } else {
+      if (_controller.isAnimating) {
+        _controller.stop();
+        _controller.value = 0;
+      }
     }
   }
 
@@ -143,6 +154,7 @@ class _HoverBorderGradientState extends State<HoverBorderGradient>
       setState(() {
         _isFocused = _focusNode!.hasFocus;
       });
+      _syncAnimation();
     }
   }
 
@@ -192,8 +204,14 @@ class _HoverBorderGradientState extends State<HoverBorderGradient>
         return KeyEventResult.ignored;
       },
       child: MouseRegion(
-        onEnter: (_) => setState(() => _isHovered = true),
-        onExit: (_) => setState(() => _isHovered = false),
+        onEnter: (_) {
+          setState(() => _isHovered = true);
+          _syncAnimation();
+        },
+        onExit: (_) {
+          setState(() => _isHovered = false);
+          _syncAnimation();
+        },
         cursor: SystemMouseCursors.click,
         child: GestureDetector(
           onTap: widget.onTap,

@@ -7,13 +7,9 @@ import 'package:aether/features/home/presentation/home_screen.dart';
 import 'package:aether/features/search/presentation/search_screen.dart';
 import '../../features/explore/presentation/explore_screen.dart';
 import 'package:aether/features/library/presentation/library_screen.dart';
-import 'package:aether/features/addons/presentation/addons_screen.dart';
-import 'package:aether/features/addons/presentation/addon_detail_screen.dart';
-import 'package:aether/features/addons/presentation/addon_catalog_screen.dart';
 import 'package:aether/features/settings/presentation/settings_screen.dart';
 import 'package:aether/features/player/presentation/unified_player_screen.dart';
 import '../../features/extensions/screens/extensions_screen.dart';
-import '../../features/nuvio/presentation/nuvio_plugins_screen.dart';
 import '../../features/settings/presentation/player_settings_screen.dart';
 import '../../features/settings/presentation/account_settings_screen.dart';
 import '../../features/settings/presentation/ai_settings_screen.dart';
@@ -55,8 +51,6 @@ part 'app_router.g.dart';
             TypedGoRoute<AiSettingsRoute>(path: 'ai'),
             TypedGoRoute<AccountSettingsRoute>(path: 'accounts'),
             TypedGoRoute<ExtensionsRoute>(path: 'extensions'),
-            TypedGoRoute<NuvioPluginsRoute>(path: 'nuvio'),
-            TypedGoRoute<AddonsRoute>(path: 'stremio'),
             TypedGoRoute<DeveloperOptionsRoute>(path: 'developer'),
           ],
         ),
@@ -163,22 +157,6 @@ class ExtensionsRoute extends GoRouteData with $ExtensionsRoute {
   @override
   Widget build(BuildContext context, GoRouterState state) =>
       const ExtensionsScreen();
-}
-
-class NuvioPluginsRoute extends GoRouteData with $NuvioPluginsRoute {
-  const NuvioPluginsRoute();
-  @override
-  Widget build(BuildContext context, GoRouterState state) =>
-      const NuvioPluginsScreen();
-}
-
-class AddonsRoute extends GoRouteData with $AddonsRoute {
-  final int? initialTab;
-  const AddonsRoute({this.initialTab});
-
-  @override
-  Widget build(BuildContext context, GoRouterState state) =>
-      AddonsScreen(initialTab: initialTab ?? 0);
 }
 
 class DeveloperOptionsRoute extends GoRouteData with $DeveloperOptionsRoute {
@@ -452,43 +430,6 @@ class PlayerRoute extends GoRouteData with $PlayerRoute {
       videoUrl: $extra.videoUrl,
       episode: $extra.episode,
       preloadedStreams: $extra.preloadedStreams,
-    );
-  }
-}
-
-@TypedGoRoute<AddonDetailRoute>(path: '/addon-detail')
-class AddonDetailRoute extends GoRouteData with $AddonDetailRoute {
-  const AddonDetailRoute({required this.type, required this.id, this.addonUrl});
-  final String type;
-  final String id;
-  final String? addonUrl;
-
-  @override
-  Widget build(BuildContext context, GoRouterState state) {
-    return AddonDetailScreen(type: type, id: id, addonUrl: addonUrl);
-  }
-}
-
-@TypedGoRoute<AddonCatalogRoute>(path: '/addon-catalog')
-class AddonCatalogRoute extends GoRouteData with $AddonCatalogRoute {
-  const AddonCatalogRoute({
-    required this.addonUrl,
-    required this.type,
-    required this.catalogId,
-    required this.title,
-  });
-  final String addonUrl;
-  final String type;
-  final String catalogId;
-  final String title;
-
-  @override
-  Widget build(BuildContext context, GoRouterState state) {
-    return AddonCatalogScreen(
-      addonUrl: addonUrl,
-      type: type,
-      catalogId: catalogId,
-      title: title,
     );
   }
 }

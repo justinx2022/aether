@@ -11,9 +11,9 @@ import '../../player/data/subtitle_providers.dart';
 import '../../../core/network/dio_client_provider.dart';
 import '../../../core/services/segment_prefetch_manager.dart';
 import '../../../core/services/lan_sync_service.dart';
-import '../../../core/addons/models/addon_stream_source.dart'
+import '../../../core/models/stream_type.dart'
     show PreferredStreamType;
-export '../../../core/addons/models/addon_stream_source.dart'
+export '../../../core/models/stream_type.dart'
     show PreferredStreamType;
 
 part 'player_settings_provider.g.dart';
