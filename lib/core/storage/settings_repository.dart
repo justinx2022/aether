@@ -188,6 +188,38 @@ class SettingsRepository {
     return _storageService.isAnimeSkipIntegrationEnabled();
   }
 
+  Future<void> setUltraFluidMotion(bool enabled) async {
+    await _storageService.setUltraFluidMotion(enabled);
+  }
+
+  bool isUltraFluidMotion() {
+    return _storageService.isUltraFluidMotion();
+  }
+
+  Future<void> setAmbientGlassAura(bool enabled) async {
+    await _storageService.setAmbientGlassAura(enabled);
+  }
+
+  bool isAmbientGlassAura() {
+    return _storageService.isAmbientGlassAura();
+  }
+
+  Future<void> setPredictivePrewarm(bool enabled) async {
+    await _storageService.setPredictivePrewarm(enabled);
+  }
+
+  bool isPredictivePrewarm() {
+    return _storageService.isPredictivePrewarm();
+  }
+
+  Future<void> setSmartFuzzySearch(bool enabled) async {
+    await _storageService.setSmartFuzzySearch(enabled);
+  }
+
+  bool isSmartFuzzySearch() {
+    return _storageService.isSmartFuzzySearch();
+  }
+
   Future<void> setPlayerSetting(String key, dynamic value) async {
     await _storageService.setPlayerSetting(key, value);
   }

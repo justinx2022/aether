@@ -8,7 +8,10 @@ import 'package:dio/dio.dart';
 import '../../../../core/extensions/extension_manager.dart';
 import '../../../../core/extensions/base_provider.dart';
 import '../../../../core/domain/entity/multimedia_item.dart';
+import '../../../../core/utils/fuzzy_matcher.dart';
 import '../../explore/data/explore_tmdb_provider.dart';
+import '../../settings/presentation/general_settings_provider.dart';
+import 'search_history_provider.dart';
 
 part 'search_provider.g.dart';
 
@@ -40,29 +43,27 @@ class SearchAggregateState {
 // ---------------------------------------------------------------------------
 class _FilterParams {
   final List<MultimediaItem> items;
-  final List<String> queryParts;
-  const _FilterParams(this.items, this.queryParts);
+  final String query;
+  final bool smartFuzzy;
+  const _FilterParams(this.items, this.query, {this.smartFuzzy = true});
 }
 
 List<MultimediaItem> _filterItems(_FilterParams params) {
-  return params.items.where((item) {
-    final titleLower = item.title.toLowerCase();
-    final titleParts = titleLower
-        .split(' ')
-        .where((s) => s.isNotEmpty)
-        .toList();
-    for (final qPart in params.queryParts) {
-      bool foundPrefix = false;
-      for (final tPart in titleParts) {
-        if (tPart.startsWith(qPart)) {
-          foundPrefix = true;
-          break;
-        }
-      }
-      if (!foundPrefix) return false;
+  final query = params.query.trim();
+  if (query.isEmpty) return params.items;
+
+  final scored = <(MultimediaItem, int)>[];
+  for (final item in params.items) {
+    final score = params.smartFuzzy
+        ? FuzzyMatcher.matchScore(item.title, query)
+        : (item.title.toLowerCase().contains(query.toLowerCase()) ? 100 : 0);
+    if (score > 0) {
+      scored.add((item, score));
     }
-    return true;
-  }).toList();
+  }
+  // Sort descending by relevance score (highest score first)
+  scored.sort((a, b) => b.$2.compareTo(a.$2));
+  return scored.map((e) => e.$1).toList();
 }
 
 Stream<SearchAggregateState> searchAllProviders(
@@ -91,8 +92,7 @@ Stream<SearchAggregateState> searchAllProviders(
   yield const SearchAggregateState(results: [], isLoading: true);
 
   final results = <ProviderSearchResult>[];
-  final queryLower = query.toLowerCase();
-  final queryParts = queryLower.split(' ').where((s) => s.isNotEmpty).toList();
+  final smartFuzzy = ref.read(generalSettingsProvider).smartFuzzySearch;
 
   final controller = StreamController<SearchAggregateState>();
 
@@ -249,10 +249,10 @@ Stream<SearchAggregateState> searchAllProviders(
           // For small result sets, skip the compute() isolate overhead
           // (spawn + serialize + deserialize costs more than the filter work).
           final filtered = providerItems.length < 30
-              ? _filterItems(_FilterParams(providerItems, queryParts))
+              ? _filterItems(_FilterParams(providerItems, query, smartFuzzy: smartFuzzy))
               : await compute(
                   _filterItems,
-                  _FilterParams(providerItems, queryParts),
+                  _FilterParams(providerItems, query, smartFuzzy: smartFuzzy),
                 );
           debugPrint(
             '[SEARCH DBG] FILTERED ${provider.packageName} — ${filtered.length}/${providerItems.length} items',
@@ -420,15 +420,29 @@ class SearchSuggestionController extends _$SearchSuggestionController {
     state = state.copyWith(query: query, isLoading: true);
 
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 350), () async {
+    _debounce = Timer(const Duration(milliseconds: 250), () async {
       try {
         final tmdb = ref.read(tmdbServiceProvider);
-        final suggestions = await tmdb.getSuggestions(
-          query: query,
-          language: 'en-US',
-        );
+        final history = ref.read(searchHistoryProvider);
+        final fuzzyHistory = matchingSearchHistory(history, query, limit: 5);
+
+        List<String> tmdbSuggestions = const [];
+        try {
+          tmdbSuggestions = await tmdb.getSuggestions(
+            query: query,
+            language: 'en-US',
+          );
+        } catch (_) {}
+
+        final combined = <String>{...fuzzyHistory, ...tmdbSuggestions}.toList();
+        combined.sort((a, b) => FuzzyMatcher.matchScore(b, query)
+            .compareTo(FuzzyMatcher.matchScore(a, query)));
+
         if (state.query == query) {
-          state = state.copyWith(suggestions: suggestions, isLoading: false);
+          state = state.copyWith(
+            suggestions: combined.take(10).toList(),
+            isLoading: false,
+          );
         }
       } catch (_) {
         if (state.query == query) {

@@ -19,6 +19,18 @@ class GeneralSettings {
   /// `--dart-define=TMDB_API_KEY` value" (which may itself be empty).
   final String tmdbApiKey;
 
+  /// 120Hz/ProMotion fluid motion & physics
+  final bool ultraFluidMotion;
+
+  /// Ambient specular rim highlights and glass depth
+  final bool ambientGlassAura;
+
+  /// Predictive poster and metadata pre-warming
+  final bool predictivePrewarm;
+
+  /// Typo-tolerant considerate real-time search
+  final bool smartFuzzySearch;
+
   const GeneralSettings({
     this.watchHistoryEnabled = true,
     this.defaultHomeScreen = '/home',
@@ -29,6 +41,10 @@ class GeneralSettings {
     this.downloadConcurrency = 3,
     this.downloadChunks = 1,
     this.tmdbApiKey = '',
+    this.ultraFluidMotion = true,
+    this.ambientGlassAura = true,
+    this.predictivePrewarm = true,
+    this.smartFuzzySearch = true,
   });
 
   GeneralSettings copyWith({
@@ -41,6 +57,10 @@ class GeneralSettings {
     int? downloadConcurrency,
     int? downloadChunks,
     String? tmdbApiKey,
+    bool? ultraFluidMotion,
+    bool? ambientGlassAura,
+    bool? predictivePrewarm,
+    bool? smartFuzzySearch,
   }) {
     return GeneralSettings(
       watchHistoryEnabled: watchHistoryEnabled ?? this.watchHistoryEnabled,
@@ -52,6 +72,10 @@ class GeneralSettings {
       downloadConcurrency: downloadConcurrency ?? this.downloadConcurrency,
       downloadChunks: downloadChunks ?? this.downloadChunks,
       tmdbApiKey: tmdbApiKey ?? this.tmdbApiKey,
+      ultraFluidMotion: ultraFluidMotion ?? this.ultraFluidMotion,
+      ambientGlassAura: ambientGlassAura ?? this.ambientGlassAura,
+      predictivePrewarm: predictivePrewarm ?? this.predictivePrewarm,
+      smartFuzzySearch: smartFuzzySearch ?? this.smartFuzzySearch,
     );
   }
 }
@@ -71,7 +95,35 @@ class GeneralSettingsNotifier extends _$GeneralSettingsNotifier {
       downloadConcurrency: repository.getDownloadConcurrency(),
       downloadChunks: repository.getDownloadChunks(),
       tmdbApiKey: repository.getTmdbApiKey(),
+      ultraFluidMotion: repository.isUltraFluidMotion(),
+      ambientGlassAura: repository.isAmbientGlassAura(),
+      predictivePrewarm: repository.isPredictivePrewarm(),
+      smartFuzzySearch: repository.isSmartFuzzySearch(),
     );
+  }
+
+  Future<void> setUltraFluidMotion(bool enabled) async {
+    final repository = ref.read(settingsRepositoryProvider);
+    await repository.setUltraFluidMotion(enabled);
+    state = state.copyWith(ultraFluidMotion: enabled);
+  }
+
+  Future<void> setAmbientGlassAura(bool enabled) async {
+    final repository = ref.read(settingsRepositoryProvider);
+    await repository.setAmbientGlassAura(enabled);
+    state = state.copyWith(ambientGlassAura: enabled);
+  }
+
+  Future<void> setPredictivePrewarm(bool enabled) async {
+    final repository = ref.read(settingsRepositoryProvider);
+    await repository.setPredictivePrewarm(enabled);
+    state = state.copyWith(predictivePrewarm: enabled);
+  }
+
+  Future<void> setSmartFuzzySearch(bool enabled) async {
+    final repository = ref.read(settingsRepositoryProvider);
+    await repository.setSmartFuzzySearch(enabled);
+    state = state.copyWith(smartFuzzySearch: enabled);
   }
 
   Future<void> setWatchHistoryEnabled(bool enabled) async {

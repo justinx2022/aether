@@ -50,6 +50,7 @@ import 'shared/widgets/loading_indicator.dart';
 import 'shared/widgets/tv_logical_scale.dart';
 import 'core/widgets/m3_toast_overlay.dart';
 import 'features/settings/presentation/general_settings_provider.dart';
+import 'shared/widgets/no_scrollbar_behavior.dart';
 import 'features/settings/presentation/full_screen_mode_provider.dart';
 export 'shared/widgets/custom_title_bar.dart';
 export 'core/widgets/launch_error_app.dart';
@@ -482,8 +483,12 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener {
         final dynamicPalette = customization.palette == AppPalette.dynamic;
         final lightScheme = dynamicPalette ? lightDynamic : null;
         final darkScheme = dynamicPalette ? darkDynamic : null;
+        final ultraFluidMotion = ref.watch(
+          generalSettingsProvider.select((s) => s.ultraFluidMotion),
+        );
 
         final materialApp = MaterialApp.router(
+          scrollBehavior: AetherScrollBehavior(ultraFluid: ultraFluidMotion),
           scaffoldMessengerKey: ref
               .read(notificationServiceProvider)
               .messengerKey,

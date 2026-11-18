@@ -7,6 +7,7 @@ import '../../data/explore_mode_provider.dart';
 import '../../data/anilist_repository.dart';
 import '../../data/explore_filter_provider.dart';
 import '../../../../core/domain/entity/multimedia_item.dart';
+import '../../../../core/utils/fuzzy_matcher.dart';
 
 part 'explore_search_controller.g.dart';
 
@@ -93,9 +94,13 @@ class ExploreSearchController extends _$ExploreSearchController {
           results = await tmdb.multiSearch(query: query, language: 'en-US');
         }
 
+        final sorted = List<MultimediaItem>.from(results)
+          ..sort((a, b) => FuzzyMatcher.matchScore(b.title, query)
+              .compareTo(FuzzyMatcher.matchScore(a.title, query)));
+
         if (state.query == query) {
           state = state.copyWith(
-            suggestions: results.take(10).toList(),
+            suggestions: sorted.take(10).toList(),
             isLoading: false,
           );
         }
@@ -139,11 +144,15 @@ class ExploreSearchController extends _$ExploreSearchController {
         );
       }
 
+      final sorted = List<MultimediaItem>.from(results)
+        ..sort((a, b) => FuzzyMatcher.matchScore(b.title, query)
+            .compareTo(FuzzyMatcher.matchScore(a.title, query)));
+
       if (state.resultsQuery == query) {
         state = state.copyWith(
-          results: results,
+          results: sorted,
           isLoading: false,
-          hasMore: results.isNotEmpty,
+          hasMore: sorted.isNotEmpty,
         );
       }
     } catch (e) {

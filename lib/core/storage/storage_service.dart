@@ -486,6 +486,44 @@ class StorageService {
         false;
   }
 
+  // --- Performance & UI Experience Settings ---
+  static const String kUltraFluidMotion = 'ultra_fluid_motion';
+  static const String kAmbientGlassAura = 'ambient_glass_aura';
+  static const String kPredictivePrewarm = 'predictive_prewarm';
+  static const String kSmartFuzzySearch = 'smart_fuzzy_search';
+
+  Future<void> setUltraFluidMotion(bool enabled) async {
+    await _settingsBox.put(kUltraFluidMotion, enabled);
+  }
+
+  bool isUltraFluidMotion() {
+    return (_settingsBox.get(kUltraFluidMotion, defaultValue: true) as bool?) ?? true;
+  }
+
+  Future<void> setAmbientGlassAura(bool enabled) async {
+    await _settingsBox.put(kAmbientGlassAura, enabled);
+  }
+
+  bool isAmbientGlassAura() {
+    return (_settingsBox.get(kAmbientGlassAura, defaultValue: true) as bool?) ?? true;
+  }
+
+  Future<void> setPredictivePrewarm(bool enabled) async {
+    await _settingsBox.put(kPredictivePrewarm, enabled);
+  }
+
+  bool isPredictivePrewarm() {
+    return (_settingsBox.get(kPredictivePrewarm, defaultValue: true) as bool?) ?? true;
+  }
+
+  Future<void> setSmartFuzzySearch(bool enabled) async {
+    await _settingsBox.put(kSmartFuzzySearch, enabled);
+  }
+
+  bool isSmartFuzzySearch() {
+    return (_settingsBox.get(kSmartFuzzySearch, defaultValue: true) as bool?) ?? true;
+  }
+
   Future<void> setAnimeSkipIntegrationEnabled(bool enabled) async {
     await _settingsBox.put('animeskip_integration_enabled', enabled);
   }

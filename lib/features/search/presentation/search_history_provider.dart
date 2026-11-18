@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../data/search_history_store.dart';
+import '../../../../core/utils/fuzzy_matcher.dart';
 
 part 'search_history_provider.g.dart';
 
@@ -102,26 +103,21 @@ List<String> matchingSearchHistory(
 }) {
   if (limit <= 0) return const [];
 
-  final folded = query.trim().toLowerCase();
-  if (folded.isEmpty) {
+  final trimmed = query.trim();
+  if (trimmed.isEmpty) {
     return history.take(limit).toList(growable: false);
   }
 
-  final prefixMatches = <String>[];
-  final containsMatches = <String>[];
+  final scored = <(String, int)>[];
   for (final entry in history) {
-    final entryFolded = entry.toLowerCase();
-    if (entryFolded.startsWith(folded)) {
-      prefixMatches.add(entry);
-    } else if (entryFolded.contains(folded)) {
-      containsMatches.add(entry);
+    final score = FuzzyMatcher.matchScore(entry, trimmed);
+    if (score > 0) {
+      scored.add((entry, score));
     }
   }
 
-  return [
-    ...prefixMatches,
-    ...containsMatches,
-  ].take(limit).toList(growable: false);
+  scored.sort((a, b) => b.$2.compareTo(a.$2));
+  return scored.map((e) => e.$1).take(limit).toList(growable: false);
 }
 
 /// [suggestions] with anything already shown as a recent removed.

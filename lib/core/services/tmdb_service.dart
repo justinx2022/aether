@@ -272,6 +272,32 @@ class TmdbService {
     page: page,
   );
 
+  Future<List<MultimediaItem>> discoverMedia({
+    required bool isMovie,
+    String language = 'en-US',
+    int? genreId,
+    int? year,
+    String? country,
+    String sortBy = 'popularity.desc',
+    double? minRating,
+    int page = 1,
+  }) {
+    final extra = <String, dynamic>{};
+    if (country != null && country.isNotEmpty && country != 'All') {
+      extra['with_origin_country'] = country;
+    }
+    return _getDiscoveryResults(
+      isMovie ? '/discover/movie' : '/discover/tv',
+      language,
+      sortBy,
+      genreId: genreId,
+      year: year,
+      minRating: minRating,
+      page: page,
+      additionalParams: extra.isNotEmpty ? extra : null,
+    );
+  }
+
   Future<List<MultimediaItem>> getTrendingTV({
     String language = 'en-US',
     int? genreId,

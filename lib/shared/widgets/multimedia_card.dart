@@ -41,6 +41,9 @@ class MultimediaCard extends ConsumerWidget {
     final titlePosition = ref.watch(
       generalSettingsProvider.select((s) => s.titlePosition),
     );
+    final ambientGlass = ref.watch(
+      generalSettingsProvider.select((s) => s.ambientGlassAura),
+    );
     final isInside = titlePosition == 'inside';
 
     // LayoutBuilder, and above the Hero rather than inside it.
@@ -68,10 +71,16 @@ class MultimediaCard extends ConsumerWidget {
               borderRadius: BorderRadius.circular(AppRadius.md),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.25),
-                  blurRadius: 10,
+                  color: Colors.black.withValues(alpha: ambientGlass ? 0.35 : 0.20),
+                  blurRadius: ambientGlass ? 14 : 8,
                   offset: const Offset(0, 4),
                 ),
+                if (ambientGlass)
+                  BoxShadow(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    blurRadius: 1,
+                    offset: const Offset(0, -1),
+                  ),
               ],
             ),
             // Painted over the artwork, not around it: a border in
@@ -80,8 +89,8 @@ class MultimediaCard extends ConsumerWidget {
             foregroundDecoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppRadius.md),
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.10),
-                width: 0.75,
+                color: Colors.white.withValues(alpha: ambientGlass ? 0.18 : 0.06),
+                width: ambientGlass ? 1.0 : 0.5,
               ),
             ),
             child: ClipRRect(

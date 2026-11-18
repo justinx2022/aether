@@ -1,20 +1,18 @@
-import 'package:collection/collection.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/config/tmdb_config.dart';
-import '../../settings/presentation/widgets/settings_dialogs.dart';
+import '../../../core/models/tmdb_genre.dart';
 import '../../../shared/widgets/cards_wrapper.dart';
 import '../../../shared/widgets/no_scrollbar_behavior.dart';
+import '../../../shared/widgets/multimedia_card.dart';
 import '../data/explore_tmdb_provider.dart';
 import '../data/explore_mode_provider.dart';
+import '../data/explore_discovery_provider.dart';
 import 'anilist_explore_screen.dart';
-import 'view_all_screen.dart';
 import 'widgets/explore_carousel.dart';
 import 'widgets/explore_header_bar.dart';
 import 'widgets/hover_border_gradient.dart';
-import 'widgets/media_horizontal_list.dart';
 import 'widgets/unified_filter_dialog.dart';
 import '../data/explore_filter_provider.dart';
 import 'delegates/explore_search_delegate.dart';
@@ -369,441 +367,572 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
   }
 
   void _refreshAll() {
-    ref.invalidate(exploreHeroMovieProvider);
-    ref.invalidate(trendingTVProvider);
-    ref.invalidate(popularMoviesProvider);
-    ref.invalidate(popularTVProvider);
-    ref.invalidate(nowPlayingMoviesProvider);
-    ref.invalidate(onTheAirTVProvider);
-    ref.invalidate(topRatedMoviesProvider);
-    ref.invalidate(topRatedTVProvider);
-    ref.invalidate(airingTodayTVProvider);
+    ref.invalidate(exploreDiscoveryProvider);
     ref.invalidate(genresProvider);
   }
 
+  static const List<(TmdbGenre?, String)> _kGenrePills = [
+    (null, 'All Genres'),
+    (TmdbGenre(id: 28, name: 'Action'), 'Action'),
+    (TmdbGenre(id: 12, name: 'Adventure'), 'Adventure'),
+    (TmdbGenre(id: 16, name: 'Animation'), 'Animation'),
+    (TmdbGenre(id: 35, name: 'Comedy'), 'Comedy'),
+    (TmdbGenre(id: 80, name: 'Crime'), 'Crime'),
+    (TmdbGenre(id: 99, name: 'Documentary'), 'Documentary'),
+    (TmdbGenre(id: 18, name: 'Drama'), 'Drama'),
+    (TmdbGenre(id: 10751, name: 'Family'), 'Family'),
+    (TmdbGenre(id: 14, name: 'Fantasy'), 'Fantasy'),
+    (TmdbGenre(id: 27, name: 'Horror'), 'Horror'),
+    (TmdbGenre(id: 9648, name: 'Mystery'), 'Mystery'),
+    (TmdbGenre(id: 10749, name: 'Romance'), 'Romance'),
+    (TmdbGenre(id: 878, name: 'Sci-Fi'), 'Sci-Fi'),
+    (TmdbGenre(id: 53, name: 'Thriller'), 'Thriller'),
+  ];
+
+  static const List<(String?, String)> _kCountryOptions = [
+    (null, 'All Countries'),
+    ('US', 'United States 🇺🇸'),
+    ('GB', 'United Kingdom 🇬🇧'),
+    ('KR', 'South Korea 🇰🇷'),
+    ('JP', 'Japan 🇯🇵'),
+    ('FR', 'France 🇫🇷'),
+    ('DE', 'Germany 🇩🇪'),
+    ('IN', 'India 🇮🇳'),
+    ('ES', 'Spain 🇪🇸'),
+    ('CA', 'Canada 🇨🇦'),
+    ('IT', 'Italy 🇮🇹'),
+    ('AU', 'Australia 🇦🇺'),
+  ];
+
+  static const List<(String, String, IconData)> _kSortOptions = [
+    ('popularity', 'Popularity', Icons.trending_up_rounded),
+    ('rating', 'Highest Rated', Icons.star_rounded),
+    ('newest', 'Newest First', Icons.schedule_rounded),
+    ('title', 'Title (A-Z)', Icons.sort_by_alpha_rounded),
+  ];
+
   Widget _buildScrollView(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-
-    if (TmdbConfig.apiKey.isEmpty) {
-      return _buildNeedsKeyOrErrorState(
-        context,
-        icon: Icons.vpn_key_rounded,
-        title: 'TMDB API key needed',
-        subtitle:
-            'TMDB is used to discover movies and series on Explore. '
-            'Please configure a free TMDB API key in Settings or Nuvio plugins.',
-        showApiKeyButton: true,
-      );
-    }
-
-    final heroMoviesAsync = ref.watch(exploreHeroMovieProvider);
-    final trendingTVAsync = ref.watch(trendingTVProvider);
-    final popularMoviesAsync = ref.watch(popularMoviesProvider);
-    final popularTVAsync = ref.watch(popularTVProvider);
-    final nowPlayingAsync = ref.watch(nowPlayingMoviesProvider);
-    final onTheAirAsync = ref.watch(onTheAirTVProvider);
-    final topRatedMoviesAsync = ref.watch(topRatedMoviesProvider);
-    final topRatedTVAsync = ref.watch(topRatedTVProvider);
-    final airingTodayAsync = ref.watch(airingTodayTVProvider);
-
-    final allSections = [
-      heroMoviesAsync,
-      trendingTVAsync,
-      popularMoviesAsync,
-      popularTVAsync,
-      nowPlayingAsync,
-      onTheAirAsync,
-      topRatedMoviesAsync,
-      topRatedTVAsync,
-      airingTodayAsync,
-    ];
-
-    final isAnyLoading = allSections.any((s) => s.isLoading);
-    final isAllFailedOrEmpty =
-        !isAnyLoading &&
-        allSections.every((s) {
-          if (s.hasError) return true;
-          if (s.hasValue && (s.value?.isEmpty ?? true)) return true;
-          return false;
-        });
-
-    if (isAllFailedOrEmpty) {
-      final firstError = allSections.firstWhereOrNull((s) => s.hasError)?.error;
-      return _buildNeedsKeyOrErrorState(
-        context,
-        icon: Icons.cloud_off_rounded,
-        title: l10n.siteNotReachable,
-        subtitle: 'Could not load Explore content. Check your internet connection or verify your TMDB API key.',
-        errorDetails: firstError?.toString(),
-        showApiKeyButton: true,
-      );
-    }
-
-    final isNone = heroMoviesAsync.maybeWhen(
-      data: (list) => list.isEmpty,
-      error: (_, _) => true,
-      orElse: () => false,
-    );
-    final topPadding = isNone
-        ? (MediaQuery.paddingOf(context).top + kToolbarHeight)
-        : 0.0;
+    final discoveryAsync = ref.watch(exploreDiscoveryProvider);
+    final filters = ref.watch(exploreFilterProvider);
+    final isDesktop = context.isTabletOrLarger;
+    final topPadding = MediaQuery.paddingOf(context).top +
+        (isDesktop ? 12.0 : kToolbarHeight + 8.0);
 
     return RefreshIndicator(
       onRefresh: () async => _refreshAll(),
       child: CustomScrollView(
         controller: _scrollController,
         slivers: [
-          if (topPadding > 0)
-            SliverToBoxAdapter(child: SizedBox(height: topPadding)),
-          ..._buildContentSlivers(context).map((sliver) {
-            return SliverSafeArea(
-              top: false,
-              bottom: false,
-              left: true,
-              right: true,
-              sliver: sliver,
-            );
-          }),
+          SliverToBoxAdapter(
+            child: SizedBox(height: topPadding),
+          ),
+          SliverToBoxAdapter(
+            child: _buildDiscoveryControlDeck(context, filters),
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 16)),
+          ..._buildDiscoveryGridSlivers(context, discoveryAsync, filters),
+          SliverPadding(
+            padding: EdgeInsets.only(
+              bottom: LayoutConstants.shellBottomContentPadding(context),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildNeedsKeyOrErrorState(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    String? errorDetails,
-    bool showApiKeyButton = false,
-  }) {
-    final l10n = AppLocalizations.of(context)!;
+  Widget _buildDiscoveryControlDeck(
+    BuildContext context,
+    FilterState filters,
+  ) {
     final theme = Theme.of(context);
+    final isDesktop = context.isTabletOrLarger;
+    final horizontalPadding = isDesktop
+        ? LayoutConstants.dashboardContentPadding
+        : LayoutConstants.spacingMd;
 
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 80, color: theme.colorScheme.error),
-            const SizedBox(height: 24),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+    final hasActiveFilter = filters.selectedGenre != null ||
+        filters.selectedYear != null ||
+        filters.selectedCountry != null ||
+        filters.mediaType != 'all' ||
+        filters.sortBy != 'popularity';
+
+    final countryLabel = _kCountryOptions
+        .firstWhere(
+          (c) => c.$1 == filters.selectedCountry,
+          orElse: () => (null, 'All Countries'),
+        )
+        .$2;
+
+    final sortLabel = _kSortOptions
+        .firstWhere(
+          (s) => s.$1 == filters.sortBy,
+          orElse: () => ('popularity', 'Popularity', Icons.trending_up_rounded),
+        )
+        .$2;
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Media Type Selector Pills
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _buildTypePill(context, 'all', 'All Content', Icons.grid_view_rounded, filters.mediaType == 'all'),
+              _buildTypePill(context, 'movie', 'Movies', Icons.movie_outlined, filters.mediaType == 'movie'),
+              _buildTypePill(context, 'series', 'TV Series', Icons.tv_rounded, filters.mediaType == 'series'),
+              _buildTypePill(context, 'anime', 'Anime', Icons.play_circle_outline_rounded, filters.mediaType == 'anime'),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // 2. Horizontally scrollable Genre Chips
+          SizedBox(
+            height: 38,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              clipBehavior: Clip.none,
+              itemCount: _kGenrePills.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final pill = _kGenrePills[index];
+                final isSelected = (pill.$1 == null && filters.selectedGenre == null) ||
+                    (pill.$1 != null && filters.selectedGenre?.id == pill.$1!.id);
+
+                return FilterChip(
+                  label: Text(pill.$2),
+                  selected: isSelected,
+                  showCheckmark: false,
+                  labelStyle: TextStyle(
+                    fontSize: 13,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    color: isSelected
+                        ? theme.colorScheme.onPrimary
+                        : theme.colorScheme.onSurface,
+                  ),
+                  backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+                  selectedColor: theme.colorScheme.primary,
+                  side: BorderSide(
+                    color: isSelected
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.outlineVariant.withValues(alpha: 0.25),
+                    width: 1,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                  onSelected: (_) {
+                    ref.read(exploreFilterProvider.notifier).setGenre(pill.$1);
+                  },
+                );
+              },
             ),
-            const SizedBox(height: 12),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(height: 14),
+
+          // 3. Quick Filter Attribute Row (Country, Era, Sort, Reset)
+          Wrap(
+            spacing: 10,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              // Country Picker Action Pill
+              ActionChip(
+                avatar: Icon(Icons.public_rounded, size: 16, color: theme.colorScheme.primary),
+                label: Text(countryLabel),
+                backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                onPressed: () => _showCountrySelector(context),
               ),
-            ),
-            if (errorDetails != null && errorDetails.isNotEmpty) ...[
-              const SizedBox(height: 24),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(12),
+
+              // Year / Era Picker Action Pill
+              ActionChip(
+                avatar: Icon(Icons.calendar_today_rounded, size: 16, color: theme.colorScheme.primary),
+                label: Text(filters.selectedYear != null ? '${filters.selectedYear}' : 'All Years'),
+                backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                onPressed: () => _showYearSelector(context),
+              ),
+
+              // Sort Action Pill
+              ActionChip(
+                avatar: Icon(Icons.sort_rounded, size: 16, color: theme.colorScheme.primary),
+                label: Text(sortLabel),
+                backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                onPressed: () => _showSortSelector(context),
+              ),
+
+              if (hasActiveFilter)
+                ActionChip(
+                  avatar: const Icon(Icons.close_rounded, size: 16, color: Colors.redAccent),
+                  label: const Text('Reset', style: TextStyle(color: Colors.redAccent)),
+                  backgroundColor: Colors.redAccent.withValues(alpha: 0.1),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  onPressed: () => ref.read(exploreFilterProvider.notifier).clearAll(),
                 ),
-                child: SelectableText(
-                  errorDetails,
-                  style: TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 12,
-                    color: theme.colorScheme.onSurfaceVariant,
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTypePill(
+    BuildContext context,
+    String type,
+    String label,
+    IconData icon,
+    bool isSelected,
+  ) {
+    final theme = Theme.of(context);
+    return ChoiceChip(
+      avatar: Icon(
+        icon,
+        size: 16,
+        color: isSelected ? theme.colorScheme.onPrimary : theme.colorScheme.onSurfaceVariant,
+      ),
+      label: Text(label),
+      selected: isSelected,
+      showCheckmark: false,
+      labelStyle: TextStyle(
+        fontSize: 13,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+        color: isSelected ? theme.colorScheme.onPrimary : theme.colorScheme.onSurface,
+      ),
+      backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
+      selectedColor: theme.colorScheme.primary,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
+      ),
+      onSelected: (_) {
+        ref.read(exploreFilterProvider.notifier).setMediaType(type);
+      },
+    );
+  }
+
+  void _showCountrySelector(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        final current = ref.read(exploreFilterProvider).selectedCountry;
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  'Select Country / Region',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: _kCountryOptions.length,
+                  itemBuilder: (ctx, idx) {
+                    final option = _kCountryOptions[idx];
+                    final isSel = option.$1 == current;
+                    return ListTile(
+                      title: Text(option.$2),
+                      trailing: isSel
+                          ? Icon(Icons.check_rounded, color: Theme.of(context).colorScheme.primary)
+                          : null,
+                      onTap: () {
+                        ref.read(exploreFilterProvider.notifier).setCountry(option.$1);
+                        Navigator.of(ctx).pop();
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showYearSelector(BuildContext context) {
+    final currentYear = ref.read(exploreFilterProvider).selectedYear;
+    final years = <int?>[
+      null,
+      2026,
+      2025,
+      2024,
+      2023,
+      2022,
+      2021,
+      2020,
+      2018,
+      2015,
+      2010,
+      2000,
+    ];
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  'Select Release Era / Year',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: years.length,
+                  itemBuilder: (ctx, idx) {
+                    final yr = years[idx];
+                    final isSel = yr == currentYear;
+                    return ListTile(
+                      title: Text(yr != null ? '$yr' : 'All Years'),
+                      trailing: isSel
+                          ? Icon(Icons.check_rounded, color: Theme.of(context).colorScheme.primary)
+                          : null,
+                      onTap: () {
+                        ref.read(exploreFilterProvider.notifier).setYear(yr);
+                        Navigator.of(ctx).pop();
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showSortSelector(BuildContext context) {
+    final currentSort = ref.read(exploreFilterProvider).sortBy;
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  'Sort Discovery By',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+              ..._kSortOptions.map((opt) {
+                final isSel = opt.$1 == currentSort;
+                return ListTile(
+                  leading: Icon(opt.$3, color: isSel ? Theme.of(context).colorScheme.primary : null),
+                  title: Text(opt.$2),
+                  trailing: isSel
+                      ? Icon(Icons.check_rounded, color: Theme.of(context).colorScheme.primary)
+                      : null,
+                  onTap: () {
+                    ref.read(exploreFilterProvider.notifier).setSortBy(opt.$1);
+                    Navigator.of(ctx).pop();
+                  },
+                );
+              }),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  List<Widget> _buildDiscoveryGridSlivers(
+    BuildContext context,
+    AsyncValue<List<MultimediaItem>> discoveryAsync,
+    FilterState filters,
+  ) {
+    final isDesktop = context.isTabletOrLarger;
+    final padding = EdgeInsets.symmetric(
+      horizontal: isDesktop
+          ? LayoutConstants.dashboardContentPadding
+          : LayoutConstants.spacingMd,
+    );
+
+    return switch (discoveryAsync) {
+      AsyncLoading() => [
+          SliverPadding(
+            padding: padding,
+            sliver: SliverGrid(
+              gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: isDesktop ? 220 : 160,
+                childAspectRatio: 2 / 3.4,
+                crossAxisSpacing: 14,
+                mainAxisSpacing: 14,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) => ShimmerPlaceholder.rectangular(
+                  width: double.infinity,
+                  height: double.infinity,
+                  borderRadius: 14,
+                ),
+                childCount: 12,
+              ),
+            ),
+          ),
+        ],
+      AsyncError(:final error) => [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.wifi_off_rounded, size: 54, color: Theme.of(context).colorScheme.error),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Could not reach discovery index',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      error.toString(),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: _refreshAll,
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      AsyncData(:final value) => value.isEmpty
+          ? [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.search_off_rounded,
+                          size: 64,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'No titles match your discovery filters',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Try choosing a different genre, country, or clearing your active filters.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                        ),
+                        const SizedBox(height: 20),
+                        FilledButton.tonalIcon(
+                          onPressed: () => ref.read(exploreFilterProvider.notifier).clearAll(),
+                          icon: const Icon(Icons.restart_alt_rounded),
+                          label: const Text('Reset All Filters'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ]
+          : [
+              SliverPadding(
+                padding: padding,
+                sliver: SliverGrid(
+                  gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: isDesktop ? 220 : 160,
+                    childAspectRatio: 2 / 3.4,
+                    crossAxisSpacing: 14,
+                    mainAxisSpacing: 14,
+                  ),
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final item = value[index];
+                      final uniqueTag = 'explore_grid_${item.id}_${item.title.hashCode}_$index';
+
+                      return MultimediaCard(
+                        imageUrl: item.posterImageUrl,
+                        title: item.title,
+                        heroTag: uniqueTag,
+                        onTap: () {
+                          if (item.provider != null && item.provider!.isNotEmpty) {
+                            DetailsRoute($extra: DetailsRouteExtra(item: item))
+                                .push<void>(context);
+                          } else {
+                            TmdbDetailsRoute(
+                              movieId: item.id,
+                              mediaType: item.tmdbMediaType,
+                              heroTag: uniqueTag,
+                              placeholderPoster: item.posterImageUrl,
+                              source: item.source,
+                            ).push<void>(context);
+                          }
+                        },
+                      );
+                    },
+                    childCount: value.length,
                   ),
                 ),
               ),
             ],
-            const SizedBox(height: 32),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              alignment: WrapAlignment.center,
-              children: [
-                FilledButton.icon(
-                  onPressed: _refreshAll,
-                  icon: const Icon(Icons.refresh_rounded),
-                  label: Text(l10n.retry),
-                ),
-                if (showApiKeyButton)
-                  ElevatedButton.icon(
-                    onPressed: () => showTmdbApiKeyDialog(context, ref),
-                    icon: const Icon(Icons.vpn_key_rounded),
-                    label: const Text('TMDB API Key'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: theme.colorScheme.secondaryContainer,
-                      foregroundColor: theme.colorScheme.onSecondaryContainer,
-                    ),
-                  ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  List<Widget> _buildContentSlivers(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-
-    return [
-      SliverToBoxAdapter(
-        child: Consumer(
-          builder: (context, ref, _) {
-            final heroMoviesAsync = ref.watch(exploreHeroMovieProvider);
-            return switch (heroMoviesAsync) {
-              AsyncData(:final value) =>
-                value.isEmpty
-                    ? const SizedBox.shrink()
-                    : ExploreCarousel(
-                        movies: value,
-                        scrollController: _scrollController,
-                        onNavigateUp: () =>
-                            _firstActionFocusNode.requestFocus(),
-                        onControllerReady: (c) =>
-                            setState(() => _carouselController = c),
-                      ),
-              AsyncLoading() => _buildCarouselShimmer(context),
-              AsyncError() => Container(
-                height: 500,
-                margin: const EdgeInsets.only(
-                  bottom: LayoutConstants.spacingLg,
-                ),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest
-                      .withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.error_outline_rounded,
-                        size: 48,
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        AppLocalizations.of(context)!.couldNotLoadTrending,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextButton.icon(
-                        onPressed: () =>
-                            ref.invalidate(exploreHeroMovieProvider),
-                        icon: const Icon(Icons.refresh),
-                        label: Text(AppLocalizations.of(context)!.retry),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            };
-          },
-        ),
-      ),
-
-      SliverToBoxAdapter(
-        child: _buildSection(
-          context,
-          ref.watch(popularMoviesProvider),
-          l10n.popularMovies,
-          ViewAllCategory.popularMovies,
-        ),
-      ),
-
-      SliverToBoxAdapter(
-        child: _buildSection(
-          context,
-          ref.watch(trendingTVProvider),
-          'Trending TV Shows',
-          ViewAllCategory.trendingTV,
-        ),
-      ),
-
-      SliverToBoxAdapter(
-        child: _buildSection(
-          context,
-          ref.watch(popularTVProvider),
-          l10n.popularTVShows,
-          ViewAllCategory.popularTV,
-        ),
-      ),
-
-      SliverToBoxAdapter(
-        child: _buildSection(
-          context,
-          ref.watch(nowPlayingMoviesProvider),
-          l10n.newMovies,
-          ViewAllCategory.nowPlayingMovies,
-        ),
-      ),
-
-      SliverToBoxAdapter(
-        child: _buildSection(
-          context,
-          ref.watch(onTheAirTVProvider),
-          l10n.newTVShows,
-          ViewAllCategory.onTheAirTV,
-        ),
-      ),
-
-      SliverToBoxAdapter(
-        child: _buildSection(
-          context,
-          ref.watch(topRatedMoviesProvider),
-          l10n.featuredMovies,
-          ViewAllCategory.topRatedMovies,
-        ),
-      ),
-
-      SliverToBoxAdapter(
-        child: _buildSection(
-          context,
-          ref.watch(topRatedTVProvider),
-          l10n.featuredTVShows,
-          ViewAllCategory.topRatedTV,
-        ),
-      ),
-
-      SliverToBoxAdapter(
-        child: _buildSection(
-          context,
-          ref.watch(airingTodayTVProvider),
-          l10n.lastVideosTVShows,
-          ViewAllCategory.airingTodayTV,
-        ),
-      ),
-      SliverPadding(
-        padding: EdgeInsets.only(
-          bottom: LayoutConstants.shellBottomContentPadding(context),
-        ),
-      ),
-    ];
-  }
-
-  Widget _buildSection(
-    BuildContext context,
-    AsyncValue<List<MultimediaItem>> asyncValue,
-    String title,
-    ViewAllCategory category,
-  ) {
-    return switch (asyncValue) {
-      AsyncData(:final value) =>
-        value.isEmpty
-            ? const SizedBox.shrink()
-            : MediaHorizontalList(
-                title: title,
-                mediaList: value,
-                category: category,
-                heroTagPrefix: 'explore',
-              ),
-      AsyncLoading() => _buildListShimmer(context),
-      AsyncError() => const SizedBox.shrink(),
     };
-  }
-
-  Widget _buildCarouselShimmer(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
-    final heroHeight = size.height * 0.60;
-    final isDesktop =
-        size.width > LayoutConstants.exploreCarouselDesktopBreakpoint;
-
-    if (isDesktop) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: LayoutConstants.dashboardContentPadding,
-          vertical: LayoutConstants.spacingSm,
-        ),
-        child: SizedBox(
-          height: heroHeight,
-          width: double.infinity,
-          child: ShimmerPlaceholder(borderRadius: 18),
-        ),
-      );
-    } else {
-      return SizedBox(
-        height: heroHeight,
-        width: double.infinity,
-        child: ShimmerPlaceholder.rectangular(
-          width: double.infinity,
-          height: heroHeight,
-          borderRadius: 0,
-        ),
-      );
-    }
-  }
-
-  Widget _buildListShimmer(BuildContext context) {
-    final isDesktop = context.isDesktop;
-    final cardWidth = isDesktop ? 200.0 : 130.0;
-    final imageHeight = cardWidth / (2 / 3);
-    final listHeight = imageHeight + 40.0;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Title Placeholder
-        Padding(
-          padding: EdgeInsets.fromLTRB(
-            isDesktop
-                ? LayoutConstants.dashboardContentPadding
-                : LayoutConstants.spacingMd,
-            LayoutConstants.spacingLg,
-            isDesktop
-                ? LayoutConstants.dashboardContentPadding
-                : LayoutConstants.spacingMd,
-            LayoutConstants.spacingSm,
-          ),
-          child: ShimmerPlaceholder.rectangular(
-            width: 150,
-            height: 24,
-            borderRadius: 4,
-          ),
-        ),
-        const SizedBox(height: LayoutConstants.spacingMd),
-        // List Placeholder
-        SizedBox(
-          height: listHeight,
-          child: ListView.separated(
-            padding: EdgeInsets.symmetric(
-              horizontal: isDesktop
-                  ? LayoutConstants.dashboardContentPadding
-                  : LayoutConstants.spacingMd,
-            ),
-            scrollDirection: Axis.horizontal,
-            itemCount: 10,
-            separatorBuilder: (_, _) => SizedBox(
-              width: isDesktop
-                  ? LayoutConstants.spacingLg
-                  : LayoutConstants.spacingSm,
-            ),
-            itemBuilder: (context, index) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ShimmerPlaceholder.rectangular(
-                    width: cardWidth,
-                    height: imageHeight,
-                    borderRadius: 12,
-                  ),
-                ],
-              );
-            },
-          ),
-        ),
-      ],
-    );
   }
 }

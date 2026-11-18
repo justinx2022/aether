@@ -7,7 +7,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/extensions/extension_manager.dart';
 import '../../../../core/extensions/base_provider.dart';
+import '../../../../core/domain/entity/multimedia_item.dart';
 import '../../../../core/utils/image_fallbacks.dart';
+import '../../../../core/utils/fuzzy_matcher.dart';
 import '../../../search/presentation/search_history_provider.dart';
 import '../../../search/presentation/search_provider.dart';
 import '../../../search/presentation/widgets/search_suggestion_row.dart';
@@ -315,13 +317,16 @@ class _HomeSearchResultsState extends ConsumerState<_HomeSearchResults> {
 
     try {
       final rawResults = await provider.search(widget.query);
+      final sorted = List<MultimediaItem>.from(rawResults)
+        ..sort((a, b) => FuzzyMatcher.matchScore(b.title, widget.query)
+            .compareTo(FuzzyMatcher.matchScore(a.title, widget.query)));
       if (mounted) {
         setState(() {
           isLoading = false;
           result = ProviderSearchResult(
             providerId: provider.packageName,
             providerName: provider.name,
-            results: rawResults.toList(),
+            results: sorted,
           );
         });
       }

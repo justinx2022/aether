@@ -115,7 +115,16 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: LayoutConstants.spacingLg),
 
-                // 7. About & Updates
+                // 7. Performance & Fluid Motion
+                _buildPerformanceExperienceGroup(
+                  context,
+                  ref,
+                  l10n,
+                  generalSettings,
+                ),
+                const SizedBox(height: LayoutConstants.spacingLg),
+
+                // 8. About & Updates
                 _buildAboutUpdatesGroup(
                   context,
                   ref,
@@ -557,7 +566,86 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  // --- 7. About & Updates ---
+  // --- 7. Performance & Fluid Motion ---
+  Widget _buildPerformanceExperienceGroup(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    GeneralSettings generalSettings,
+  ) {
+    return SettingsGroup(
+      title: 'Performance & Fluid Motion',
+      children: [
+        SettingsTile(
+          icon: Icons.speed_rounded,
+          title: 'Ultra-Fluid 120Hz Motion',
+          subtitle: generalSettings.ultraFluidMotion
+              ? 'ProMotion high-refresh pacing & inertial spring scroll physics enabled'
+              : 'Standard frame pacing',
+          trailing: Switch(
+            value: generalSettings.ultraFluidMotion,
+            onChanged: (val) => ref
+                .read(generalSettingsProvider.notifier)
+                .setUltraFluidMotion(val),
+          ),
+          onTap: () => ref
+              .read(generalSettingsProvider.notifier)
+              .setUltraFluidMotion(!generalSettings.ultraFluidMotion),
+        ),
+        SettingsTile(
+          icon: Icons.auto_awesome_rounded,
+          title: 'Ambient Specular Glass Aura',
+          subtitle: generalSettings.ambientGlassAura
+              ? 'iOS 27-style rim highlights & glass depth with zero compositor lag'
+              : 'Solid matte high-contrast surfaces',
+          trailing: Switch(
+            value: generalSettings.ambientGlassAura,
+            onChanged: (val) => ref
+                .read(generalSettingsProvider.notifier)
+                .setAmbientGlassAura(val),
+          ),
+          onTap: () => ref
+              .read(generalSettingsProvider.notifier)
+              .setAmbientGlassAura(!generalSettings.ambientGlassAura),
+        ),
+        SettingsTile(
+          icon: Icons.bolt_rounded,
+          title: 'Predictive Artwork Pre-warming',
+          subtitle: generalSettings.predictivePrewarm
+              ? 'Pre-caches next-view posters in memory for instant pop-in-free browsing'
+              : 'Lazy load on viewport entry only',
+          trailing: Switch(
+            value: generalSettings.predictivePrewarm,
+            onChanged: (val) => ref
+                .read(generalSettingsProvider.notifier)
+                .setPredictivePrewarm(val),
+          ),
+          onTap: () => ref
+              .read(generalSettingsProvider.notifier)
+              .setPredictivePrewarm(!generalSettings.predictivePrewarm),
+        ),
+        SettingsTile(
+          icon: Icons.manage_search_rounded,
+          title: 'Typo-Tolerant Smart Search',
+          subtitle: generalSettings.smartFuzzySearch
+              ? 'Damerau-Levenshtein typo forgiveness and case-insensitive matching'
+              : 'Strict literal substring matching only',
+          isLast: true,
+          trailing: Switch(
+            value: generalSettings.smartFuzzySearch,
+            onChanged: (val) => ref
+                .read(generalSettingsProvider.notifier)
+                .setSmartFuzzySearch(val),
+          ),
+          onTap: () => ref
+              .read(generalSettingsProvider.notifier)
+              .setSmartFuzzySearch(!generalSettings.smartFuzzySearch),
+        ),
+      ],
+    );
+  }
+
+  // --- 8. About & Updates ---
   Widget _buildAboutUpdatesGroup(
     BuildContext context,
     WidgetRef ref,
