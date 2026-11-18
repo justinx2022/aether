@@ -8,6 +8,7 @@ import '../config/tmdb_config.dart';
 import '../storage/storage_service.dart';
 import '../network/doh_service.dart';
 import '../logger/app_logger.dart';
+import '../native/aether_core_ffi.dart';
 
 part 'bootstrap_provider.g.dart';
 
@@ -100,6 +101,10 @@ class Bootstrap extends _$Bootstrap {
           TmdbConfig.setNuvioApiKey(savedNuvioKey);
           talker.info('Bootstrap: Loaded user TMDB API key from Nuvio');
         }
+      } catch (_) {}
+
+      try {
+        AetherCoreFfi.instance.initialize();
       } catch (_) {}
 
       talker.info('Bootstrap: Initialization complete');
