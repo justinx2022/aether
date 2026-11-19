@@ -169,6 +169,99 @@ class PlayerSettingsScreen extends ConsumerWidget {
               ),
               const SizedBox(height: LayoutConstants.spacingLg),
               SettingsGroup(
+                title: 'Player Theme & Customization',
+                children: [
+                  SettingsTile(
+                    icon: Icons.palette_rounded,
+                    title: 'Player Accent Theme',
+                    subtitle: _getPlayerColorThemeName(playerSettings.playerThemeColor),
+                    trailing: Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: Color(playerSettings.playerThemeColor),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(playerSettings.playerThemeColor).withValues(alpha: 0.5),
+                            blurRadius: 8,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                        border: Border.all(color: Colors.white, width: 1.5),
+                      ),
+                    ),
+                    onTap: () => _showPlayerThemeColorDialog(context, ref, playerSettings.playerThemeColor),
+                  ),
+                  SettingsTile(
+                    icon: Icons.play_circle_outline_rounded,
+                    title: 'Center Transport Controls',
+                    subtitle: playerSettings.showCenterControls
+                        ? 'Large frosted Play/Pause and 10s skip controls'
+                        : 'Hidden (minimalist view)',
+                    trailing: Switch(
+                      value: playerSettings.showCenterControls,
+                      onChanged: (val) => ref
+                          .read(playerSettingsProvider.notifier)
+                          .setShowCenterControls(val),
+                    ),
+                    onTap: () => ref
+                        .read(playerSettingsProvider.notifier)
+                        .setShowCenterControls(!playerSettings.showCenterControls),
+                  ),
+                  SettingsTile(
+                    icon: Icons.blur_on_rounded,
+                    title: 'Atmospheric Ambient Glow',
+                    subtitle: playerSettings.ambientGlow
+                        ? 'Luminous neon ambient lighting along edges'
+                        : 'Disabled',
+                    trailing: Switch(
+                      value: playerSettings.ambientGlow,
+                      onChanged: (val) => ref
+                          .read(playerSettingsProvider.notifier)
+                          .setAmbientGlow(val),
+                    ),
+                    onTap: () => ref
+                        .read(playerSettingsProvider.notifier)
+                        .setAmbientGlow(!playerSettings.ambientGlow),
+                  ),
+                  SettingsTile(
+                    icon: Icons.speed_rounded,
+                    title: 'Stream Speed & Performance HUD',
+                    subtitle: playerSettings.showPlayerStatsOverlay
+                        ? 'Live Mbps, buffer gauge & CPU overlay active'
+                        : 'Off (Clean screen, viewable via Settings menu)',
+                    trailing: Switch(
+                      value: playerSettings.showPlayerStatsOverlay,
+                      onChanged: (val) => ref
+                          .read(playerSettingsProvider.notifier)
+                          .setShowPlayerStatsOverlay(val),
+                    ),
+                    onTap: () => ref
+                        .read(playerSettingsProvider.notifier)
+                        .setShowPlayerStatsOverlay(!playerSettings.showPlayerStatsOverlay),
+                  ),
+                  SettingsTile(
+                    icon: Icons.keyboard_rounded,
+                    title: 'Shortcut & Options Hints',
+                    subtitle: playerSettings.showKeyboardHint
+                        ? 'Show "Press [K] for more options" hint'
+                        : 'Hidden',
+                    isLast: true,
+                    trailing: Switch(
+                      value: playerSettings.showKeyboardHint,
+                      onChanged: (val) => ref
+                          .read(playerSettingsProvider.notifier)
+                          .setShowKeyboardHint(val),
+                    ),
+                    onTap: () => ref
+                        .read(playerSettingsProvider.notifier)
+                        .setShowKeyboardHint(!playerSettings.showKeyboardHint),
+                  ),
+                ],
+              ),
+              const SizedBox(height: LayoutConstants.spacingLg),
+              SettingsGroup(
                 title: l10n.player,
                 children: [
                   SettingsTile(
@@ -479,4 +572,106 @@ String _qualityFilterModeLabel(QualityFilterMode mode) {
     case QualityFilterMode.atOrBelow:
       return 'Hide sources above preference';
   }
+}
+
+const List<(String, int)> kPlayerColorThemes = [
+  ('Neon Violet (Default)', 0xFFA855F7),
+  ('Electric Blue', 0xFF0A84FF),
+  ('Emerald Green', 0xFF10B981),
+  ('Cyberpunk Rose', 0xFFF43F5E),
+  ('Sunset Amber', 0xFFF59E0B),
+  ('Ice Cyan', 0xFF06B6D4),
+  ('Pure Silver', 0xFFE2E8F0),
+  ('Crimson Flare', 0xFFEF4444),
+];
+
+String _getPlayerColorThemeName(int colorVal) {
+  for (final theme in kPlayerColorThemes) {
+    if (theme.$2 == colorVal) return theme.$1;
+  }
+  return 'Custom (#${colorVal.toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()})';
+}
+
+void _showPlayerThemeColorDialog(
+  BuildContext context,
+  WidgetRef ref,
+  int currentColor,
+) {
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: const Color(0xFF131722),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (sheetContext) {
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Text(
+                  'Select Player Theme Color',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: kPlayerColorThemes.length,
+                  separatorBuilder: (_, __) => const Divider(color: Colors.white12, height: 1),
+                  itemBuilder: (ctx, index) {
+                    final item = kPlayerColorThemes[index];
+                    final isSelected = item.$2 == currentColor;
+                    return ListTile(
+                      leading: Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: Color(item.$2),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isSelected ? Colors.white : Colors.white24,
+                            width: isSelected ? 2 : 1,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Color(item.$2).withValues(alpha: 0.5),
+                              blurRadius: 8,
+                            ),
+                          ],
+                        ),
+                      ),
+                      title: Text(
+                        item.$1,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                      trailing: isSelected
+                          ? const Icon(Icons.check_circle_rounded, color: Colors.white)
+                          : null,
+                      onTap: () {
+                        ref.read(playerSettingsProvider.notifier).setPlayerThemeColor(item.$2);
+                        Navigator.of(sheetContext).pop();
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
 }

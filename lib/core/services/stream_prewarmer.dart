@@ -1,17 +1,14 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 import '../domain/entity/multimedia_item.dart';
 import '../../features/player/domain/stream_resolver.dart';
-import '../../features/player/domain/hls_video_length.dart';
-import 'local_proxy_service.dart';
 
 /// Speculative Background Pre-Warmer (Netflix-Style Warm Start).
 ///
-/// Pre-resolves candidate streams, races healthy mirrors with 0-byte preflight,
-/// and primes Chunk 0 into memory before the user presses "Play" or while
-/// watching the preceding episode. Eliminates cold-start latency.
+/// Pre-resolves candidate streams and races healthy mirrors with 0-byte preflight
+/// before the user presses "Play" or while watching the preceding episode.
+/// Eliminates cold-start latency by keeping verified streams ready in memory.
 class StreamPrewarmer {
   StreamPrewarmer._();
 
@@ -37,7 +34,7 @@ class StreamPrewarmer {
     return entry.playback;
   }
 
-  /// Silently pre-resolves [targetUrl] and primes initial media chunks in background.
+  /// Silently pre-resolves [targetUrl] and keeps verified candidate streams in memory.
   Future<void> prewarm({
     required MultimediaItem item,
     required String targetUrl,
@@ -75,14 +72,6 @@ class StreamPrewarmer {
             'for ${resolved.selected.providerName}',
           );
         }
-
-        // Only prime an explicitly named HLS playlist. Reading an unknown
-        // endpoint through the proxy can download video bytes during browsing
-        // and wastes bandwidth before the viewer presses Play.
-        final uri = Uri.tryParse(resolved.selected.url);
-        if (uri != null && looksLikeHls(uri)) {
-          unawaited(_primeChunk0(resolved.selected));
-        }
       }
     } catch (e) {
       if (kDebugMode) {
@@ -98,40 +87,6 @@ class StreamPrewarmer {
     _prewarmedStreams.removeWhere(
       (_, entry) => now.difference(entry.createdAt) >= _entryTtl,
     );
-  }
-
-  /// Primes the first media chunk through the proxy into memory to guarantee instant playback.
-  Future<void> _primeChunk0(StreamResult stream) async {
-    HttpClient? client;
-    try {
-      final headers = playbackHeaders(stream);
-      await LocalProxyService.instance.startServer();
-      final proxyUrl = LocalProxyService.instance.getProxyUrl(
-        stream.url,
-        headers: headers,
-      );
-
-      client = HttpClient()
-        ..connectionTimeout = const Duration(seconds: 3);
-
-      final req = await client.getUrl(Uri.parse(proxyUrl));
-      headers.forEach((k, v) {
-        final lk = k.toLowerCase();
-        if (lk != 'content-length' && lk != 'host' && lk != 'connection') {
-          req.headers.set(k, v);
-        }
-      });
-      // 0-byte or 64KB sniffer range to trigger proxy segment cache
-      req.headers.set('Range', 'bytes=0-65535');
-
-      final resp = await req.close().timeout(const Duration(seconds: 3));
-      // Drain first chunk into proxy memory then close
-      await resp.take(1).drain<void>().timeout(const Duration(seconds: 2));
-    } catch (_) {
-      // Ignore background priming errors; main player will fallback cleanly
-    } finally {
-      client?.close(force: true);
-    }
   }
 
   /// Clears cached pre-warmed streams when memory is reclaimed.

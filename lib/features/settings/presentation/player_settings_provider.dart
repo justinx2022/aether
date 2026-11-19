@@ -188,6 +188,21 @@ class PlayerSettings {
   /// Whether to use high-performance media_kit (libmpv) on Windows.
   final bool useMediaKitOnWindows;
 
+  /// Player theme accent color (default Neon Violet 0xFFA855F7).
+  final int playerThemeColor;
+
+  /// Whether to display large center Play/Pause and 10s skip controls.
+  final bool showCenterControls;
+
+  /// Whether real-time speed and diagnostics overlay is shown.
+  final bool showPlayerStatsOverlay;
+
+  /// Whether atmospheric ambient neon glow along player edges is rendered.
+  final bool ambientGlow;
+
+  /// Whether bottom keyboard shortcut hint ("Press [K] for more options") is shown.
+  final bool showKeyboardHint;
+
   // Subtitle Accounts
   final String osUsername;
   final String osPassword;
@@ -230,6 +245,11 @@ class PlayerSettings {
     this.seamlessPlayback = true,
     this.lanSync = true,
     this.useMediaKitOnWindows = true,
+    this.playerThemeColor = 0xFFA855F7,
+    this.showCenterControls = true,
+    this.showPlayerStatsOverlay = false,
+    this.ambientGlow = true,
+    this.showKeyboardHint = true,
     this.osUsername = '',
     this.osPassword = '',
     this.osApiKey = '',
@@ -273,6 +293,11 @@ class PlayerSettings {
     bool? seamlessPlayback,
     bool? lanSync,
     bool? useMediaKitOnWindows,
+    int? playerThemeColor,
+    bool? showCenterControls,
+    bool? showPlayerStatsOverlay,
+    bool? ambientGlow,
+    bool? showKeyboardHint,
     String? osUsername,
     String? osPassword,
     String? osApiKey,
@@ -322,6 +347,12 @@ class PlayerSettings {
       seamlessPlayback: seamlessPlayback ?? this.seamlessPlayback,
       lanSync: lanSync ?? this.lanSync,
       useMediaKitOnWindows: useMediaKitOnWindows ?? this.useMediaKitOnWindows,
+      playerThemeColor: playerThemeColor ?? this.playerThemeColor,
+      showCenterControls: showCenterControls ?? this.showCenterControls,
+      showPlayerStatsOverlay:
+          showPlayerStatsOverlay ?? this.showPlayerStatsOverlay,
+      ambientGlow: ambientGlow ?? this.ambientGlow,
+      showKeyboardHint: showKeyboardHint ?? this.showKeyboardHint,
       osUsername: osUsername ?? this.osUsername,
       osPassword: osPassword ?? this.osPassword,
       osApiKey: osApiKey ?? this.osApiKey,
@@ -539,6 +570,36 @@ class PlayerSettingsNotifier extends _$PlayerSettingsNotifier {
           defaultValue: true,
         ) ??
         true;
+    final themeColor =
+        storage.getPlayerSetting<int>(
+          'player_theme_color',
+          defaultValue: 0xFFA855F7,
+        ) ??
+        0xFFA855F7;
+    final centerControls =
+        storage.getPlayerSetting<bool>(
+          'player_show_center_controls',
+          defaultValue: true,
+        ) ??
+        true;
+    final statsBadge =
+        storage.getPlayerSetting<bool>(
+          'player_show_stats_badge',
+          defaultValue: false,
+        ) ??
+        false;
+    final glow =
+        storage.getPlayerSetting<bool>(
+          'player_ambient_glow',
+          defaultValue: true,
+        ) ??
+        true;
+    final kbHint =
+        storage.getPlayerSetting<bool>(
+          'player_show_keyboard_hint',
+          defaultValue: true,
+        ) ??
+        true;
 
     SegmentPrefetchManager.instance.enabled = booster;
     LanSyncService.instance.enabled = lan;
@@ -578,6 +639,11 @@ class PlayerSettingsNotifier extends _$PlayerSettingsNotifier {
       seamlessPlayback: seamless,
       lanSync: lan,
       useMediaKitOnWindows: mediaKitWin,
+      playerThemeColor: themeColor,
+      showCenterControls: centerControls,
+      showPlayerStatsOverlay: statsBadge,
+      ambientGlow: glow,
+      showKeyboardHint: kbHint,
       osUsername: osUser,
       osApiKey: osKey,
       subdlEmail: dlEmail,
@@ -954,6 +1020,31 @@ class PlayerSettingsNotifier extends _$PlayerSettingsNotifier {
   Future<void> setUseMediaKitOnWindows(bool enabled) async {
     await _repository.setPlayerSetting('player_use_mediakit_windows', enabled);
     _update((PlayerSettings c) => c.copyWith(useMediaKitOnWindows: enabled));
+  }
+
+  Future<void> setPlayerThemeColor(int color) async {
+    await _repository.setPlayerSetting('player_theme_color', color);
+    _update((PlayerSettings c) => c.copyWith(playerThemeColor: color));
+  }
+
+  Future<void> setShowCenterControls(bool value) async {
+    await _repository.setPlayerSetting('player_show_center_controls', value);
+    _update((PlayerSettings c) => c.copyWith(showCenterControls: value));
+  }
+
+  Future<void> setShowPlayerStatsOverlay(bool value) async {
+    await _repository.setPlayerSetting('player_show_stats_badge', value);
+    _update((PlayerSettings c) => c.copyWith(showPlayerStatsOverlay: value));
+  }
+
+  Future<void> setAmbientGlow(bool value) async {
+    await _repository.setPlayerSetting('player_ambient_glow', value);
+    _update((PlayerSettings c) => c.copyWith(ambientGlow: value));
+  }
+
+  Future<void> setShowKeyboardHint(bool value) async {
+    await _repository.setPlayerSetting('player_show_keyboard_hint', value);
+    _update((PlayerSettings c) => c.copyWith(showKeyboardHint: value));
   }
 
   PlayerGesture _parse(String s) {

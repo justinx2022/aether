@@ -849,6 +849,16 @@ void main() {
       });
       expect(outcome, ProbeOutcome.healthy);
     });
+
+    test('a server refusing GET but returning 200 text/html on HEAD is rejected as notVideo', () async {
+      final outcome = await probe(file, (request) async {
+        if (request.method == 'GET') {
+          throw http.ClientException('timeout', request.url);
+        }
+        return http.Response('', 200, headers: {'content-type': 'text/html; charset=UTF-8'});
+      });
+      expect(outcome, ProbeOutcome.notVideo);
+    });
   });
 
   // The startup view names the plugin it is waiting on, and has to know when

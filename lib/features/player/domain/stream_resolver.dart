@@ -917,6 +917,12 @@ Future<_ProbeAnswer> _probeAnswer(StreamResult stream) async {
         .head(uri, headers: headers)
         .timeout(const Duration(milliseconds: 1000));
     if (resp.statusCode < 400) {
+      final type = resp.headers['content-type']?.toLowerCase().trim() ?? '';
+      // A HEAD response explicit about being HTML is a landing page or interstitial, not a media stream.
+      if (!isPlaylist(uri, type, const []) &&
+          (type.contains('text/html') || type.contains('application/xhtml+xml'))) {
+        return _ProbeAnswer(ProbeOutcome.notVideo, headClock.elapsed);
+      }
       return _ProbeAnswer(ProbeOutcome.healthy, headClock.elapsed);
     }
   } catch (_) {
