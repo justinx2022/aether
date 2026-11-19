@@ -21,7 +21,9 @@ func main() {
 	log.Printf("Starting TorrServer on 127.0.0.1:%s with DB at %s", *port, *dbPath)
 
 	// Start(pathdb, port, authToken string, roSets, searchWA bool)
-	server.Start(*dbPath, *port, authToken, false, false)
+	if err := server.Start(*dbPath, *port, authToken, false, false); err != nil {
+		log.Fatalf("Failed to start TorrServer: %v", err)
+	}
 
 	// Wait until the server stops or encounters an error
 	err := server.WaitServer()

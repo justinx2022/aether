@@ -1,11 +1,17 @@
 [package]
 name = "aether_core"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [lib]
 name = "aether_core"
 crate-type = ["cdylib", "staticlib", "rlib"]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -17,3 +23,48 @@ base64 = "0.22"
 sha2 = "0.10"
 aes = "0.8"
 cbc = "0.1"
+
+# HTTP client for probing HLS sources and talking to Go torrserver
+reqwest = { version = "0.12", features = ["blocking", "json"] }
+# URL parsing for magnet URIs and HLS manifests
+url = "2.5"
+# Percent-encoding for building torrserver stream URLs
+urlencoding = "2.1"
+# HTTP server for standalone service mode (optional, behind `service` feature)
+axum = { version = "0.8", optional = true }
+# Async runtime for the HTTP service (optional)
+tokio = { version = "1", features = ["full"], optional = true }
+# HTTP protocol implementation (for axum)
+hyper = { version = "1", features = ["server", "http1"], optional = true }
+hyper-util = { version = "0.1", features = ["tokio"], optional = true }
+# ZIP archive reading for .sky extension bundles
+zip = { version = "2.2", default-features = false, features = ["deflate"], optional = true }
+# CORS layer so browser-based frontends (Wasm) can call the local service
+tower-http = { version = "0.6", features = ["cors"], optional = true }
+
+[features]
+# Standalone service mode: run as a binary with HTTP/JSON API (pure Rust)
+service = [
+    "axum",
+    "tokio/full",
+    "hyper/server",
+    "hyper/http1",
+    "hyper-util",
+    "tower-http",
+]
+# QuickJS-NG C extension host (requires C compiler)
+quickjs = [
+    "zip",
+]
+full = [
+    "service",
+    "quickjs",
+]
+
+[[bin]]
+name = "aether-core"
+path = "src/bin/aether_core_service.rs"
+required-features = ["service"]
+
+[build-dependencies]
+cc = "1.2"  # For compiling QuickJS-NG C source in build.rs (service feature)

@@ -40,12 +40,21 @@ pub struct StreamSource {
     pub quality: String, // "4K", "1080p", "720p", "Auto"
     #[serde(default = "default_stream_format")]
     pub format: String, // "hls", "mp4", "dash"
+    #[serde(default = "default_protocol")]
+    pub protocol: String, // "hls", "torrent", "direct"
     #[serde(default)]
     pub provider_name: Option<String>,
     #[serde(default)]
     pub headers: HashMap<String, String>,
     #[serde(default)]
     pub subtitles: Vec<SubtitleTrack>,
+    /// Which file index inside a multi-file torrent to play (0-based).
+    #[serde(default)]
+    pub file_index: Option<i32>,
+}
+
+fn default_protocol() -> String {
+    "hls".to_string()
 }
 
 fn default_quality() -> String {

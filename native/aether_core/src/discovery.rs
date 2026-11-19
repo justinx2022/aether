@@ -63,13 +63,7 @@ impl DiscoveryEngine {
                 }
 
                 // 5. Minimum Rating Filter
-                if let Some(min_rating) = filter.min_rating {
-                    if item.vote_average < min_rating {
-                        return false;
-                    }
-                }
-
-                true
+                !filter.min_rating.is_some_and(|r| item.vote_average < r)
             })
             .cloned()
             .collect();
@@ -95,8 +89,8 @@ impl DiscoveryEngine {
                     a.title.to_lowercase().cmp(&b.title.to_lowercase())
                 });
             }
-            "popularity" | _ => {
-                filtered.sort_by(|a, b| b.vote_count.cmp(&a.vote_count));
+            _ => {
+                filtered.sort_by_key(|a| std::cmp::Reverse(a.vote_count));
             }
         }
 

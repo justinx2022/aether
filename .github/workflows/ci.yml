@@ -323,6 +323,40 @@ jobs:
       - name: Test
         run: go test -vet=atomic,bool,buildtags,errorsas,ifaceassert,nilfunc,stringintconv,tests ./...
 
+  # The Rust native core (aether_core) — search, discovery, crypto, torrent
+  # resolver, and extension host. cargo test + cargo clippy gate these.
+  core-rust:
+    name: Aether Core (Rust)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: native/aether_core
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache Cargo
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            native/aether_core/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('native/aether_core/Cargo.lock', 'native/aether_core/Cargo.toml') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Test
+        run: cargo test
+
+      - name: Clippy
+        run: cargo clippy -- -D warnings
+
   # Decides how wide the build matrix below is. See the header comment.
   changes:
     name: Pick Build Matrix

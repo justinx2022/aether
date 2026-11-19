@@ -1,0 +1,412 @@
+# Aether Core Service — OpenAPI 3.0 Specification
+#
+# This spec defines the stable network API of `aether_core` when running in
+# standalone service mode (`--features service`). All endpoints use JSON over
+# HTTP on `http://127.0.0.1:<port>`.
+#
+# Auth: None. The service binds to loopback only. Use in the same process or
+# with proper network isolation.
+
+openapi: 3.0.3
+info:
+  title: Aether Core Service
+  description: Native media engine — search, discovery, crypto, stream resolver, torrent control
+  version: 0.1.0
+  license:
+    name: GPL-3.0
+    url: https://www.gnu.org/licenses/gpl-3.0.en.html
+
+servers:
+  - url: http://127.0.0.1:{port}
+    variables:
+      port:
+        default: "8765"
+        description: Port the service is listening on
+
+paths:
+  /version:
+    get:
+      summary: Get service version
+      responses:
+        '200':
+          description: Version info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionResponse'
+
+  /search/fuzzy:
+    post:
+      summary: Typo-tolerant fuzzy search across items
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FuzzySearchRequest'
+      responses:
+        '200':
+          description: Array of SearchMatchResult (best matches first)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SearchMatchResult'
+
+  /discovery/filter:
+    post:
+      summary: Filter and sort a collection of items
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/MultimediaItem'
+                filter:
+                  $ref: '#/components/schemas/FilterCriteria'
+      responses:
+        '200':
+          description: Filtered and sorted items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MultimediaItem'
+
+  /crypto/sha256:
+    post:
+      summary: Compute SHA-256 hash as hex string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: string
+      responses:
+        '200':
+          description: 64-character hex string
+          content:
+            application/json:
+              schema:
+                type: string
+
+  /stream/resolve:
+    post:
+      summary: Resolve candidate streams to the best one for playback
+      description: |
+        Probes all candidates in parallel (HLS via HTTP, torrent via torrserver)
+        and returns the fastest healthy source plus fallback URLs.
+        Player should start with `primary` and fall back through `fallbacks`
+        if the primary stalls.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResolveStreamsRequest'
+      responses:
+        '200':
+          description: ResolvedStream with primary + fallbacks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResolvedStream'
+
+  /torrent/add:
+    post:
+      summary: Add a torrent via magnet URI and probe it
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TorrentAddRequest'
+      responses:
+        '200':
+          description: TorrentProbeResult with local stream URL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TorrentProbeResult'
+
+  /torrent/status:
+    get:
+      summary: Get torrent status by info hash
+      parameters:
+        - name: hash
+          in: query
+          required: true
+          schema:
+            type: string
+          description: 40-character hex torrent info hash
+      responses:
+        '200':
+          description: Torrent status info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TorrentStatusResponse'
+        '404':
+          description: Torrent not found
+
+  /torrent/remove:
+    post:
+      summary: Remove a torrent by info hash
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TorrentRemoveRequest'
+      responses:
+        '200':
+          description: Removal result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  error:
+                    type: string
+                    nullable: true
+
+components:
+  schemas:
+    VersionResponse:
+      type: object
+      properties:
+        version:
+          type: string
+
+    MultimediaItem:
+      type: object
+      required: [id, title, media_type]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        poster_path:
+          type: string
+          nullable: true
+        backdrop_path:
+          type: string
+          nullable: true
+        release_date:
+          type: string
+          nullable: true
+        vote_average:
+          type: number
+          format: float
+        vote_count:
+          type: integer
+          format: int64
+        media_type:
+          type: string
+          description: "movie | series | anime"
+        genres:
+          type: array
+          items:
+            type: string
+        country:
+          type: string
+          nullable: true
+
+    FilterCriteria:
+      type: object
+      properties:
+        media_type:
+          type: string
+          default: all
+          enum: [all, movie, series, anime]
+        genre:
+          type: string
+          nullable: true
+        country:
+          type: string
+          nullable: true
+        year:
+          type: integer
+          nullable: true
+        sort_by:
+          type: string
+          default: popularity
+          enum: [popularity, rating, newest, title]
+        min_rating:
+          type: number
+          format: float
+          nullable: true
+
+    SearchMatchResult:
+      type: object
+      required: [item, score]
+      properties:
+        item:
+          $ref: '#/components/schemas/MultimediaItem'
+        score:
+          type: integer
+          minimum: 0
+          maximum: 100
+
+    FuzzySearchRequest:
+      type: object
+      required: [query, items]
+      properties:
+        query:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/MultimediaItem'
+        min_score:
+          type: integer
+          minimum: 0
+          maximum: 100
+          default: 60
+
+    StreamSource:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+          description: HLS URL, magnet URI, or other stream URL
+        quality:
+          type: string
+          default: Auto
+        format:
+          type: string
+          enum: [hls, mp4, dash]
+          default: hls
+        protocol:
+          type: string
+          enum: [hls, torrent, direct]
+          default: hls
+        provider_name:
+          type: string
+          nullable: true
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+        subtitles:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubtitleTrack'
+        file_index:
+          type: integer
+          nullable: true
+          description: File index inside multi-file torrent
+
+    SubtitleTrack:
+      type: object
+      required: [url, language]
+      properties:
+        url:
+          type: string
+        language:
+          type: string
+        format:
+          type: string
+          default: vtt
+          enum: [vtt, srt, ass]
+
+    ResolveStreamsRequest:
+      type: object
+      required: [candidates]
+      properties:
+        candidates:
+          type: array
+          items:
+            $ref: '#/components/schemas/StreamSource'
+        token:
+          type: string
+          nullable: true
+          description: Optional torrserver auth token
+
+    ResolvedStream:
+      type: object
+      required: [primary, fallbacks, quality, protocol]
+      properties:
+        primary:
+          type: string
+          description: URL to play first (opaque: HLS or localhost torrent URL)
+        fallbacks:
+          type: array
+          items:
+            type: string
+          description: Backup URLs to try if primary stalls
+        quality:
+          type: string
+        protocol:
+          type: string
+          enum: [hls, torrent, direct]
+          description: Protocol that won the probe (for analytics)
+
+    TorrentAddRequest:
+      type: object
+      required: [magnet]
+      properties:
+        magnet:
+          type: string
+          description: magnet:?xt=urn:btih:... URI
+        file_index:
+          type: integer
+          nullable: true
+
+    TorrentProbeResult:
+      type: object
+      properties:
+        healthy:
+          type: boolean
+        local_url:
+          type: string
+          nullable: true
+          description: http://127.0.0.1:8090/stream?... URL
+        info_hash:
+          type: string
+          nullable: true
+        first_piece_ms:
+          type: integer
+          nullable: true
+        error:
+          type: string
+          nullable: true
+
+    TorrentStatusResponse:
+      type: object
+      properties:
+        hash:
+          type: string
+        title:
+          type: string
+        status:
+          type: string
+        progress:
+          type: number
+          format: float
+        download_speed:
+          type: integer
+        upload_speed:
+          type: integer
+        peers:
+          type: integer
+
+    TorrentRemoveRequest:
+      type: object
+      required: [hash]
+      properties:
+        hash:
+          type: string
