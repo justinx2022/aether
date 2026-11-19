@@ -44,6 +44,13 @@ class MediaKitMoreSheet extends StatefulWidget {
     required this.onFit,
     required this.onFullscreen,
     required this.onSources,
+    this.onPip,
+    this.isPipMode = false,
+    this.onToggleDialogueBoost,
+    this.isDialogueBoostEnabled = false,
+    this.onSleepTimer,
+    this.sleepTimerMinutes,
+    this.onLockScreen,
     super.key,
   });
 
@@ -67,6 +74,13 @@ class MediaKitMoreSheet extends StatefulWidget {
   final ValueChanged<BoxFit> onFit;
   final VoidCallback onFullscreen;
   final VoidCallback onSources;
+  final VoidCallback? onPip;
+  final bool isPipMode;
+  final VoidCallback? onToggleDialogueBoost;
+  final bool isDialogueBoostEnabled;
+  final VoidCallback? onSleepTimer;
+  final int? sleepTimerMinutes;
+  final VoidCallback? onLockScreen;
 
   @override
   State<MediaKitMoreSheet> createState() => _MediaKitMoreSheetState();
@@ -143,6 +157,36 @@ class _MediaKitMoreSheetState extends State<MediaKitMoreSheet> {
                         widget.onFullscreen();
                       },
                     ),
+                    if (widget.onPip != null)
+                      PanelRow(
+                        label: 'Picture in Picture',
+                        icon: Icons.picture_in_picture_alt_rounded,
+                        selected: widget.isPipMode,
+                        onTap: widget.onPip!,
+                      ),
+                    if (widget.onToggleDialogueBoost != null)
+                      PanelRow(
+                        label: 'Dialogue Boost',
+                        icon: Icons.graphic_eq_rounded,
+                        selected: widget.isDialogueBoostEnabled,
+                        detail: widget.isDialogueBoostEnabled ? 'On' : 'Off',
+                        onTap: widget.onToggleDialogueBoost!,
+                      ),
+                    if (widget.onSleepTimer != null)
+                      PanelRow(
+                        label: 'Sleep Timer',
+                        icon: Icons.bedtime_outlined,
+                        detail: widget.sleepTimerMinutes != null
+                            ? '${widget.sleepTimerMinutes}m'
+                            : 'Off',
+                        onTap: widget.onSleepTimer!,
+                      ),
+                    if (widget.onLockScreen != null)
+                      PanelRow(
+                        label: 'Lock Screen',
+                        icon: Icons.lock_outline_rounded,
+                        onTap: widget.onLockScreen!,
+                      ),
                   ],
                 ),
               ),

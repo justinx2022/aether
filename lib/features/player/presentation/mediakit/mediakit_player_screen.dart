@@ -59,7 +59,6 @@ import '../widgets/player_stream_widgets.dart';
 import 'mediakit_more_sheet.dart';
 import 'mediakit_subtitle_sheet.dart';
 import 'mpv_subtitle_playback.dart';
-import '../widgets/modern_player_controls.dart';
 
 /// High-Performance Desktop Player Engine powered by `media_kit` (libmpv).
 ///
@@ -134,9 +133,6 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   /// Whether the current source has been opened directly. Direct is the
   /// normal first path; the proxy gets one fallback turn when needed.
   bool _attemptTriedDirect = false;
-
-  bool _showSettingsFlyout = false;
-  bool _showStatsHud = false;
 
   /// "Failed to recognize file format" errors for the current open path. mpv
   /// emits one per segment after it falls back to reading an unopenable
@@ -2738,10 +2734,6 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     } else if (event.logicalKey == LogicalKeyboardKey.keyF) {
       _toggleFullscreen();
       return KeyEventResult.handled;
-    } else if (event.logicalKey == LogicalKeyboardKey.keyK) {
-      _onUserActivity();
-      setState(() => _showSettingsFlyout = !_showSettingsFlyout);
-      return KeyEventResult.handled;
     } else if (event.logicalKey == LogicalKeyboardKey.keyG ||
         event.logicalKey == LogicalKeyboardKey.bracketLeft) {
       _nudgeSubtitleDelay(const Duration(milliseconds: -250));
@@ -3054,23 +3046,21 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                       ),
                     ),
 
-                  // Atmospheric Ambient Glow (Customizable Theme Color)
-                  if (!_isLoading && _error.isEmpty && (playerSettings?.ambientGlow ?? true))
-                    ModernPlayerAmbientGlow(accentColor: accentColor),
-
-                  // Visually Dominant Centre Controls (Play/Pause & 10s Skips)
-                  if (!_isLoading &&
+                  // A paused frame offers the one press it is waiting for, in
+                  // the middle of the picture. While the film runs the bar's
+                  // transport is enough - a cluster over the picture is chrome
+                  // on a face, and it was the same four buttons twice.
+                  if (!_playing &&
+                      !_isBuffering &&
+                      !_isLoading &&
                       _error.isEmpty &&
-                      !_isScreenLocked &&
-                      !_isPipMode &&
-                      (playerSettings?.showCenterControls ?? true) &&
-                      (_controlsVisible || !_playing))
-                    ModernPlayerCenterControls(
-                      playing: _playing,
-                      onTogglePlay: _togglePlayPause,
-                      onSkipBackward: () => _seekRelative(-10),
-                      onSkipForward: () => _seekRelative(10),
-                      accentColor: accentColor,
+                      !_isScreenLocked)
+                    Center(
+                      child: PlayerCenterPlayButton(
+                        playing: false,
+                        label: AppLocalizations.of(context)?.play ?? 'Play',
+                        onPressed: _togglePlayPause,
+                      ),
                     ),
 
                   // Skip Intro / Outro / Recap Floating Pill Button
@@ -3219,74 +3209,6 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                       ),
                     ),
 
-                  // Settings Flyout Panel (Right-side Glassmorphic Card)
-                  if (_showSettingsFlyout && !_isLoading && _error.isEmpty && !_isScreenLocked)
-                    ModernPlayerSettingsFlyout(
-                      currentQuality: _currentQualityLabel,
-                      currentAudio: _player.state.track.audio.title ??
-                          _player.state.track.audio.language ??
-                          'English',
-                      currentSubtitle: _sideCars.active?.label ??
-                          _activeEmbeddedSubtitle.value ??
-                          'Off',
-                      currentSpeed: _playbackSpeed,
-                      currentEngine: 'MediaKit',
-                      showStatsHud: _showStatsHud || (playerSettings?.showPlayerStatsOverlay ?? false),
-                      accentColor: accentColor,
-                      onClose: () => setState(() => _showSettingsFlyout = false),
-                      onQualityTap: () {
-                        setState(() => _showSettingsFlyout = false);
-                        _showQualityAndSourcesDialog();
-                      },
-                      onAudioTap: () {
-                        setState(() => _showSettingsFlyout = false);
-                        _showAudioTrackDialog();
-                      },
-                      onSubtitleTap: () {
-                        setState(() => _showSettingsFlyout = false);
-                        _showSubtitleTrackDialog();
-                      },
-                      onSpeedTap: () {
-                        setState(() => _showSettingsFlyout = false);
-                        _cyclePlaybackSpeed();
-                      },
-                      onEngineTap: () async {
-                        setState(() => _showSettingsFlyout = false);
-                        final notifier = ref.read(playerSettingsProvider.notifier);
-                        await notifier.setUseMediaKitOnWindows(false);
-                        if (mounted) {
-                          Navigator.of(context).pop();
-                        }
-                      },
-                      onToggleStatsHud: () {
-                        final next = !(_showStatsHud || (playerSettings?.showPlayerStatsOverlay ?? false));
-                        setState(() => _showStatsHud = next);
-                        ref.read(playerSettingsProvider.notifier).setShowPlayerStatsOverlay(next);
-                      },
-                      onAdvancedSettingsTap: () {
-                        setState(() => _showSettingsFlyout = false);
-                        _showMoreSheet();
-                      },
-                      onAboutTap: () {
-                        setState(() => _showSettingsFlyout = false);
-                        _showMoreSheet();
-                      },
-                    ),
-
-                  // Collapsible Stream Diagnostics & Speed HUD Card (Hidden by default)
-                  if ((_showStatsHud || (playerSettings?.showPlayerStatsOverlay ?? false)) &&
-                      !_isLoading &&
-                      _error.isEmpty &&
-                      !_isPipMode)
-                    ModernPlayerStatsCard(
-                      speedText: _currentQualityLabel.contains('4K') ? '24.8 Mbps' : '12.4 Mbps',
-                      qualityText: _currentQualityLabel.isEmpty ? '1080p' : _currentQualityLabel,
-                      cpuText: '12% CPU',
-                      ramText: '640 MB',
-                      bufferText: '${(_bufferRatio * 100).toInt()}% Buffer',
-                      accentColor: accentColor,
-                    ),
-
                   // Desktop / Mobile PiP HUD Overlay
                   if (_isPipMode)
                     Positioned.fill(
@@ -3358,96 +3280,290 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   ///
   /// No engine badge. What decodes the picture is a fact about this device,
   /// not a control, and it sat where a viewer looks for a title.
+  /// The top zone: Back, what is playing, and previous / next episode navigation.
   Widget _buildTopBar() {
+    final l10n = AppLocalizations.of(context);
     final ep = _effectiveCurrentEpisode;
-    final playerSettings = ref.watch(playerSettingsProvider).asData?.value;
-    final accentColor = Color(playerSettings?.playerThemeColor ?? 0xFFA855F7);
+    final prev = _previousEpisode;
+    final next = _nextEpisode;
+    final String? epText = ep != null
+        ? (ep.name.isNotEmpty
+              ? (ep.season > 0
+                    ? 'S${ep.season} E${ep.episode} — ${ep.name}'
+                    : 'Episode ${ep.episode} — ${ep.name}')
+              : (ep.season > 0
+                    ? 'Season ${ep.season} Episode ${ep.episode}'
+                    : 'Episode ${ep.episode}'))
+        : null;
+
+    final hasEpNav = prev != null || next != null;
 
     return Positioned(
       top: 0,
       left: 0,
       right: 0,
-      child: ModernPlayerTopBar(
-        item: _item,
-        episode: ep,
-        qualityLabel: _currentQualityLabel,
+      child: PlayerTopBar(
+        title: _item.title,
+        subtitle: epText,
         onBack: _exitPlayer,
-        onMore: () {
-          _onUserActivity();
-          setState(() => _showSettingsFlyout = !_showSettingsFlyout);
-        },
-        onPip: !kIsWeb &&
-                (Platform.isWindows ||
-                    Platform.isLinux ||
-                    Platform.isMacOS ||
-                    Platform.isAndroid)
-            ? _togglePip
-            : null,
-        onCast: _showMoreSheet,
-        accentColor: accentColor,
+        isTv: _isTv,
+        trailing: !hasEpNav
+            ? null
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (prev != null)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: PlayerActionButton(
+                        icon: Icons.skip_previous_rounded,
+                        label: prev.episode > 0
+                            ? '${l10n?.previous ?? 'Prev'} E${prev.episode}'
+                            : (l10n?.previous ?? 'Prev'),
+                        isTv: _isTv,
+                        onTap: () {
+                          _onUserActivity();
+                          rollForwardHistory(read: _read, item: _item, next: prev);
+                          unawaited(_startEpisode(prev));
+                        },
+                      ),
+                    ),
+                  if (next != null)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: PlayerActionButton(
+                        icon: Icons.skip_next_rounded,
+                        label: next.episode > 0
+                            ? '${l10n?.next ?? 'Next'} E${next.episode}'
+                            : (l10n?.next ?? 'Next'),
+                        isTv: _isTv,
+                        onTap: () {
+                          _onUserActivity();
+                          unawaited(_advance());
+                        },
+                      ),
+                    ),
+                ],
+              ),
       ),
     );
   }
 
+  /// The bottom zone: scrubber, transport (play, prev, next, 10s skips, clock),
+  /// and organized controls (episodes, speed, fit, quality, audio, subtitles, fullscreen, options).
   Widget _buildBottomBar() {
-    final live = isLiveSource(_item, _currentVideoUrl);
+    final l10n = AppLocalizations.of(context);
+    final String speedLabel =
+        '${_playbackSpeed == 1.0 ? '1' : _playbackSpeed.toString()}x';
+    final String fitTooltip = '${l10n?.fit ?? 'Fit'}: ${_fitLabel(_fit)}';
     final displayPos = _isDragging && _dragPosition != null
         ? _dragPosition!
         : _position;
-    final playerSettings = ref.watch(playerSettingsProvider).asData?.value;
-    final accentColor = Color(playerSettings?.playerThemeColor ?? 0xFFA855F7);
-    final showHints = playerSettings?.showKeyboardHint ?? true;
-    final hasEp = (_item.episodes ?? widget.item.episodes)?.isNotEmpty ?? false;
-
-    final activeSub = _sideCars.active?.label ??
-        _activeEmbeddedSubtitle.value ??
-        'Off';
-    final activeAudio = _player.state.track.audio.title ??
-        _player.state.track.audio.language ??
-        'Default';
+    final live = isLiveSource(_item, _currentVideoUrl);
+    final hasEpisodes = (_item.episodes ?? widget.item.episodes)?.isNotEmpty ?? false;
 
     return Positioned(
       bottom: 0,
       left: 0,
       right: 0,
-      child: ModernPlayerBottomDock(
-        position: displayPos,
-        duration: _duration,
-        bufferRatio: _bufferRatio,
-        isLive: live,
-        volume: _player.state.volume,
-        speed: _playbackSpeed,
-        audioTrackLabel: activeAudio,
-        subtitleTrackLabel: activeSub,
-        fitLabel: _fitLabel(_fit),
-        hasEpisodes: hasEp,
-        isFullscreen: _isFullscreen,
-        accentColor: accentColor,
-        showKeyboardHint: showHints,
-        onSeek: (ms) {
-          _onUserActivity();
-          final target = Duration(milliseconds: ms.round());
-          _player.seek(target);
-        },
-        onTogglePlay: _togglePlayPause,
-        onVolumeChanged: (vol) {
-          _onUserActivity();
-          setState(() {
-            _savedVolume = vol;
-          });
-          unawaited(_player.setVolume(vol));
-        },
-        onSpeedTap: _cyclePlaybackSpeed,
-        onSubtitleTap: _showSubtitleTrackDialog,
-        onAudioTap: _showAudioTrackDialog,
-        onFitTap: _cycleFit,
-        onBookmarksTap: _showMoreSheet,
-        onEpisodesTap: _showEpisodesDialog,
-        onFullscreenTap: _toggleFullscreen,
-        onMoreOptionsTap: () {
-          _onUserActivity();
-          setState(() => _showSettingsFlyout = !_showSettingsFlyout);
-        },
+      child: PlayerBottomBar(
+        isTv: _isTv,
+        scrollingActions: !_isTv,
+        progressBar: RepaintBoundary(
+          child: PlayerScrubber(
+            position: displayPos,
+            duration: _duration,
+            hasDuration: _duration > Duration.zero,
+            bufferRatio: _bufferRatio,
+            canSeek: !live && _duration > Duration.zero,
+            isTv: _isTv,
+            onChangeStart: (ms) {
+              _onUserActivity();
+              setState(() {
+                _isDragging = true;
+                _dragPosition = Duration(milliseconds: ms.round());
+              });
+            },
+            onChanged: (ms) {
+              _onUserActivity();
+              setState(() {
+                _dragPosition = Duration(milliseconds: ms.round());
+              });
+            },
+            onChangeEnd: (ms) {
+              _onUserActivity();
+              final target = Duration(milliseconds: ms.round());
+              setState(() {
+                _isDragging = false;
+                _dragPosition = null;
+              });
+              _player.seek(target);
+            },
+          ),
+        ),
+        leading: [
+          // 1. Play / Pause
+          PlayerIconButton(
+            icon: _playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+            tooltip: _playing
+                ? (l10n?.pause ?? 'Pause')
+                : (l10n?.play ?? 'Play'),
+            isTv: _isTv,
+            iconSize: _isTv ? 34 : 30,
+            autofocus: _isTv,
+            onPressed: _togglePlayPause,
+          ),
+
+          // 2. Previous Episode (Must-have for series)
+          if (hasEpisodes)
+            PlayerIconButton(
+              icon: Icons.skip_previous_rounded,
+              tooltip: _hasPreviousEpisode
+                  ? (_previousEpisode != null && _previousEpisode!.episode > 0
+                      ? '${l10n?.previous ?? 'Previous'} (E${_previousEpisode!.episode})'
+                      : (l10n?.previous ?? 'Previous Episode'))
+                  : (l10n?.previous ?? 'Previous Episode'),
+              isTv: _isTv,
+              onPressed: _hasPreviousEpisode
+                  ? () {
+                      _onUserActivity();
+                      final prev = _previousEpisode;
+                      if (prev != null) {
+                        rollForwardHistory(read: _read, item: _item, next: prev);
+                        unawaited(_startEpisode(prev));
+                      }
+                    }
+                  : null,
+            ),
+
+          // 3. Next Episode (Must-have for series)
+          if (hasEpisodes)
+            PlayerIconButton(
+              icon: Icons.skip_next_rounded,
+              tooltip: _hasNextEpisode
+                  ? (_nextEpisode != null && _nextEpisode!.episode > 0
+                      ? '${l10n?.next ?? 'Next'} (E${_nextEpisode!.episode})'
+                      : (l10n?.next ?? 'Next Episode'))
+                  : (l10n?.next ?? 'Next Episode'),
+              isTv: _isTv,
+              onPressed: _hasNextEpisode
+                  ? () {
+                      _onUserActivity();
+                      unawaited(_advance());
+                    }
+                  : null,
+            ),
+
+          // 4. Rewind 10s
+          if (!live)
+            PlayerIconButton(
+              icon: Icons.replay_10_rounded,
+              tooltip: l10n?.playerRewindSeconds(10) ?? 'Rewind 10s',
+              isTv: _isTv,
+              onPressed: () => _seekRelative(-10),
+            ),
+
+          // 5. Forward 10s
+          if (!live)
+            PlayerIconButton(
+              icon: Icons.forward_10_rounded,
+              tooltip: l10n?.playerForwardSeconds(10) ?? 'Forward 10s',
+              isTv: _isTv,
+              onPressed: () => _seekRelative(10),
+            ),
+
+          // 6. Time Label
+          Padding(
+            padding: const EdgeInsets.only(left: 8, right: 4),
+            child: RepaintBoundary(
+              child: PlayerTimeLabel(
+                position: displayPos,
+                duration: _duration,
+                hasDuration: _duration > Duration.zero,
+                isLive: live,
+              ),
+            ),
+          ),
+        ],
+        actions: [
+          // 1. Episodes Dialog
+          if (hasEpisodes)
+            PlayerIconButton(
+              icon: Icons.video_library_rounded,
+              tooltip: l10n?.episodes ?? 'Episodes',
+              isTv: _isTv,
+              onPressed: _showEpisodesDialog,
+            ),
+
+          // 2. Playback Speed
+          PlayerActionButton(
+            label: speedLabel,
+            icon: Icons.speed_rounded,
+            isTv: _isTv,
+            onTap: _cyclePlaybackSpeed,
+          ),
+
+          // 3. Aspect Ratio / Fit
+          PlayerIconButton(
+            icon: Icons.aspect_ratio_rounded,
+            tooltip: fitTooltip,
+            isTv: _isTv,
+            onPressed: _cycleFit,
+          ),
+
+          // 4. Quality & Sources
+          ListenableBuilder(
+            listenable: Listenable.merge([_videoTracks, _currentVideoTrack]),
+            builder: (context, _) => PlayerActionButton(
+              label: _currentQualityLabel,
+              icon: Icons.high_quality_rounded,
+              isTv: _isTv,
+              onTap: _showQualityAndSourcesDialog,
+            ),
+          ),
+
+          // 5. Audio Tracks
+          PlayerIconButton(
+            icon: Icons.audiotrack_rounded,
+            tooltip: l10n?.audioTracks ?? 'Audio',
+            isTv: _isTv,
+            onPressed: _showAudioTrackDialog,
+          ),
+
+          // 6. Subtitles
+          ListenableBuilder(
+            listenable: Listenable.merge([_sideCars, _activeEmbeddedSubtitle]),
+            builder: (context, _) => PlayerIconButton(
+              icon: Icons.subtitles_rounded,
+              tooltip: l10n?.subtitles ?? 'Subtitles',
+              isTv: _isTv,
+              highlight:
+                  _sideCars.active != null ||
+                  _activeEmbeddedSubtitle.value != null,
+              onPressed: _showSubtitleTrackDialog,
+            ),
+          ),
+
+          // 7. Fullscreen
+          if (!kIsWeb &&
+              (Platform.isWindows || Platform.isLinux || Platform.isMacOS))
+            PlayerIconButton(
+              icon: _isFullscreen
+                  ? Icons.fullscreen_exit_rounded
+                  : Icons.fullscreen_rounded,
+              tooltip: _isFullscreen ? 'Exit Fullscreen' : 'Fullscreen',
+              isTv: _isTv,
+              onPressed: _toggleFullscreen,
+            ),
+
+          // 8. Options Menu (for extra features: PiP, Dialogue Boost, Sleep Timer, Screen Lock)
+          PlayerIconButton(
+            icon: Icons.tune_rounded,
+            tooltip: l10n?.options ?? 'Options',
+            isTv: _isTv,
+            onPressed: _showMoreSheet,
+          ),
+        ],
       ),
     );
   }
@@ -3550,6 +3666,32 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
         onSources: () {
           Navigator.of(sheetContext).maybePop();
           _showSourcesDialog();
+        },
+        onPip: !kIsWeb &&
+                (Platform.isWindows ||
+                    Platform.isLinux ||
+                    Platform.isMacOS ||
+                    Platform.isAndroid)
+            ? () {
+                Navigator.of(sheetContext).maybePop();
+                _togglePip();
+              }
+            : null,
+        isPipMode: _isPipMode,
+        onToggleDialogueBoost: _toggleDialogueBoost,
+        isDialogueBoostEnabled: _isDialogueBoostEnabled,
+        onSleepTimer: () {
+          Navigator.of(sheetContext).maybePop();
+          _showSleepTimerDialog();
+        },
+        sleepTimerMinutes: _sleepTimerMinutes,
+        onLockScreen: () {
+          Navigator.of(sheetContext).maybePop();
+          setState(() {
+            _isScreenLocked = true;
+            _controlsVisible = false;
+            _showUnlockButton = false;
+          });
         },
       ),
     );
