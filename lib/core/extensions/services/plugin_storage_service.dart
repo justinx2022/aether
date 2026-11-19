@@ -288,12 +288,6 @@ class PluginStorageService {
       final targetMeta = File(p.join(targetDir.path, 'meta.json'));
       final targetJs = File(p.join(targetDir.path, 'plugin.js'));
 
-      if (await targetMeta.exists() && await targetJs.exists()) {
-        return;
-      }
-
-      await targetDir.create(recursive: true);
-
       String jsonContent;
       String jsContent;
       try {
@@ -317,12 +311,35 @@ class PluginStorageService {
       final sha = crypto.sha256.convert(jsBytes).toString();
       manifest['installSha256'] = sha;
 
+      if (await targetMeta.exists() && await targetJs.exists()) {
+        try {
+          final existingMeta = jsonDecode(await targetMeta.readAsString()) as Map<String, dynamic>;
+          final existingSha = existingMeta['installSha256'] as String?;
+          final existingVer = existingMeta['version'];
+          final currentVer = manifest['version'];
+          if (existingSha == sha && existingVer == currentVer) {
+            return;
+          }
+        } catch (_) {}
+      }
+
+      await targetDir.create(recursive: true);
       await File(p.join(targetDir.path, 'plugin.json')).writeAsString(jsonContent);
       await targetJs.writeAsString(jsContent);
       await targetMeta.writeAsString(jsonEncode(manifest));
 
+      // Remove stale QuickJS bytecode so the fresh script compiles cleanly
+      try {
+        final children = targetDir.listSync();
+        for (final child in children) {
+          if (child.path.endsWith('.qbc')) {
+            child.deleteSync();
+          }
+        }
+      } catch (_) {}
+
       if (kDebugMode) {
-        debugPrint("PluginStorageService: Pre-installed Justin's Catalogue from assets.");
+        debugPrint("PluginStorageService: Pre-installed/updated Justin's Catalogue from assets.");
       }
     } catch (e) {
       if (kDebugMode) {

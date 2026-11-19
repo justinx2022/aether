@@ -308,7 +308,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final isResolving = ref.watch(providerResolutionLoadingProvider);
     final activeProvider = ref.watch(activeProviderProvider);
 
-    if (isResolving) {
+    if (isResolving && activeProvider == null) {
       return Center(
         child: AppLoadingIndicator(
           color: Theme.of(context).colorScheme.primary,

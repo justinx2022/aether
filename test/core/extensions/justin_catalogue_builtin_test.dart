@@ -206,6 +206,10 @@ void main() {
       expect(active?.packageName, 'dev.justin.catalogue');
       expect(active?.name, "Justin's Catalogue");
 
+      // Verify providerResolutionLoadingProvider is cleared to false
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      expect(container.read(providerResolutionLoadingProvider), isFalse);
+
       // Verify Home contents return non-empty
       final homeData = await active!.getHome();
       expect(homeData, isNotEmpty);
@@ -222,6 +226,43 @@ void main() {
       expect(streams, isNotEmpty);
       expect(streams.first.url, contains('m3u8'));
       expect(streams.first.headers, containsPair('Referer', 'https://vixsrc.to/'));
+    });
+
+    test('PluginStorageService auto-updates outdated cached dev.justin.catalogue', () async {
+      final tempDir = Directory.systemTemp.createTempSync('plugin_update_test_');
+      final binding = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      binding.setMockMethodCallHandler(
+        const MethodChannel('plugins.flutter.io/path_provider'),
+        (MethodCall call) async => tempDir.path,
+      );
+
+      addTearDown(() {
+        if (tempDir.existsSync()) {
+          tempDir.deleteSync(recursive: true);
+        }
+      });
+
+      // Pre-seed an older version (v1) with a dummy hash
+      final catalogueDir = Directory('${tempDir.path}/extensions/plugin/dev.justin.catalogue');
+      catalogueDir.createSync(recursive: true);
+      File('${catalogueDir.path}/meta.json').writeAsStringSync(jsonEncode({
+        'id': 'dev.justin.catalogue',
+        'packageName': 'dev.justin.catalogue',
+        'name': "Justin's Catalogue",
+        'version': 1,
+        'installSha256': 'outdated_dummy_sha',
+        'repositoryId': 'Local',
+      }));
+      File('${catalogueDir.path}/plugin.js').writeAsStringSync('// Old script');
+      File('${catalogueDir.path}/stale.qbc').writeAsStringSync('stale bytecode');
+
+      final storageService = PluginStorageService();
+      final installed = await storageService.listInstalledPlugins();
+
+      final catalogue = installed.firstWhere((p) => p.packageName == 'dev.justin.catalogue');
+      expect(catalogue.version, greaterThanOrEqualTo(14));
+      expect(catalogue.manifest['installSha256'], isNot('outdated_dummy_sha'));
+      expect(File('${catalogueDir.path}/stale.qbc').existsSync(), isFalse);
     });
   });
 }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -47,22 +48,29 @@ MultimediaItem _withCatalogueTokenIfLegacy(MultimediaItem item) {
       item.provider == 'cinemeta' ||
       item.provider == 'tmdb' ||
       item.url.startsWith('cinemeta:') ||
-      item.url.startsWith('tmdb:');
+      item.url.startsWith('tmdb:') ||
+      item.url.startsWith('aether:');
   if (!legacy) return item;
 
   final imdb =
       item.imdbId ?? RecommendationsService.imdbFromCatalogueToken(item.url);
-  if (imdb == null || !imdb.startsWith('tt')) return item;
+  final tmdb = item.tmdbId;
+
+  if ((imdb == null || !imdb.startsWith('tt')) && tmdb == null) return item;
+
+  final token = jsonEncode({
+    if (imdb != null && imdb.startsWith('tt')) 'id': imdb,
+    if (imdb != null && imdb.startsWith('tt')) 'imdbId': imdb,
+    if (tmdb != null) 'tmdbId': tmdb,
+    'type': item.contentType == MultimediaContentType.series
+        ? 'series'
+        : 'movie',
+    'title': item.title,
+    if (item.year != null) 'year': item.year.toString(),
+  });
 
   return item.copyWith(
-    url: RecommendationsService.catalogueToken(
-      imdbId: imdb,
-      type: item.contentType == MultimediaContentType.series
-          ? 'series'
-          : 'movie',
-      title: item.title,
-      year: item.year?.toString(),
-    ),
+    url: token,
     provider: RecommendationsService.catalogueProvider,
   );
 }
@@ -403,11 +411,23 @@ class DetailsController extends _$DetailsController {
 
       // Ensure episodes exist (create default single episode for movies or unparsed items)
       if (withProvider.episodes == null || withProvider.episodes!.isEmpty) {
+        String epUrl = withProvider.url;
+        if (epUrl.isEmpty || epUrl.startsWith('aether:')) {
+          epUrl = jsonEncode({
+            if (withProvider.imdbId != null) 'imdbId': withProvider.imdbId,
+            if (withProvider.tmdbId != null) 'tmdbId': withProvider.tmdbId,
+            'type': withProvider.contentType == MultimediaContentType.series ? 'series' : 'movie',
+            'title': withProvider.title,
+            if (withProvider.year != null) 'year': withProvider.year.toString(),
+            'season': 1,
+            'episode': 1,
+          });
+        }
         withProvider = withProvider.copyWith(
           episodes: [
             Episode(
               name: withProvider.title,
-              url: withProvider.url,
+              url: epUrl,
               posterUrl: withProvider.posterUrl,
             ),
           ],

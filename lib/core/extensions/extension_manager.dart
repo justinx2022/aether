@@ -758,6 +758,9 @@ class ActiveProvider extends _$ActiveProvider {
     if (initial != null) {
       _initialLoadDone = true;
       _targetProviderId = null;
+      Future.microtask(() {
+        ref.read(providerResolutionLoadingProvider.notifier).set(false);
+      });
       return initial;
     }
 
