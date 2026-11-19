@@ -82,6 +82,7 @@ jobs:
     timeout-minutes: 90
     env:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
       ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
       ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
@@ -92,14 +93,11 @@ jobs:
           channel: 'stable'
           flutter-version: ${{ env.FLUTTER_VERSION }}
       
-      # Pin the toolchain rather than inherit whichever JDK the runner image
-      # defaults to this month - ci.yml pins 25, so the shipped build
-      # matches the merge gate.
-      - name: Set Up JDK
+      - name: Set Up JDK 17
         uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: '25'
+          java-version: '17'
           cache: gradle
 
       - name: Install Dependencies
@@ -113,14 +111,38 @@ jobs:
       - name: Strip Desktop Binaries
         run: rm -f packages/flutter_torrent_server/assets/torrserver/TorrServer-*
         
-      - name: Decode Keystore
-        if: env.ANDROID_KEYSTORE_BASE64 != ''
+      - name: Set Up Signing
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release.jks
-          echo "storePassword=$ANDROID_STORE_PASSWORD" > android/key.properties
-          echo "keyPassword=$ANDROID_KEY_PASSWORD" >> android/key.properties
-          echo "keyAlias=$ANDROID_KEY_ALIAS" >> android/key.properties
-          echo "storeFile=release.jks" >> android/key.properties
+          set -euo pipefail
+          if [ -n "${ANDROID_KEYSTORE_BASE64:-}" ]; then
+            echo "Using custom secret keystore from repository settings"
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/key.jks
+            test -s android/app/key.jks || { echo "::error::decoded keystore is empty"; exit 1; }
+            cat > android/key.properties << PROPERTIES
+          storePassword=$ANDROID_KEYSTORE_PASSWORD
+          keyPassword=$ANDROID_KEY_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          storeFile=key.jks
+          PROPERTIES
+            chmod 600 android/key.properties android/app/key.jks
+          elif [ -f "android/app/aether-release.jks" ]; then
+            echo "Using permanent Aether release keystore"
+            cat > android/key.properties << PROPERTIES
+          storePassword=aether2026
+          keyPassword=aether2026
+          keyAlias=aether
+          storeFile=aether-release.jks
+          PROPERTIES
+            chmod 600 android/key.properties
+          else
+            echo "::warning::No keystore found. Gradle will debug-sign this build."
+          fi
 
       - name: Generate dart-defines file
         shell: bash
