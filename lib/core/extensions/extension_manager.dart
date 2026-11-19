@@ -143,7 +143,7 @@ class ExtensionManager extends _$ExtensionManager {
   List<AetherProvider> build() {
     _engine = ref.watch(jsEngineProvider);
     _storageService = ref.watch(pluginStorageServiceProvider);
-    return [AetherNativeProvider()];
+    return [];
   }
 
   /// Called by the extensions feature when installed plugins change, so core
@@ -293,10 +293,6 @@ class ExtensionManager extends _$ExtensionManager {
           }
         }
         state = newState;
-      }
-
-      if (!state.any((p) => p.packageName == AetherNativeProvider.kPackageName)) {
-        state = [AetherNativeProvider(), ...state];
       }
 
       ref.read(pluginSyncCompleteProvider.notifier).set(true);
@@ -595,7 +591,7 @@ class ExtensionManager extends _$ExtensionManager {
     String providerPackageName,
     Set<String> installedPackageNames,
   ) {
-    if (providerPackageName == AetherNativeProvider.kPackageName) return true;
+    if (providerPackageName == 'dev.justin.catalogue') return true;
     if (installedPackageNames.contains(providerPackageName)) return true;
     final sep = providerPackageName.lastIndexOf('::');
     if (sep > 0) {
@@ -627,12 +623,7 @@ class ExtensionManager extends _$ExtensionManager {
 
   AetherProvider? getProvider(String packageName) {
     try {
-      return state.firstWhere(
-        (p) => p.packageName == packageName,
-        orElse: () => packageName == AetherNativeProvider.kPackageName
-            ? AetherNativeProvider()
-            : throw StateError('Not found'),
-      );
+      return state.firstWhere((p) => p.packageName == packageName);
     } catch (_) {
       return null;
     }
@@ -671,16 +662,22 @@ class ActiveProvider extends _$ActiveProvider {
     // Safety net: when sync finishes but no further extensionManager state
     // change fires, check one final time for the target provider.
     ref.listen(pluginSyncCompleteProvider, (_, complete) {
-      if (!complete || _targetProviderId == null || state != null) return;
+      if (!complete || state != null) return;
+      final target = _targetProviderId ?? 'dev.justin.catalogue';
       final p = ref
           .read(extensionManagerProvider.notifier)
-          .getProvider(_targetProviderId!);
+          .getProvider(target) ??
+          ref
+              .read(extensionManagerProvider)
+              .where((x) => x.packageName.contains('catalogue'))
+              .firstOrNull ??
+          ref.read(extensionManagerProvider).firstOrNull;
       if (p != null) {
         state = p;
         _targetProviderId = null;
+        ref.read(settingsRepositoryProvider).setActiveProviderId(p.packageName);
         ref.read(providerResolutionLoadingProvider.notifier).set(false);
       } else {
-        // Full sync finished and provider is truly gone — clear stale setting.
         _targetProviderId = null;
         ref.read(settingsRepositoryProvider).setActiveProviderId(null);
         ref.read(providerResolutionLoadingProvider.notifier).set(false);
@@ -697,16 +694,23 @@ class ActiveProvider extends _$ActiveProvider {
       if (_targetProviderId != null && state == null) {
         final p = ref
             .read(extensionManagerProvider.notifier)
-            .getProvider(_targetProviderId!);
+            .getProvider(_targetProviderId!) ??
+            next.where((x) => x.packageName.contains('catalogue')).firstOrNull;
         if (p != null) {
           state = p;
           _targetProviderId = null;
+          ref.read(settingsRepositoryProvider).setActiveProviderId(p.packageName);
           ref.read(providerResolutionLoadingProvider.notifier).set(false);
         } else if (ref.read(pluginSyncCompleteProvider)) {
-          // Full sync is done and the provider is still missing — it was
-          // removed/uninstalled. Clear the stale setting.
-          _targetProviderId = null;
-          ref.read(settingsRepositoryProvider).setActiveProviderId(null);
+          final fallback = next.firstOrNull;
+          if (fallback != null) {
+            state = fallback;
+            _targetProviderId = null;
+            ref.read(settingsRepositoryProvider).setActiveProviderId(fallback.packageName);
+          } else {
+            _targetProviderId = null;
+            ref.read(settingsRepositoryProvider).setActiveProviderId(null);
+          }
           ref.read(providerResolutionLoadingProvider.notifier).set(false);
         }
         // Otherwise sync is still in progress — keep waiting.
@@ -730,6 +734,33 @@ class ActiveProvider extends _$ActiveProvider {
     // ref.listen only fires on changes, so a value extensionManager already
     // has when we subscribe never reaches the listener. Deferred to after
     // build because other providers cannot be modified during build.
+    final storage = ref.read(settingsRepositoryProvider);
+    final id = storage.getActiveProviderId();
+    final current = ref.read(extensionManagerProvider);
+
+    AetherProvider? initial;
+    if (id != null) {
+      initial = current.where((p) => p.packageName == id).firstOrNull ??
+          current.where((p) => p.packageName.contains('catalogue')).firstOrNull;
+    } else {
+      initial = current
+          .where((p) =>
+              p.packageName == 'dev.justin.catalogue' ||
+              p.packageName.contains('catalogue'))
+          .firstOrNull;
+      if (initial != null) {
+        Future.microtask(() {
+          ref.read(settingsRepositoryProvider).setActiveProviderId(initial?.packageName);
+        });
+      }
+    }
+
+    if (initial != null) {
+      _initialLoadDone = true;
+      _targetProviderId = null;
+      return initial;
+    }
+
     Future.microtask(() {
       _initialLoadDone = true;
       _loadFromStorage(ref.read(extensionManagerProvider));
@@ -743,20 +774,30 @@ class ActiveProvider extends _$ActiveProvider {
     final id = storage.getActiveProviderId();
 
     if (id == null) {
-      state = null;
-      _targetProviderId = null;
-      ref.read(providerResolutionLoadingProvider.notifier).set(false);
+      final justin = currentProviders
+          .where((p) =>
+              p.packageName == 'dev.justin.catalogue' ||
+              p.packageName.contains('catalogue'))
+          .firstOrNull;
+      if (justin != null) {
+        state = justin;
+        _targetProviderId = null;
+        storage.setActiveProviderId(justin.packageName);
+        ref.read(providerResolutionLoadingProvider.notifier).set(false);
+      } else {
+        _targetProviderId = 'dev.justin.catalogue';
+        state = null;
+        ref.read(providerResolutionLoadingProvider.notifier).set(false);
+      }
     } else {
       _targetProviderId = id;
-      final p = ref.read(extensionManagerProvider.notifier).getProvider(id);
+      final p = ref.read(extensionManagerProvider.notifier).getProvider(id) ??
+          currentProviders.where((x) => x.packageName.contains('catalogue')).firstOrNull;
       if (p != null) {
         state = p;
         _targetProviderId = null;
         ref.read(providerResolutionLoadingProvider.notifier).set(false);
       } else {
-        // Not loaded yet. _targetProviderId stays set so the listener picks it
-        // up when extensionManagerProvider updates later, and loading stays
-        // true until then.
         state = null;
       }
     }

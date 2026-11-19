@@ -1,11 +1,12 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import '../models/extension_plugin.dart';
-import 'dart:convert';
 
 /// Matches a well-formed plugin package name: reverse-DNS style, no path
 /// separators, and never starting with a dot (which also rules out `.`, `..`
@@ -279,12 +280,68 @@ class PluginStorageService {
     }
   }
 
+  /// Ensures that Justin's Catalogue (pre-bundled in assets) is installed on disk
+  /// so that on cold start the catalogue is immediately present without network.
+  Future<void> _ensureBuiltinCatalogue(Directory rootDir) async {
+    try {
+      final targetDir = Directory(p.join(rootDir.path, 'dev.justin.catalogue'));
+      final targetMeta = File(p.join(targetDir.path, 'meta.json'));
+      final targetJs = File(p.join(targetDir.path, 'plugin.js'));
+
+      if (await targetMeta.exists() && await targetJs.exists()) {
+        return;
+      }
+
+      await targetDir.create(recursive: true);
+
+      String jsonContent;
+      String jsContent;
+      try {
+        jsonContent =
+            await rootBundle.loadString('assets/plugins/plugin.json');
+        jsContent = await rootBundle.loadString('assets/plugins/plugin.js');
+      } catch (_) {
+        final fJson = File('assets/plugins/plugin.json');
+        final fJs = File('assets/plugins/plugin.js');
+        if (await fJson.exists() && await fJs.exists()) {
+          jsonContent = await fJson.readAsString();
+          jsContent = await fJs.readAsString();
+        } else {
+          return;
+        }
+      }
+
+      final manifest = jsonDecode(jsonContent) as Map<String, dynamic>;
+      manifest['repositoryId'] = 'Local';
+      final jsBytes = utf8.encode(jsContent);
+      final sha = crypto.sha256.convert(jsBytes).toString();
+      manifest['installSha256'] = sha;
+
+      await File(p.join(targetDir.path, 'plugin.json')).writeAsString(jsonContent);
+      await targetJs.writeAsString(jsContent);
+      await targetMeta.writeAsString(jsonEncode(manifest));
+
+      if (kDebugMode) {
+        debugPrint("PluginStorageService: Pre-installed Justin's Catalogue from assets.");
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint("PluginStorageService: Could not pre-install builtin catalogue: $e");
+      }
+    }
+  }
+
   /// List all installed plugins
   Future<List<ExtensionPlugin>> listInstalledPlugins() async {
     final plugins = <ExtensionPlugin>[];
     final rootDir = await _pluginsDir;
 
-    if (!await rootDir.exists()) return [];
+    if (!await rootDir.exists()) {
+      await rootDir.create(recursive: true);
+    }
+
+    // Auto-install bundled Justin's Catalogue on cold start
+    await _ensureBuiltinCatalogue(rootDir);
 
     // Async list avoids blocking the UI thread on slow scoped storage on
     // Android. Audit H25.

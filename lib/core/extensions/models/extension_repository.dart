@@ -36,8 +36,7 @@ class ExtensionRepository {
     final repoId = json['packageName'] as String? ?? 'Unknown';
     final rawName = json['name'] as String? ?? 'Unknown Repository';
     final cleanName = rawName
-        .replaceAll("Justin's Extensions Repo", "Aether Core Repository")
-        .replaceAll("Justin's Catalogue", "Global Catalogue");
+        .replaceAll("Justin's Extensions Repo", "Aether Core Repository");
     return ExtensionRepository(
       name: cleanName,
       url: url,
