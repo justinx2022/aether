@@ -155,7 +155,9 @@ class PlaybackLauncher {
         toSave,
         0,
         0,
-        lastEpisodeUrl: episode?.url ?? (item.isSeries ? videoUrl : null),
+        lastEpisodeUrl:
+            episode?.url ??
+            (item.contentType == MultimediaContentType.series ? videoUrl : null),
         season: episode?.season,
         episode: episode?.episode,
         episodeTitle: episode?.name,
