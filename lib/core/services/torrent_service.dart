@@ -196,9 +196,9 @@ class TorrentService {
 
   Future<Map<String, dynamic>?> _pollForMetadata(String hash) async {
     int attempts = 0;
-    // Check every 200ms up to 15 attempts (~3 seconds max) - was 28×350ms=9.8s
-    while (attempts < 15) {
-      await Future<void>.delayed(const Duration(milliseconds: 200));
+    // Check every 350ms up to 40 attempts (~14 seconds max) to allow DHT peer discovery
+    while (attempts < 40) {
+      await Future<void>.delayed(const Duration(milliseconds: 350));
       try {
         final status = await _server.getTorrentStatus(hash);
         if (status != null && status['file_stats'] is List) {

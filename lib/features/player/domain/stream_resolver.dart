@@ -648,11 +648,24 @@ Future<int> _firstHealthyStream(
   /// choice than the 1080p the ranking asked for.
   int? fastestReached() {
     int? lead;
+    // Strict priority: HTTP / HLS reachable streams ALWAYS win over uncheckable torrents.
     for (final c in order) {
       final answer = results[c];
-      if (answer != null && answer.outcome.reached) {
+      if (answer != null &&
+          answer.outcome.reached &&
+          !isUncheckableSource(streams[c])) {
         lead = c;
         break;
+      }
+    }
+    // Only fall back to an uncheckable torrent if zero HTTP/HLS streams reached.
+    if (lead == null) {
+      for (final c in order) {
+        final answer = results[c];
+        if (answer != null && answer.outcome.reached) {
+          lead = c;
+          break;
+        }
       }
     }
     if (lead == null) return null;
@@ -662,6 +675,10 @@ Future<int> _firstHealthyStream(
     for (final c in order) {
       final answer = results[c];
       if (answer == null || !answer.outcome.reached) continue;
+      // Do not allow an uncheckable torrent to beat a reached HTTP stream
+      if (isUncheckableSource(streams[c]) && !isUncheckableSource(streams[best])) {
+        continue;
+      }
       if (qualityBadgeLabel(streams[c]) != tier) continue;
       if (answer.ttfb < results[best]!.ttfb) best = c;
     }
@@ -845,7 +862,7 @@ Future<ProbeOutcome> _probe(StreamResult stream) async =>
 
 Future<_ProbeAnswer> _probeAnswer(StreamResult stream) async {
   if (isUncheckableSource(stream)) {
-    return const _ProbeAnswer(ProbeOutcome.healthy, Duration.zero);
+    return const _ProbeAnswer(ProbeOutcome.healthy, Duration(seconds: 10));
   }
 
   final uri = Uri.tryParse(stream.url);

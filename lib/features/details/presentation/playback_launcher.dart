@@ -22,6 +22,7 @@ import '../../../core/services/stream_prewarmer.dart';
 import 'package:aether/l10n/generated/app_localizations.dart';
 
 import '../../../core/services/notification_service.dart';
+import '../../library/presentation/history_provider.dart';
 
 part 'playback_launcher.g.dart';
 
@@ -147,6 +148,20 @@ class PlaybackLauncher {
     Episode? episode,
     List<StreamResult> preloadedStreams = const <StreamResult>[],
   }) {
+    // Proactively record item into watch history so Continue Watching reflects the title immediately
+    try {
+      final toSave = item.copyWith(provider: item.provider ?? 'Unknown');
+      _ref.read(watchHistoryProvider.notifier).saveProgress(
+        toSave,
+        0,
+        0,
+        lastEpisodeUrl: episode?.url ?? (item.isSeries ? videoUrl : null),
+        season: episode?.season,
+        episode: episode?.episode,
+        episodeTitle: episode?.name,
+      );
+    } catch (_) {}
+
     return PlayerRoute(
       $extra: PlayerRouteExtra(
         item: item,

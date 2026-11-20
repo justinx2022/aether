@@ -210,11 +210,22 @@ Future<bool> isOnMeteredNetwork() async {
   }
 }
 
+/// Whether [stream] is a P2P / torrent source (magnet, .torrent, or local torrent file).
+bool isTorrentStream(StreamResult stream) {
+  final url = stream.url.toLowerCase();
+  return url.startsWith('magnet:') ||
+      url.endsWith('.torrent') ||
+      (url.startsWith('/') && stream.source.toLowerCase().contains('torrent'));
+}
+
 /// Sorts [streams] by quality preference without changing the original list.
 ///
-/// If [preference] is [QualityPreference.any] the list is returned unchanged.
-/// Within the same quality tier the original relative order is preserved
-/// (stable sort).
+/// Direct/HLS streams ALWAYS precede torrent streams, so that instant-start
+/// HTTP streams are prioritized and auto-played first, while torrents remain
+/// selectable fallbacks.
+///
+/// If [preference] is [QualityPreference.any] the relative order within each
+/// group is preserved.
 ///
 /// Sort order for a given preference P (example: 1080p):
 ///   1080p → 720p → 480p → 360p → 2K → 4K → unknown/auto
@@ -222,28 +233,52 @@ List<StreamResult> sortStreamsByQuality(
   List<StreamResult> streams,
   QualityPreference preference,
 ) {
-  if (preference == QualityPreference.any || streams.length <= 1) {
+  if (streams.length <= 1) {
     return streams;
   }
 
-  final prefRank = preference.rank;
-  final indexed = streams
-      .asMap()
-      .entries
-      .map(
-        (e) =>
-            (index: e.key, stream: e.value, tier: detectQualityTier(e.value.source)),
-      )
-      .toList();
+  // Strict Rule: Direct / HLS streams ALWAYS take priority over torrent streams.
+  // Torrents are placed at the end as a fallback when no direct streams are available.
+  final directStreams = <StreamResult>[];
+  final torrentStreams = <StreamResult>[];
 
-  indexed.sort((a, b) {
-    final ka = _sortKey(a.tier, prefRank);
-    final kb = _sortKey(b.tier, prefRank);
-    if (ka != kb) return ka.compareTo(kb);
-    return a.index.compareTo(b.index); // stable: preserve original order
-  });
+  for (final s in streams) {
+    if (isTorrentStream(s)) {
+      torrentStreams.add(s);
+    } else {
+      directStreams.add(s);
+    }
+  }
 
-  return indexed.map((e) => e.stream).toList();
+  List<StreamResult> sortGroup(List<StreamResult> group) {
+    if (preference == QualityPreference.any || group.length <= 1) {
+      return group;
+    }
+
+    final prefRank = preference.rank;
+    final indexed = group
+        .asMap()
+        .entries
+        .map(
+          (e) => (
+            index: e.key,
+            stream: e.value,
+            tier: detectQualityTier(e.value.source),
+          ),
+        )
+        .toList();
+
+    indexed.sort((a, b) {
+      final ka = _sortKey(a.tier, prefRank);
+      final kb = _sortKey(b.tier, prefRank);
+      if (ka != kb) return ka.compareTo(kb);
+      return a.index.compareTo(b.index); // stable: preserve original order
+    });
+
+    return indexed.map((e) => e.stream).toList();
+  }
+
+  return [...sortGroup(directStreams), ...sortGroup(torrentStreams)];
 }
 
 /// Filters [streams] to only those satisfying [mode] relative to [preference].
