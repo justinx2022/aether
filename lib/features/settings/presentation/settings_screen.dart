@@ -261,7 +261,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     int categoryIndex,
     PlayerSettings playerSettings,
     GeneralSettings generalSettings,
-    AppThemeMode themeMode,
+    ThemeMode themeMode,
     ProfileState profileState,
     DohSettings dohState,
     AsyncValue<String> versionAsync,
