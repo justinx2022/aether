@@ -144,28 +144,18 @@ void main() {
       expect(resolved.selected.source, 'Video');
     });
 
-    test('a torrent has nothing to play: the torrent engine is retired', () {
-      // Playback is direct-only. A magnet used to reach the bundled torrent
-      // server; nothing is behind it now, so the resolver says so rather than
-      // handing the engine a link it cannot open.
-      expect(
-        () => resolvePlayback(
-          read: readerOf(defaults),
-          item: itemWith(),
-          videoUrl: 'magnet:?xt=urn:btih:abc',
-          probeCandidates: 0,
-        ),
-        throwsA(
-          isA<StreamResolutionException>().having(
-            (e) => e.failure,
-            'failure',
-            StreamResolutionFailure.nothingToPlay,
-          ),
-        ),
+    test('a torrent is preserved in candidates for torrent engine hand-off', () async {
+      final resolved = await resolvePlayback(
+        read: readerOf(defaults),
+        item: itemWith(),
+        videoUrl: 'magnet:?xt=urn:btih:abc',
+        probeCandidates: 0,
       );
+      expect(resolved.streams, hasLength(1));
+      expect(resolved.selected.url, 'magnet:?xt=urn:btih:abc');
     });
 
-    test('a torrent in a preloaded list is dropped, not opened', () async {
+    test('a torrent in a preloaded list is kept as a candidate', () async {
       final resolved = await resolvePlayback(
         read: readerOf(defaults),
         item: itemWith(),
@@ -177,8 +167,7 @@ void main() {
         probeCandidates: 0,
       );
 
-      expect(resolved.streams, hasLength(1));
-      expect(resolved.selected.url, 'https://cdn.example/720.mp4');
+      expect(resolved.streams, hasLength(2));
     });
 
     test('no provider and nothing preloaded fails with a message', () async {

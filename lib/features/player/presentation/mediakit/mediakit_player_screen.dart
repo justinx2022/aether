@@ -1538,7 +1538,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
           _isLoading = true;
         }
         _error = isTorrentSource(stream)
-            ? (_l10n?.playerPreparingTorrent ?? 'Preparing torrent…')
+            ? (AppLocalizations.of(context)?.playerPreparingTorrent ?? 'Preparing torrent…')
             : '';
       });
     }
