@@ -324,39 +324,27 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
                         child: Stack(
                           clipBehavior: Clip.none,
                           children: [
-                            // Content in its own traversal group, positioned
-                            // first (bottom layer)
+                            // Content fills full width (edge to edge)
                             Positioned.fill(
-                              child: Padding(
-                                padding: const EdgeInsets.only(
-                                  left: LayoutConstants.sidebarWidthCompact,
-                                ),
-                                child: FocusTraversalGroup(
-                                  policy: WidgetOrderTraversalPolicy(),
-                                  child: Focus(
-                                    canRequestFocus: false,
-                                    skipTraversal: true,
-                                    onKeyEvent: _onContentKeyEvent,
-                                    child: widget.navigationShell,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            // Sidebar in its own traversal group, positioned
-                            // second (top layer)
-                            Positioned(
-                              left: 0,
-                              top: 0,
-                              bottom: 0,
-                              width: LayoutConstants.sidebarWidthCompact,
                               child: FocusTraversalGroup(
                                 policy: WidgetOrderTraversalPolicy(),
-                                child: AppSidebar(
-                                  currentIndex:
-                                      widget.navigationShell.currentIndex,
-                                  onItemTapped: (int index) =>
-                                      _onItemTapped(index, context),
-                                  focusNodes: _sidebarNodes,
+                                child: widget.navigationShell,
+                              ),
+                            ),
+                            // Floating Apple VisionOS Glass Capsule Dock
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              bottom: 24,
+                              child: SafeArea(
+                                top: false,
+                                child: Center(
+                                  child: CustomBottomNavBar(
+                                    currentIndex:
+                                        widget.navigationShell.currentIndex,
+                                    onTap: (int index) =>
+                                        _onItemTapped(index, context),
+                                  ),
                                 ),
                               ),
                             ),

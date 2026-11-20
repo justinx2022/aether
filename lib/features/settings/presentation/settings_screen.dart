@@ -28,12 +28,38 @@ import '../../../core/router/app_router.dart';
 import 'cache_provider.dart';
 import '../../profile/presentation/profiles_screen.dart';
 
-class SettingsScreen extends ConsumerWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   final String? initialCategory;
   const SettingsScreen({super.key, this.initialCategory});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  int _selectedCategory = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialCategory != null) {
+      final initial = widget.initialCategory!.toLowerCase();
+      if (initial.contains('appear') || initial.contains('display')) {
+        _selectedCategory = 1;
+      } else if (initial.contains('sub')) {
+        _selectedCategory = 2;
+      } else if (initial.contains('ext') || initial.contains('addon')) {
+        _selectedCategory = 3;
+      } else if (initial.contains('sync') || initial.contains('net')) {
+        _selectedCategory = 4;
+      } else if (initial.contains('about') || initial.contains('update')) {
+        _selectedCategory = 5;
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
     final versionAsync = ref.watch(appVersionProvider);
@@ -49,95 +75,225 @@ class SettingsScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(title: Text(l10n.settings)),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: FocusTraversalGroup(
-            policy: ReadingOrderTraversalPolicy(),
-            child: ListView(
-              padding: const EdgeInsets.symmetric(
-                vertical: LayoutConstants.spacingSm,
-              ).copyWith(
-                bottom: LayoutConstants.shellBottomContentPadding(context),
+      appBar: AppBar(
+        title: Text(l10n.settings),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+      ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWidescreen = constraints.maxWidth >= 760;
+          if (isWidescreen) {
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1100),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // macOS Style Glass Categories Sidebar
+                      SizedBox(
+                        width: 260,
+                        child: _buildCategorySidebar(context, l10n),
+                      ),
+                      const SizedBox(width: 24),
+                      // Detail Content Pane
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: EdgeInsets.only(
+                            bottom: LayoutConstants.shellBottomContentPadding(context),
+                          ),
+                          child: _buildCategoryPanel(
+                            context,
+                            ref,
+                            l10n,
+                            _selectedCategory,
+                            playerSettings,
+                            generalSettings,
+                            themeMode,
+                            profileState,
+                            dohState,
+                            versionAsync,
+                            updateState,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              children: [
-                // 1. Playback & Engine
-                _buildPlaybackEngineGroup(
-                  context,
-                  ref,
-                  l10n,
-                  playerSettings,
-                ),
-                const SizedBox(height: LayoutConstants.spacingLg),
+            );
+          }
 
-                // 2. Performance & Fluid Motion (High-Refresh, Glass, Search)
-                _buildPerformanceExperienceGroup(
-                  context,
-                  ref,
-                  l10n,
-                  generalSettings,
+          // Compact Single-Column Layout
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: FocusTraversalGroup(
+                policy: ReadingOrderTraversalPolicy(),
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: LayoutConstants.spacingSm,
+                  ).copyWith(
+                    bottom: LayoutConstants.shellBottomContentPadding(context),
+                  ),
+                  children: [
+                    _buildPlaybackEngineGroup(context, ref, l10n, playerSettings),
+                    const SizedBox(height: LayoutConstants.spacingLg),
+                    _buildPerformanceExperienceGroup(context, ref, l10n, generalSettings),
+                    const SizedBox(height: LayoutConstants.spacingLg),
+                    _buildAppearanceDisplayGroup(context, ref, l10n, themeMode, generalSettings),
+                    const SizedBox(height: LayoutConstants.spacingLg),
+                    _buildSubtitlesStylingGroup(context, ref, l10n, playerSettings),
+                    const SizedBox(height: LayoutConstants.spacingLg),
+                    _buildExtensionsAddonsGroup(context, l10n),
+                    const SizedBox(height: LayoutConstants.spacingLg),
+                    _buildProfilesCloudSyncGroup(context, ref, l10n, generalSettings, playerSettings, profileState),
+                    const SizedBox(height: LayoutConstants.spacingLg),
+                    _buildNetworkDebridGroup(context, ref, l10n, generalSettings, dohState),
+                    const SizedBox(height: LayoutConstants.spacingLg),
+                    _buildAboutUpdatesGroup(context, ref, l10n, versionAsync, updateState),
+                  ],
                 ),
-                const SizedBox(height: LayoutConstants.spacingLg),
-
-                // 3. Appearance & Display
-                _buildAppearanceDisplayGroup(
-                  context,
-                  ref,
-                  l10n,
-                  themeMode,
-                  generalSettings,
-                ),
-                const SizedBox(height: LayoutConstants.spacingLg),
-
-                // 4. Subtitles & Styling
-                _buildSubtitlesStylingGroup(
-                  context,
-                  ref,
-                  l10n,
-                  playerSettings,
-                ),
-                const SizedBox(height: LayoutConstants.spacingLg),
-
-                // 5. Extensions & Addons
-                _buildExtensionsAddonsGroup(context, l10n),
-                const SizedBox(height: LayoutConstants.spacingLg),
-
-                // 6. Profiles & Cloud Sync
-                _buildProfilesCloudSyncGroup(
-                  context,
-                  ref,
-                  l10n,
-                  generalSettings,
-                  playerSettings,
-                  profileState,
-                ),
-                const SizedBox(height: LayoutConstants.spacingLg),
-
-                // 7. Network & Debrid
-                _buildNetworkDebridGroup(
-                  context,
-                  ref,
-                  l10n,
-                  generalSettings,
-                  dohState,
-                ),
-                const SizedBox(height: LayoutConstants.spacingLg),
-
-                // 8. About & Updates
-                _buildAboutUpdatesGroup(
-                  context,
-                  ref,
-                  l10n,
-                  versionAsync,
-                  updateState,
-                ),
-              ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
+  }
+
+  Widget _buildCategorySidebar(BuildContext context, AppLocalizations l10n) {
+    final categories = [
+      (Icons.play_circle_fill_rounded, 'Playback & Engine', const Color(0xFF3B82F6)),
+      (Icons.palette_rounded, 'Appearance & Display', const Color(0xFF8B5CF6)),
+      (Icons.subtitles_rounded, 'Subtitles & Styling', const Color(0xFF10B981)),
+      (Icons.extension_rounded, 'Extensions & Catalog', const Color(0xFFF59E0B)),
+      (Icons.cloud_sync_rounded, 'Network & Cloud Sync', const Color(0xFFEC4899)),
+      (Icons.info_rounded, 'About & Updates', const Color(0xFF6B7280)),
+    ];
+
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.04)
+            : Colors.black.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: isDark ? 0.08 : 0.12),
+          width: 0.8,
+        ),
+      ),
+      padding: const EdgeInsets.all(8),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final (i, cat) in categories.indexed)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () => setState(() => _selectedCategory = i),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: _selectedCategory == i
+                        ? theme.colorScheme.primary.withValues(alpha: isDark ? 0.22 : 0.12)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                    border: _selectedCategory == i
+                        ? Border.all(
+                            color: theme.colorScheme.primary.withValues(alpha: 0.4),
+                            width: 1,
+                          )
+                        : null,
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 30,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          color: cat.$3.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(cat.$1, size: 18, color: cat.$3),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          cat.$2,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: _selectedCategory == i
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: _selectedCategory == i
+                                ? Colors.white
+                                : Colors.white.withValues(alpha: 0.75),
+                          ),
+                        ),
+                      ),
+                      if (_selectedCategory == i)
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          size: 16,
+                          color: theme.colorScheme.primary,
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryPanel(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    int categoryIndex,
+    PlayerSettings playerSettings,
+    GeneralSettings generalSettings,
+    AppThemeMode themeMode,
+    ProfileState profileState,
+    DohSettings dohState,
+    AsyncValue<String> versionAsync,
+    UpdateState updateState,
+  ) {
+    switch (categoryIndex) {
+      case 0:
+        return Column(
+          children: [
+            _buildPlaybackEngineGroup(context, ref, l10n, playerSettings),
+            const SizedBox(height: LayoutConstants.spacingLg),
+            _buildPerformanceExperienceGroup(context, ref, l10n, generalSettings),
+          ],
+        );
+      case 1:
+        return _buildAppearanceDisplayGroup(context, ref, l10n, themeMode, generalSettings);
+      case 2:
+        return _buildSubtitlesStylingGroup(context, ref, l10n, playerSettings);
+      case 3:
+        return _buildExtensionsAddonsGroup(context, l10n);
+      case 4:
+        return Column(
+          children: [
+            _buildNetworkDebridGroup(context, ref, l10n, generalSettings, dohState),
+            const SizedBox(height: LayoutConstants.spacingLg),
+            _buildProfilesCloudSyncGroup(context, ref, l10n, generalSettings, playerSettings, profileState),
+          ],
+        );
+      case 5:
+      default:
+        return _buildAboutUpdatesGroup(context, ref, l10n, versionAsync, updateState);
+    }
   }
 
   // --- 1. Playback & Engine ---

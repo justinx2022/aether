@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -95,37 +96,45 @@ class CustomBottomNavBar extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final fullWidth = constraints.maxWidth.clamp(0.0, 420.0);
-        final surface = Container(
-          height: height,
-          color: world.glassFill,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              highlight,
-              Row(children: tabs),
-            ],
-          ),
-        );
+        final fullWidth = constraints.maxWidth.clamp(0.0, 440.0);
         return Align(
           alignment: Alignment.bottomCenter,
-          heightFactor: 1,
           child: Container(
             width: fullWidth,
+            height: height,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(height / 2),
-              border: Border.all(color: world.glassEdge, width: 1),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: isDark ? 0.16 : 0.25),
+                width: 1,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.12),
-                  blurRadius: 24,
-                  offset: const Offset(0, 8),
+                  color: Colors.black.withValues(alpha: 0.45),
+                  blurRadius: 32,
+                  spreadRadius: 2,
+                  offset: const Offset(0, 10),
                 ),
               ],
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(height / 2),
-              child: surface,
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                child: Container(
+                  height: height,
+                  color: isDark
+                      ? const Color(0xFF10121A).withValues(alpha: 0.65)
+                      : Colors.white.withValues(alpha: 0.75),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      highlight,
+                      Row(children: tabs),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
         );
