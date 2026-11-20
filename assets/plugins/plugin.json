@@ -1,11 +1,10 @@
 {
-  "id": "dev.justin.catalogue",
   "packageName": "dev.justin.catalogue",
-  "name": "Justin's Catalogue",
-  "version": 14,
+  "name": "JUSTIN'S CATALOGUE",
+  "version": 15,
   "supportsCategoryPagination": true,
   "baseUrl": "https://v3-cinemeta.strem.io",
-  "description": "Justin's Universal Hollywood & Western Movies and TV Series Catalog (Multi-Source Direct HCS Cloud 10Gbps, PixelDrain & High-Speed Streams)",
+  "description": "Justin's Universal Hollywood & Western Movies and TV Series Catalog (Multi-Source Direct HCS Cloud 10Gbps, VixSrc, VidApi & Torrent Fallback)",
   "authors": [
     "Justin"
   ],

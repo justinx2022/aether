@@ -10,6 +10,8 @@ var PluginModule = (() => {
         this.source = t.source || t.name;
         this.name = t.name || t.source;
         this.headers = t.headers || {};
+        this.protocol = t.protocol || 'hls';
+        this.file_index = t.file_index;
         if (t.quality) this.quality = t.quality;
         if (t.size) this.size = t.size;
         if (t.type) this.type = t.type;
@@ -71,35 +73,29 @@ var PluginModule = (() => {
           { title: 'Sci-Fi & Fantasy', url: CINEMETA_CATALOG + '/series/top/genre=Sci-Fi.json', type: 'series' }
         ];
 
-        var feedResults = await Promise.all(feeds.map(async function(feed) {
-          try {
-            var json = await fetchJson(feed.url);
-            if (json && Array.isArray(json.metas)) {
-              var items = [];
-              var metas = json.metas.slice(0, 24);
-              for (var j = 0; j < metas.length; j++) {
-                var m = metas[j];
-                items.push(new mt({
-                  title: m.name,
-                  url: JSON.stringify({ id: m.imdb_id || m.id, type: feed.type, title: m.name, year: m.releaseInfo }),
-                  posterUrl: m.poster || '',
-                  bannerUrl: m.background || '',
-                  description: m.description || '',
-                  year: parseInt(m.releaseInfo, 10) || undefined,
-                  score: parseFloat(m.imdbRating) || undefined,
-                  type: feed.type
-                }));
-              }
-              return { title: feed.title, items: items };
-            }
-          } catch (e) {}
-          return { title: feed.title, items: [] };
-        }));
-
         var data = {};
-        for (var i = 0; i < feedResults.length; i++) {
-          if (feedResults[i].items && feedResults[i].items.length > 0) {
-            data[feedResults[i].title] = feedResults[i].items;
+        for (var i = 0; i < feeds.length; i++) {
+          var feed = feeds[i];
+          var json = await fetchJson(feed.url);
+          if (json && Array.isArray(json.metas)) {
+            var items = [];
+            var metas = json.metas.slice(0, 24);
+            for (var j = 0; j < metas.length; j++) {
+              var m = metas[j];
+              items.push(new mt({
+                title: m.name,
+                url: JSON.stringify({ id: m.imdb_id || m.id, type: feed.type, title: m.name, year: m.releaseInfo }),
+                posterUrl: m.poster || '',
+                bannerUrl: m.background || '',
+                description: m.description || '',
+                year: parseInt(m.releaseInfo, 10) || undefined,
+                score: parseFloat(m.imdbRating) || undefined,
+                type: feed.type
+              }));
+            }
+            if (items.length > 0) {
+              data[feed.title] = items;
+            }
           }
         }
         cb({ success: true, data: data });
@@ -187,86 +183,22 @@ var PluginModule = (() => {
         try {
           parsed = JSON.parse(rawUrl);
         } catch (e) {
-          if (typeof rawUrl === 'string' && rawUrl.startsWith('aether:discovery:')) {
-            var segs = rawUrl.split(':');
-            var discId = segs[2] || '';
-            var discTitle = segs.slice(3).join(':');
-            var isNum = /^\d+$/.test(discId);
-            parsed = {
-              tmdbId: isNum ? parseInt(discId, 10) : undefined,
-              imdbId: (!isNum && discId.startsWith('tt')) ? discId : undefined,
-              id: (!isNum && discId.startsWith('tt')) ? discId : undefined,
-              title: decodeURIComponent(discTitle || ''),
-              type: 'movie'
-            };
-          } else if (typeof rawUrl === 'string' && rawUrl.startsWith('tmdb:')) {
-            var tId = rawUrl.replace('tmdb:', '');
-            parsed = { tmdbId: parseInt(tId, 10) || undefined, type: 'movie' };
-          } else if (typeof rawUrl === 'string' && rawUrl.startsWith('cinemeta:')) {
-            var cId = rawUrl.replace('cinemeta:', '');
-            parsed = { imdbId: cId, id: cId, type: 'movie' };
-          } else {
-            var parts = String(rawUrl).split('|');
-            parsed = { id: parts[0], type: parts[1] || 'movie' };
-          }
+          var parts = String(rawUrl).split('|');
+          parsed = { id: parts[0], type: parts[1] || 'movie' };
         }
 
         var id = parsed.id || parsed.imdbId;
         var type = parsed.type || 'movie';
-        var tmdbId = parsed.tmdbId;
 
-        // If ID is missing but we have title or tmdbId, search Cinemeta by title
-        if ((!id || !String(id).startsWith('tt')) && parsed.title) {
-          try {
-            var q = encodeURIComponent(String(parsed.title).trim());
-            var searchRes = await fetchJson(CINEMETA_V3 + '/catalog/' + type + '/top/search=' + q + '.json');
-            if (searchRes && Array.isArray(searchRes.metas) && searchRes.metas.length > 0) {
-              var found = searchRes.metas[0];
-              id = found.imdb_id || found.id;
-            }
-          } catch (e) {}
-        }
-
-        var json = null;
-        if (id && String(id).startsWith('tt')) {
-          var metaUrl = CINEMETA_V3 + '/meta/' + type + '/' + id + '.json';
-          json = await fetchJson(metaUrl);
-        }
+        var metaUrl = CINEMETA_V3 + '/meta/' + type + '/' + id + '.json';
+        var json = await fetchJson(metaUrl);
 
         if (!json || !json.meta) {
-          if (parsed.title || tmdbId || id) {
-            var fallbackTitle = parsed.title || ('Title ' + (tmdbId || id || ''));
-            var ep = new gt({
-              name: 'Full Movie',
-              season: 1,
-              episode: 1,
-              posterUrl: parsed.posterUrl || '',
-              url: JSON.stringify({
-                imdbId: (id && String(id).startsWith('tt')) ? id : undefined,
-                tmdbId: tmdbId || undefined,
-                type: type,
-                title: fallbackTitle,
-                year: parsed.year,
-                season: 1,
-                episode: 1
-              })
-            });
-            return cb({
-              success: true,
-              data: new mt({
-                title: fallbackTitle,
-                url: rawUrl,
-                posterUrl: parsed.posterUrl || '',
-                type: type,
-                episodes: [ep]
-              })
-            });
-          }
           return cb({ success: false, errorCode: 'NOT_FOUND', message: 'Title not found' });
         }
 
         var m = json.meta;
-        tmdbId = tmdbId || m.moviedb_id || undefined;
+        var tmdbId = m.moviedb_id || undefined;
         var cast = [];
         if (Array.isArray(m.cast)) {
           for (var i = 0; i < Math.min(m.cast.length, 15); i++) {
@@ -576,44 +508,13 @@ var PluginModule = (() => {
         try {
           parsed = JSON.parse(rawUrl);
         } catch (e) {
-          if (typeof rawUrl === 'string' && rawUrl.startsWith('aether:discovery:')) {
-            var segs = rawUrl.split(':');
-            var discId = segs[2] || '';
-            var discTitle = segs.slice(3).join(':');
-            var isNum = /^\d+$/.test(discId);
-            parsed = {
-              tmdbId: isNum ? parseInt(discId, 10) : undefined,
-              imdbId: (!isNum && discId.startsWith('tt')) ? discId : undefined,
-              title: decodeURIComponent(discTitle || ''),
-              type: 'movie',
-              season: 1,
-              episode: 1
-            };
-          } else if (typeof rawUrl === 'string' && rawUrl.startsWith('tmdb:')) {
-            var tId = rawUrl.replace('tmdb:', '');
-            parsed = {
-              tmdbId: parseInt(tId, 10) || undefined,
-              type: 'movie',
-              season: 1,
-              episode: 1
-            };
-          } else if (typeof rawUrl === 'string' && rawUrl.startsWith('cinemeta:')) {
-            var cId = rawUrl.replace('cinemeta:', '');
-            parsed = {
-              imdbId: cId,
-              type: 'movie',
-              season: 1,
-              episode: 1
-            };
-          } else {
-            var parts = String(rawUrl).split('|');
-            parsed = {
-              imdbId: parts[0],
-              type: parts[1] || 'movie',
-              season: parseInt(parts[2], 10) || 1,
-              episode: parseInt(parts[3], 10) || 1
-            };
-          }
+          var parts = String(rawUrl).split('|');
+          parsed = {
+            imdbId: parts[0],
+            type: parts[1] || 'movie',
+            season: parseInt(parts[2], 10) || 1,
+            episode: parseInt(parts[3], 10) || 1
+          };
         }
 
         var imdbId = parsed.imdbId || parsed.id;
@@ -624,7 +525,7 @@ var PluginModule = (() => {
         var tmdbId = parsed.tmdbId;
 
         // Resolve TMDB ID in parallel if missing
-        var cinemetaPromise = (!tmdbId && imdbId && String(imdbId).startsWith('tt')) ? (async function() {
+        var cinemetaPromise = (!tmdbId && imdbId) ? (async function() {
           try {
             var meta = await fetchJson(CINEMETA_V3 + '/meta/' + type + '/' + imdbId + '.json');
             if (meta && meta.meta && meta.meta.moviedb_id) {
@@ -795,7 +696,7 @@ var PluginModule = (() => {
             var resolvedTmdb = tmdbId || await cinemetaPromise;
             var idsToTry = [];
             if (resolvedTmdb) idsToTry.push('tmdb=' + resolvedTmdb);
-            if (imdbId && String(imdbId).startsWith('tt')) idsToTry.push('imdb=' + imdbId);
+            if (imdbId) idsToTry.push('imdb=' + imdbId);
             if (idsToTry.length === 0) return;
 
             var tvQuery = type === 'movie' ? '' : ('&season=' + season + '&episode=' + episode);
@@ -804,9 +705,10 @@ var PluginModule = (() => {
               'https://vaplayer.ru/api.php'
             ];
 
-            var probeMirror = async function(mirrorBase, idQuery) {
-              try {
-                var apiUrl = mirrorBase + '?' + idQuery + '&type=' + (type === 'movie' ? 'movie' : 'tv') + tvQuery;
+            for (var m = 0; m < mirrors.length; m++) {
+              var mirrorBase = mirrors[m];
+              for (var k = 0; k < idsToTry.length; k++) {
+                var apiUrl = mirrorBase + '?' + idsToTry[k] + '&type=' + (type === 'movie' ? 'movie' : 'tv') + tvQuery;
                 var json = await fetchJson(apiUrl, {
                   'User-Agent': DEFAULT_HEADERS['User-Agent'],
                   'Referer': 'https://brightpathsignals.com/',
@@ -815,65 +717,58 @@ var PluginModule = (() => {
 
                 if (json && (json.status_code == 200 || json.status_code === '200' || (json.data && json.data.stream_urls))) {
                   var list = json.data ? json.data.stream_urls : null;
-                  return Array.isArray(list) ? list : (typeof list === 'object' && list ? Object.values(list) : []);
-                }
-              } catch (e) {}
-              return [];
-            };
-
-            var mirrorTasks = [];
-            for (var m = 0; m < mirrors.length; m++) {
-              for (var k = 0; k < idsToTry.length; k++) {
-                mirrorTasks.push(probeMirror(mirrors[m], idsToTry[k]));
-              }
-            }
-
-            var mirrorResults = await Promise.all(mirrorTasks);
-            for (var mr = 0; mr < mirrorResults.length; mr++) {
-              var urlArray = mirrorResults[mr];
-              if (urlArray && urlArray.length > 0) {
-                for (var i = 0; i < urlArray.length; i++) {
-                  var streamUrl = urlArray[i];
-                  if (streamUrl && !seenUrls.has(streamUrl) && (streamUrl.includes('.m3u8') || streamUrl.includes('.mp4'))) {
-                    seenUrls.add(streamUrl);
-                    var isHLS = !streamUrl.includes('.mp4') && !streamUrl.includes('.mkv');
-                    var q = parseQuality(streamUrl);
-                    streams.push(new Nt({
-                      url: streamUrl,
-                      source: 'VidApi Server ' + (i + 1),
-                      name: '⚡ VidApi Server ' + (i + 1) + ' [' + q + 'p ' + (isHLS ? 'HLS' : 'MP4') + ']',
-                      quality: q,
-                      type: isHLS ? 'hls' : 'mp4',
-                      isM3U8: isHLS,
-                      headers: {
-                        'User-Agent': DEFAULT_HEADERS['User-Agent']
+                  var urlArray = Array.isArray(list) ? list : (typeof list === 'object' && list ? Object.values(list) : []);
+                  if (urlArray.length > 0) {
+                    for (var i = 0; i < urlArray.length; i++) {
+                      var streamUrl = urlArray[i];
+                      if (streamUrl && !seenUrls.has(streamUrl) && (streamUrl.includes('.m3u8') || streamUrl.includes('.mp4'))) {
+                        seenUrls.add(streamUrl);
+                        var isHLS = !streamUrl.includes('.mp4') && !streamUrl.includes('.mkv');
+                        var q = parseQuality(streamUrl);
+                        streams.push(new Nt({
+                          url: streamUrl,
+                          source: 'VidApi Server ' + (i + 1),
+                          name: '⚡ VidApi Server ' + (i + 1) + ' [' + q + 'p ' + (isHLS ? 'HLS' : 'MP4') + ']',
+                          quality: q,
+                          type: isHLS ? 'hls' : 'mp4',
+                          isM3U8: isHLS,
+                          protocol: isHLS ? 'hls' : 'direct',
+                          headers: {
+                            // Keep the CDN request free of the API site's
+                            // Referer/Origin. Those headers make its HLS
+                            // segments return 403 even when the playlist is 200.
+                            'User-Agent': DEFAULT_HEADERS['User-Agent']
+                          }
+                        }));
                       }
-                    }));
+                    }
+                    return; // Successfully harvested VidApi mirror
                   }
                 }
-                break;
               }
             }
           } catch (e) {}
         })();
 
-        // 2. VixSrc Multi-Audio Direct Master HLS Streams (Highest Quality, Instant Concurrent Resolution)
+        // 2. VixSrc Multi-Audio Direct Master HLS Streams
         var vixsrcPromise = (async function() {
           try {
             var resolvedTmdb = tmdbId || await cinemetaPromise;
             var idsToTry = [];
             if (resolvedTmdb) idsToTry.push(resolvedTmdb);
-            if (imdbId && imdbId !== resolvedTmdb && String(imdbId).startsWith('tt')) idsToTry.push(imdbId);
+            if (imdbId && imdbId !== resolvedTmdb) idsToTry.push(imdbId);
             if (idsToTry.length === 0) return;
 
             var domains = [
-              'https://vixcloud.co',
               'https://vixsrc.to',
+              'https://vixcloud.co',
               'https://vixsrc.stream'
             ];
 
-            var probeDomain = async function(domain, idToUse) {
-              try {
+            for (var d = 0; d < domains.length; d++) {
+              var domain = domains[d];
+              for (var m = 0; m < idsToTry.length; m++) {
+                var idToUse = idsToTry[m];
                 var tvPath = type === 'movie' ? ('/api/movie/' + idToUse) : ('/api/tv/' + idToUse + '/' + season + '/' + episode);
                 var json = await fetchJson(domain + tvPath, {
                   'User-Agent': DEFAULT_HEADERS['User-Agent'],
@@ -896,70 +791,102 @@ var PluginModule = (() => {
                     var playlistUrl = playlistMatch[1];
                     var sep = playlistUrl.includes('?') ? '&' : '?';
                     var masterUrl = playlistUrl + sep + 'token=' + tokenMatch[1] + '&expires=' + expiresMatch[1] + '&h=1';
-                    var hostLabel = domain.replace('https://', '');
-                    return {
-                      url: masterUrl,
-                      source: 'VixSrc Multi-Audio (' + hostLabel + ')',
-                      name: '⚡ VixSrc Multi-Audio [1080p Master HLS]',
-                      quality: 1080,
-                      type: 'hls',
-                      isM3U8: true,
-                      headers: {
-                        'User-Agent': DEFAULT_HEADERS['User-Agent'],
-                        'Referer': embedUrl,
-                        'Origin': domain
-                      }
-                    };
+                    if (!seenUrls.has(masterUrl)) {
+                      seenUrls.add(masterUrl);
+                      var hostLabel = domain.replace('https://', '');
+                      streams.push(new Nt({
+                        url: masterUrl,
+                        source: 'VixSrc Multi-Audio (' + hostLabel + ')',
+                        name: '⚡ VixSrc Multi-Audio [1080p Master HLS]',
+                        quality: 1080,
+                        type: 'hls',
+                        isM3U8: true,
+                        headers: {
+                          'User-Agent': DEFAULT_HEADERS['User-Agent'],
+                          'Referer': embedUrl,
+                          'Origin': domain
+                        }
+                      }));
+                      return; // Found master playlist
+                    }
                   }
                 }
-              } catch (e) {}
-              return null;
-            };
-
-            var domainTasks = [];
-            for (var m = 0; m < idsToTry.length; m++) {
-              for (var d = 0; d < domains.length; d++) {
-                domainTasks.push(probeDomain(domains[d], idsToTry[m]));
-              }
-            }
-
-            var domainResults = await Promise.all(domainTasks);
-            for (var dr = 0; dr < domainResults.length; dr++) {
-              var item = domainResults[dr];
-              if (item && item.url && !seenUrls.has(item.url)) {
-                seenUrls.add(item.url);
-                streams.push(new Nt(item));
-                break;
               }
             }
           } catch (e) {}
         })();
 
-        // Execute primary fast extractors in parallel with quick timeout protection
-        await Promise.all([
-          withTimeout(vixsrcPromise, 3000),
-          withTimeout(vidapiPromise, 3000),
-          withTimeout(archivePromise, 3000)
-        ]);
+        // 3. Torrentio Multi-Tracker Streams (P2P Torrent Fallback)
+        var torrentioPromise = (async function() {
+          try {
+            if (!imdbId) return;
+            var tType = type === 'movie' ? 'movie' : 'series';
+            var tId = imdbId + (type === 'series' ? (':' + season + ':' + episode) : '');
+            var tUrl = 'https://torrentio.strem.fun/stream/' + tType + '/' + tId + '.json';
+            var tData = await fetchJson(tUrl, {
+              'User-Agent': DEFAULT_HEADERS['User-Agent']
+            });
 
-        // If primary extractors already found working streams (e.g. VixSrc 1080p Master HLS),
-        // we do not block playback waiting for slow multi-page MoviesDrive scraping!
-        if (streams.length === 0) {
-          await withTimeout(hcsPromise, 3500);
-        } else {
-          await withTimeout(hcsPromise, 800);
-        }
+            if (tData && Array.isArray(tData.streams) && tData.streams.length > 0) {
+              var trackers = [
+                'udp://tracker.opentrackr.org:1337/announce',
+                'udp://open.stealth.si:80/announce',
+                'udp://tracker.torrent.eu.org:451/announce'
+              ];
+              var trackerParams = trackers.map(function(tr) {
+                return '&tr=' + encodeURIComponent(tr);
+              }).join('');
+
+              var count = 0;
+              for (var ti = 0; ti < tData.streams.length && count < 6; ti++) {
+                var item = tData.streams[ti];
+                if (!item || !item.infoHash) continue;
+
+                var rawTitle = (item.title || '').split('\n')[0] || title;
+                var q = parseQuality(rawTitle || item.name);
+                var magnet = 'magnet:?xt=urn:btih:' + item.infoHash + '&dn=' + encodeURIComponent(rawTitle) + trackerParams;
+
+                if (!seenUrls.has(magnet)) {
+                  seenUrls.add(magnet);
+                  count++;
+                  var qLabel = q ? (q + 'p') : 'HD';
+                  streams.push(new Nt({
+                    url: magnet,
+                    source: 'Torrentio P2P (' + qLabel + ')',
+                    name: '⚡ Torrentio [' + qLabel + ' Torrent]',
+                    quality: q || 1080,
+                    protocol: 'torrent',
+                    type: 'torrent',
+                    file_index: item.fileIdx !== undefined ? item.fileIdx : 0,
+                    isM3U8: false
+                  }));
+                }
+              }
+            }
+          } catch (e) {}
+        })();
+
+        // Execute all extractors in parallel with timeout protection
+        await Promise.all([
+          withTimeout(hcsPromise, 10000),
+          withTimeout(archivePromise, 8000),
+          withTimeout(vidapiPromise, 8000),
+          withTimeout(vixsrcPromise, 8000),
+          withTimeout(torrentioPromise, 8000)
+        ]);
 
         // VixSrc is the confirmed reliable stream for this catalogue. Keep it
         // first for Auto selection, then direct HCS links, then other mirrors
-        // (including VidApi as a fallback). Preserve quality ordering per tier.
+        // (including VidApi as a fallback), then Torrentio P2P fallback.
+        // Preserve quality ordering per tier.
         streams.sort(function(a, b) {
           function rank(stream) {
             if (/^VixSrc Multi-Audio/i.test(stream.source || '')) return 0;
             if (/^Internet Archive Public Domain/i.test(stream.source || '')) return 1;
-            if (stream.isHcs || stream.type === 'mkv' || stream.type === 'mp4' || !stream.isM3U8) return 2;
+            if (stream.isHcs || stream.type === 'mkv' || stream.type === 'mp4' || (!stream.isM3U8 && stream.protocol !== 'torrent')) return 2;
             if (/^VidApi Server/i.test(stream.source || '')) return 3;
-            return 4;
+            if (/^Torrentio/i.test(stream.source || '') || stream.protocol === 'torrent') return 4;
+            return 5;
           }
           var aRank = rank(a);
           var bRank = rank(b);
