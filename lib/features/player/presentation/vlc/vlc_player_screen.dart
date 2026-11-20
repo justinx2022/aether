@@ -610,7 +610,7 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
 
   /// Whether this session ever started the torrent engine, so teardown only
   /// stops something it actually started.
-  final bool _startedTorrent = false;
+  bool _startedTorrent = false;
 
   /// Intro/outro bands for the current episode. Usually empty: both sources
   /// are opt-in and off by default.
@@ -1250,11 +1250,16 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
       }
     }
 
-    // One path: hand the engine the candidate resolution chose. The old
-    // priority ladder raced a HEAD check across several candidates first,
-    // which cost seconds before the first frame and could redirect a picked
-    // quality to whichever other URL answered earliest.
-    final playable = playableUrlFor(stream);
+    // One path: hand the engine the candidate resolution chose.
+    String? playable;
+    if (isTorrentSource(stream)) {
+      final torrentService = _read(torrentServiceProvider);
+      _setStatus(_l10n?.playerPreparingTorrent ?? 'Preparing torrent…');
+      _startedTorrent = true;
+      playable = await torrentService.getStreamUrl(stream.url);
+    } else {
+      playable = playableUrlFor(stream);
+    }
     if (_disposed || generation != _generation) return;
     if (playable == null) {
       return _failAttempt(

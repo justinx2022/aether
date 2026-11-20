@@ -87,12 +87,7 @@ String providerIdForStream(StreamResult stream, {String fallback = ''}) {
 }
 
 /// Turns a resolved candidate into a URL an engine can actually open.
-///
-/// Torrent playback is retired: this returns null for a torrent rather than
-/// seeding it, so even a stale list cannot restart the torrent server. Every
-/// other source is already playable and only needs normalising.
 String? playableUrlFor(StreamResult stream) {
-  if (isTorrentSource(stream)) return null;
   return AppUtils.normalizeUrl(stream.url);
 }
 
@@ -306,16 +301,7 @@ Future<ResolvedPlayback> resolvePlayback({
     onCandidates?.call(streams);
     return ResolvedPlayback(streams: streams, index: 0);
   }
-  // A magnet or .torrent link used to be handed to the bundled torrent
-  // server. That is retired, so there is no fallback left to offer it.
-  if (isTorrentUrl(videoUrl)) {
-    throw const StreamResolutionException(
-      StreamResolutionFailure.nothingToPlay,
-    );
-  }
-
   final preloaded = (preloadedStreams ?? const <StreamResult>[])
-      .where((s) => !isTorrentSource(s))
       .toList(growable: false);
   final provider = _resolveProvider(read, item);
   if (provider == null && preloaded.isEmpty) {
@@ -338,7 +324,6 @@ Future<ResolvedPlayback> resolvePlayback({
     final sw = Stopwatch()..start();
     try {
       raw = (await provider!.loadStreams(videoUrl))
-          .where((s) => !isTorrentSource(s))
           .toList(growable: false);
       sw.stop();
       try {

@@ -28,6 +28,7 @@ import '../../../../core/services/neural_media_enhancer.dart';
 import '../../../settings/presentation/ai_settings_provider.dart';
 import '../../../../core/utils/app_utils.dart';
 import '../../../../core/utils/stream_quality_sorter.dart';
+import '../../../../core/extensions/providers.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../../core/storage/history_repository.dart';
 import '../../../details/presentation/details_controller.dart';
@@ -222,6 +223,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   Offset? _prePipWindowPosition;
   BoxFit _fit = BoxFit.contain;
   PlayerSettings? _settings;
+  bool _startedTorrent = false;
 
   static BoxFit _fitFromSettings(String mode) => switch (mode.toLowerCase()) {
     'zoom' => BoxFit.cover,
@@ -1521,12 +1523,6 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     }
 
     final stream = streams[index];
-    // Resolution drops torrents, but a list built before that rule must not
-    // be able to send one to the engine.
-    if (isTorrentSource(stream)) {
-      _failoverNext();
-      return;
-    }
 
     final switching = _hasPlayedOnce;
     _attemptIndex = index;
@@ -1541,12 +1537,28 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
         } else {
           _isLoading = true;
         }
-        _error = '';
+        _error = isTorrentSource(stream)
+            ? (_l10n?.playerPreparingTorrent ?? 'Preparing torrent…')
+            : '';
       });
     }
 
+    String? playableUrl;
+    if (isTorrentSource(stream)) {
+      final torrentService = _read(torrentServiceProvider);
+      _startedTorrent = true;
+      playableUrl = await torrentService.getStreamUrl(stream.url);
+      if (_disposed || token != _openToken) return;
+      if (playableUrl == null) {
+        _failoverNext();
+        return;
+      }
+    } else {
+      playableUrl = AppUtils.normalizeUrl(stream.url);
+    }
+
     final headers = playbackHeaders(stream);
-    final url = AppUtils.normalizeUrl(stream.url);
+    final url = playableUrl;
     final at = startAt > Duration.zero && !isLiveSource(_item, _currentVideoUrl)
         ? startAt
         : null;
@@ -2703,6 +2715,9 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     try {
       _focusNode.dispose();
     } catch (_) {}
+    if (_startedTorrent) {
+      unawaited(_read(torrentServiceProvider).stop());
+    }
     super.dispose();
   }
 
