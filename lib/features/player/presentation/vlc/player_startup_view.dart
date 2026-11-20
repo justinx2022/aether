@@ -142,7 +142,10 @@ class _PlayerStartupViewState extends State<PlayerStartupView>
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400),
-    )..repeat(reverse: true);
+    );
+    if (!widget.failed) {
+      _pulseController.repeat(reverse: true);
+    }
     _pulseAnimation = Tween<double>(begin: 0.65, end: 1.0).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
@@ -151,6 +154,11 @@ class _PlayerStartupViewState extends State<PlayerStartupView>
   @override
   void didUpdateWidget(PlayerStartupView oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.failed) {
+      if (_pulseController.isAnimating) _pulseController.stop();
+    } else if (!_pulseController.isAnimating) {
+      _pulseController.repeat(reverse: true);
+    }
     if (widget.isTv && widget.failed && !oldWidget.failed) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _retryFocus.requestFocus();

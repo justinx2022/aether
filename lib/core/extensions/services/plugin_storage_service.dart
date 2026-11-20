@@ -317,7 +317,15 @@ class PluginStorageService {
           final existingSha = existingMeta['installSha256'] as String?;
           final existingVer = existingMeta['version'];
           final currentVer = manifest['version'];
-          if (existingSha == sha && existingVer == currentVer) {
+          if (existingVer is num && currentVer is num) {
+            // Never downgrade an extension if a newer version is already installed on disk
+            if (existingVer > currentVer) {
+              return;
+            }
+            if (existingVer == currentVer && existingSha == sha) {
+              return;
+            }
+          } else if (existingSha == sha) {
             return;
           }
         } catch (_) {}

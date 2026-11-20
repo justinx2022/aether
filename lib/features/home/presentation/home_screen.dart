@@ -347,30 +347,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             slivers: [
               if (data.containsKey('Trending'))
                 SliverToBoxAdapter(
-                  child: ExploreCarousel(
-                    movies: data['Trending']!.take(7).toList(),
-                    scrollController: _scrollController,
-                    onNavigateUp: () => _firstActionFocusNode.requestFocus(),
-                    onControllerReady: (c) =>
-                        setState(() => _carouselController = c),
-                    onTap: (item) {
-                      DetailsRoute($extra: DetailsRouteExtra(item: item))
-                          .push<void>(context);
-                    },
+                  child: RepaintBoundary(
+                    child: ExploreCarousel(
+                      movies: data['Trending']!.take(7).toList(),
+                      scrollController: _scrollController,
+                      onNavigateUp: () => _firstActionFocusNode.requestFocus(),
+                      onControllerReady: (c) =>
+                          setState(() => _carouselController = c),
+                      onTap: (item) {
+                        DetailsRoute($extra: DetailsRouteExtra(item: item))
+                            .push<void>(context);
+                      },
+                    ),
                   ),
                 )
               else if (data.isNotEmpty)
                 SliverToBoxAdapter(
-                  child: ExploreCarousel(
-                    movies: data.values.first.take(7).toList(),
-                    scrollController: _scrollController,
-                    onNavigateUp: () => _firstActionFocusNode.requestFocus(),
-                    onControllerReady: (c) =>
-                        setState(() => _carouselController = c),
-                    onTap: (item) {
-                      DetailsRoute($extra: DetailsRouteExtra(item: item))
-                          .push<void>(context);
-                    },
+                  child: RepaintBoundary(
+                    child: ExploreCarousel(
+                      movies: data.values.first.take(7).toList(),
+                      scrollController: _scrollController,
+                      onNavigateUp: () => _firstActionFocusNode.requestFocus(),
+                      onControllerReady: (c) =>
+                          setState(() => _carouselController = c),
+                      onTap: (item) {
+                        DetailsRoute($extra: DetailsRouteExtra(item: item))
+                            .push<void>(context);
+                      },
+                    ),
                   ),
                 )
               else if (!isWidescreen)
