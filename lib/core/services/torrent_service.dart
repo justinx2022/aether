@@ -91,16 +91,16 @@ class TorrentService {
         "action": "set",
         "sets": {
           "CacheSize": _cacheMb * 1024 * 1024,
-          "ReaderReadAHead": 95,              // 95% ahead = max forward buffer
+          "ReaderReadAHead": _readAheadPercent,
           "PreloadCache": 2,                  // 2% = ~2.5MB forces head+tail fetch
           "ConnectionsLimit": 80,             // ↑ 80 peers = more parallel pipes
-          "TorrentDisconnectTimeout": 10,     // ↓ 10s = drop slow peers faster
+          "TorrentDisconnectTimeout": 30,     // 30s = stable peer handshake without dropping
           "RetrackersMode": 1,
-          "PieceTimeout": 3,                  // ↓ 3s = drop stuck pieces faster
-          "PieceSize": 262144,
           "UseDisk": false,                   // RAM-only = faster, no disk I/O
           "EnableIPv6": true,
-          "DhtConnectionLimit": 500,          // More DHT nodes = better peer discovery
+          "DisableDHT": false,
+          "DisablePEX": false,
+          "DisableUPNP": false,
         }
       };
 
@@ -196,8 +196,8 @@ class TorrentService {
 
   Future<Map<String, dynamic>?> _pollForMetadata(String hash) async {
     int attempts = 0;
-    // Check every 350ms up to 40 attempts (~14 seconds max) to allow DHT peer discovery
-    while (attempts < 40) {
+    // Check every 350ms up to 60 attempts (~21 seconds max) to allow DHT peer discovery
+    while (attempts < 60) {
       await Future<void>.delayed(const Duration(milliseconds: 350));
       try {
         final status = await _server.getTorrentStatus(hash);

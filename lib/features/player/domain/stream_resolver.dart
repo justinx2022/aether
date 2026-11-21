@@ -366,17 +366,38 @@ Future<ResolvedPlayback> resolvePlayback({
       ? raw
       : await _byQuality(raw, settings, (v) => didFallback = v);
 
-  // Apply provider health scoring to prioritize fast and reliable providers if enabled
+  // Apply provider health scoring to prioritize fast and reliable providers if enabled.
+  // Partition into direct (HLS/HTTP) and torrent streams so health scoring
+  // NEVER elevates a torrent stream above an HLS/direct stream.
   if (!handPicked &&
       streams.length > 1 &&
       (settings?.autoHealthScoringEnabled ?? true)) {
     try {
       final health = read(providerHealthServiceProvider);
-      streams = health.rankSourcesByHealth<StreamResult>(
-        sources: streams,
-        getProviderId: (s) =>
-            providerIdForStream(s, fallback: provider?.packageName ?? ''),
-      );
+      final directList = streams.where((s) => !isTorrentStream(s)).toList();
+      final torrentList = streams.where((s) => isTorrentStream(s)).toList();
+
+      final rankedDirect = directList.isNotEmpty
+          ? health.rankSourcesByHealth<StreamResult>(
+              sources: directList,
+              getProviderId: (s) =>
+                  providerIdForStream(s, fallback: provider?.packageName ?? ''),
+            )
+          : const <StreamResult>[];
+
+      final rankedTorrent = torrentList.isNotEmpty
+          ? health.rankSourcesByHealth<StreamResult>(
+              sources: torrentList,
+              getProviderId: (s) =>
+                  providerIdForStream(s, fallback: provider?.packageName ?? ''),
+            )
+          : const <StreamResult>[];
+
+      if (settings?.preferredStreamType == PreferredStreamType.torrent) {
+        streams = [...rankedTorrent, ...rankedDirect];
+      } else {
+        streams = [...rankedDirect, ...rankedTorrent];
+      }
     } catch (_) {}
   }
 
@@ -517,7 +538,11 @@ Future<List<StreamResult>> _byQuality(
     settings.qualityFilterMode,
     onFallback: onFallback,
   );
-  return sortStreamsByQuality(filtered, preference);
+  return sortStreamsByQuality(
+    filtered,
+    preference,
+    preferredStreamType: settings.preferredStreamType,
+  );
 }
 
 /// The source the user last watched this title on, so switching episodes keeps
@@ -542,7 +567,15 @@ int _savedStreamIndex(
 
     if (lastUrl != null) {
       final found = streams.indexWhere((s) => s.url == lastUrl);
-      if (found != -1) return found;
+      if (found != -1) {
+        // If the saved stream was a torrent, but we now have direct/HLS streams available,
+        // do NOT auto-pick the torrent — prefer the high-speed direct stream (index 0).
+        final hasDirect = streams.any((s) => !isTorrentStream(s));
+        if (isTorrentStream(streams[found]) && hasDirect) {
+          return 0;
+        }
+        return found;
+      }
     }
   } catch (e) {
     if (kDebugMode) debugPrint('resolvePlayback: saved stream lookup: $e');
@@ -736,8 +769,12 @@ Future<int> _firstHealthyStream(
     // Instant-Start Optimization: If the top preferred candidate answered and is healthy,
     // open it immediately! Never delay the #1 ranked source for 1.2s to wait on lower-ranked mirrors.
     if (results[start]?.outcome.reached ?? false) {
-      finish(start);
-      return;
+      final isTorrent = isTorrentStream(streams[start]);
+      final hasDirect = streams.any((s) => !isTorrentStream(s));
+      if (!isTorrent || !hasDirect) {
+        finish(start);
+        return;
+      }
     }
     // The quickest answer wins as soon as nothing could still beat it.
     final best = fastestReached();

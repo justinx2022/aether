@@ -1,5 +1,6 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:aether/l10n/generated/app_localizations.dart';
+import '../models/stream_type.dart';
 import '../../features/settings/presentation/player_settings_provider.dart';
 import '../domain/entity/multimedia_item.dart';
 
@@ -213,16 +214,21 @@ Future<bool> isOnMeteredNetwork() async {
 /// Whether [stream] is a P2P / torrent source (magnet, .torrent, or local torrent file).
 bool isTorrentStream(StreamResult stream) {
   final url = stream.url.toLowerCase();
+  final source = stream.source.toLowerCase();
+  final name = stream.name.toLowerCase();
   return url.startsWith('magnet:') ||
       url.endsWith('.torrent') ||
-      (url.startsWith('/') && stream.source.toLowerCase().contains('torrent'));
+      source.contains('torrent') ||
+      source.contains('p2p') ||
+      name.contains('torrent') ||
+      (url.startsWith('/') && source.contains('torrent'));
 }
 
 /// Sorts [streams] by quality preference without changing the original list.
 ///
-/// Direct/HLS streams ALWAYS precede torrent streams, so that instant-start
-/// HTTP streams are prioritized and auto-played first, while torrents remain
-/// selectable fallbacks.
+/// Direct/HLS streams ALWAYS precede torrent streams (unless [preferredStreamType]
+/// is [PreferredStreamType.torrent]), so that instant-start HTTP streams are
+/// prioritized and auto-played first, while torrents remain selectable fallbacks.
 ///
 /// If [preference] is [QualityPreference.any] the relative order within each
 /// group is preserved.
@@ -231,8 +237,9 @@ bool isTorrentStream(StreamResult stream) {
 ///   1080p → 720p → 480p → 360p → 2K → 4K → unknown/auto
 List<StreamResult> sortStreamsByQuality(
   List<StreamResult> streams,
-  QualityPreference preference,
-) {
+  QualityPreference preference, {
+  PreferredStreamType preferredStreamType = PreferredStreamType.hlsDirect,
+}) {
   if (streams.length <= 1) {
     return streams;
   }
@@ -278,7 +285,11 @@ List<StreamResult> sortStreamsByQuality(
     return indexed.map((e) => e.stream).toList();
   }
 
-  return [...sortGroup(directStreams), ...sortGroup(torrentStreams)];
+  if (preferredStreamType == PreferredStreamType.torrent) {
+    return [...sortGroup(torrentStreams), ...sortGroup(directStreams)];
+  } else {
+    return [...sortGroup(directStreams), ...sortGroup(torrentStreams)];
+  }
 }
 
 /// Filters [streams] to only those satisfying [mode] relative to [preference].

@@ -1537,9 +1537,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
         } else {
           _isLoading = true;
         }
-        _error = isTorrentSource(stream)
-            ? (AppLocalizations.of(context)?.playerPreparingTorrent ?? 'Preparing torrent…')
-            : '';
+        _error = '';
       });
     }
 
@@ -3007,7 +3005,9 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                       status: _isLoading
                           ? (_candidates.isNotEmpty &&
                                     _attemptIndex < _candidates.length
-                                ? 'Connecting to ${_candidates[_attemptIndex].source}…'
+                                ? (isTorrentSource(_candidates[_attemptIndex])
+                                    ? (AppLocalizations.of(context)?.playerPreparingTorrent ?? 'Preparing torrent…')
+                                    : 'Connecting to ${_candidates[_attemptIndex].source}…')
                                 : 'Loading high-performance stream…')
                           : null,
                       reason: _error.isNotEmpty ? _error : null,
