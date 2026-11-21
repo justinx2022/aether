@@ -1,3 +1,24 @@
+# Changelogs - v2.0.0
+
+### ✨ *New Features & Major Enhancements*
+
+#### 🌊 Torrent-to-HLS Fallback Engine (Virtual Debrid)
+- **HLS-Predominant Seamless Streaming**: Progressive HTTP/HLS links always retain priority; torrent conversions automatically kick in as a robust fallback when direct streams are unavailable.
+- **Integrated Packaging Pipeline**: Orchestrates vendored TorrServer with FFmpeg direct stream-copy (`-c:v copy`), generating compliant HLS playlists and MPEG-TS segments delivered via `LocalProxyService`.
+- **Atomic Segment Publishing**: Employs `-hls_flags temp_file` and 3-second IDR-aligned segments, preventing buffer underruns and truncated playback.
+- **Audited Disk Persistence & Buffer Preservation**: Strict adherence to user buffer parameters (`_cacheMb`, 80% read-ahead window) with isolated disk cache retention.
+- **1080p Resolution Ceiling**: Strictly filters out battery-draining 4K/2160p releases while preserving full-bitrate 1080p REMUX playback.
+
+#### 🧠 Aether Discovery Intelligence (ADI)
+- **Infinite Pagination**: Continuous smooth scrolling across anime, movies, series, and curated feeds with automatic background pre-fetching.
+- **Direct Catalog Navigation**: Seamless click-to-details routing with comprehensive metadata integration.
+
+#### 🎨 Obsidian OLED & Experience Overhaul
+- **True OLED Black**: Pure `#000000` dark theme eliminating GPU compositing blur and battery drain.
+- **30 Cinema & Series Avatars**: Netflix-style profile onboarding with customizable avatar selections.
+
+---
+
 # Changelogs - v2.8.1
 
 ### ✨ *New Features & Enhancements*
