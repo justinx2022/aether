@@ -99,7 +99,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
               ),
             ),
             onPressed: () {
-              if (profile.verifyPin(controller.text.trim())) {
+              if (profile.verifyPin(_pinController.text.trim())) {
                 Navigator.pop(ctx);
                 ref
                     .read(profileControllerProvider.notifier)
