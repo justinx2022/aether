@@ -25,6 +25,7 @@ import '../../../core/logger/playback_trace.dart';
 import '../../../core/storage/history_repository.dart';
 import '../../../core/network/http_defaults.dart';
 import '../../../core/network/probe_answer.dart';
+import '../../../core/models/stream_type.dart';
 import '../../../core/utils/app_utils.dart';
 import '../../../core/utils/stream_quality_sorter.dart';
 import '../../../l10n/generated/app_localizations.dart';
