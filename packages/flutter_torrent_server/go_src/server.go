@@ -144,7 +144,7 @@ func TorrentStatusByHash(infoHash string) (string, error) {
 	if tor == nil {
 		return "", fmt.Errorf("torrent not found")
 	}
-	return tor.Status().InfoHash.HexString(), nil
+	return tor.Status().Hash, nil
 }
 
 // RemoveTorrentByHash removes a torrent by InfoHash.

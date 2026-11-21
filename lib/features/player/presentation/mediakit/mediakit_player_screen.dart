@@ -3011,7 +3011,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                                 : 'Loading high-performance stream…')
                           : null,
                       reason: _error.isNotEmpty ? _error : null,
-                      failed: _error.isNotEmpty,
+                      failed: _error.isNotEmpty && !_isLoading,
                       attempt: _candidates.isNotEmpty
                           ? (
                               index: (_attemptIndex + 1).clamp(

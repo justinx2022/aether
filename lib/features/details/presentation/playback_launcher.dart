@@ -153,8 +153,8 @@ class PlaybackLauncher {
       final toSave = item.copyWith(provider: item.provider ?? 'Unknown');
       _ref.read(watchHistoryProvider.notifier).saveProgress(
         toSave,
-        0,
-        0,
+        1000,
+        60000,
         lastEpisodeUrl:
             episode?.url ??
             (item.contentType == MultimediaContentType.series ? videoUrl : null),

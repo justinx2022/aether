@@ -831,7 +831,12 @@ var PluginModule = (() => {
               var trackers = [
                 'udp://tracker.opentrackr.org:1337/announce',
                 'udp://open.stealth.si:80/announce',
-                'udp://tracker.torrent.eu.org:451/announce'
+                'udp://tracker.torrent.eu.org:451/announce',
+                'udp://open.demonii.com:1337/announce',
+                'udp://open.tracker.cl:1337/announce',
+                'udp://explodie.org:6969/announce',
+                'udp://tracker.qu.ax:6969/announce',
+                'udp://tracker.coppersurfer.tk:6969/announce'
               ];
               var trackerParams = trackers.map(function(tr) {
                 return '&tr=' + encodeURIComponent(tr);
@@ -881,11 +886,12 @@ var PluginModule = (() => {
         // Preserve quality ordering per tier.
         streams.sort(function(a, b) {
           function rank(stream) {
+            if (/^Torrentio/i.test(stream.source || '') || stream.protocol === 'torrent' || stream.type === 'torrent') return 99;
             if (/^VixSrc Multi-Audio/i.test(stream.source || '')) return 0;
             if (/^Internet Archive Public Domain/i.test(stream.source || '')) return 1;
             if (stream.isHcs || stream.type === 'mkv' || stream.type === 'mp4' || (!stream.isM3U8 && stream.protocol !== 'torrent')) return 2;
             if (/^VidApi Server/i.test(stream.source || '')) return 3;
-            if (/^Torrentio/i.test(stream.source || '') || stream.protocol === 'torrent') return 4;
+            if (stream.isM3U8) return 4;
             return 5;
           }
           var aRank = rank(a);

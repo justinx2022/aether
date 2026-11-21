@@ -93,14 +93,18 @@ class TorrentService {
           "CacheSize": _cacheMb * 1024 * 1024,
           "ReaderReadAHead": _readAheadPercent,
           "PreloadCache": 2,                  // 2% = ~2.5MB forces head+tail fetch
-          "ConnectionsLimit": 80,             // ↑ 80 peers = more parallel pipes
+          "ConnectionsLimit": 120,            // High connection limit = fast parallel swarms
           "TorrentDisconnectTimeout": 30,     // 30s = stable peer handshake without dropping
           "RetrackersMode": 1,
-          "UseDisk": false,                   // RAM-only = faster, no disk I/O
+          "UseDisk": false,                   // RAM-only = faster, zero disk I/O bottleneck
           "EnableIPv6": true,
           "DisableDHT": false,
           "DisablePEX": false,
           "DisableUPNP": false,
+          "DisableTCP": false,
+          "DisableUTP": false,
+          "DownloadRateLimit": 0,             // 0 = unlimited throughput
+          "UploadRateLimit": 0,               // 0 = unlimited upload for protocol reciprocation
         }
       };
 
@@ -181,24 +185,48 @@ class TorrentService {
     }
   }
 
+  static const List<String> _tier1Trackers = [
+    'udp://tracker.opentrackr.org:1337/announce',
+    'udp://open.stealth.si:80/announce',
+    'udp://tracker.torrent.eu.org:451/announce',
+    'udp://open.demonii.com:1337/announce',
+    'udp://open.tracker.cl:1337/announce',
+    'udp://explodie.org:6969/announce',
+    'udp://tracker.qu.ax:6969/announce',
+    'udp://tracker.coppersurfer.tk:6969/announce',
+  ];
+
   Future<String> _prepareMagnetLink(String link) async {
+    String resolved = link;
     if (!link.startsWith("magnet:") &&
         !link.startsWith("http") &&
         (AppUtils.isLocalFile(link) || link.contains(RegExp(r'\.torrent$')))) {
       try {
-        return await TorrentFileParser.getMagnetLink(link);
+        resolved = await TorrentFileParser.getMagnetLink(link);
       } catch (e) {
         throw Exception("Failed to parse torrent file: $e");
       }
     }
-    return link;
+
+    // Append Tier-1 fast trackers if the magnet link lacks comprehensive announces
+    if (resolved.startsWith("magnet:")) {
+      final buffer = StringBuffer(resolved);
+      for (final tr in _tier1Trackers) {
+        if (!resolved.contains(Uri.encodeComponent(tr)) && !resolved.contains(tr)) {
+          buffer.write('&tr=${Uri.encodeComponent(tr)}');
+        }
+      }
+      resolved = buffer.toString();
+    }
+
+    return resolved;
   }
 
   Future<Map<String, dynamic>?> _pollForMetadata(String hash) async {
     int attempts = 0;
-    // Check every 350ms up to 60 attempts (~21 seconds max) to allow DHT peer discovery
-    while (attempts < 60) {
-      await Future<void>.delayed(const Duration(milliseconds: 350));
+    // Check every 400ms up to 120 attempts (~48 seconds max) to allow DHT peer discovery and handshake
+    while (attempts < 120) {
+      await Future<void>.delayed(const Duration(milliseconds: 400));
       try {
         final status = await _server.getTorrentStatus(hash);
         if (status != null && status['file_stats'] is List) {
