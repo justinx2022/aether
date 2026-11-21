@@ -381,6 +381,17 @@ class TmdbService {
     page: page,
   );
 
+  Future<List<MultimediaItem>> getSimilar({
+    required bool isMovie,
+    required int id,
+    String language = 'en-US',
+    int page = 1,
+  }) => _getResults(
+    isMovie ? '/movie/$id/similar' : '/tv/$id/similar',
+    language: language,
+    page: page,
+  );
+
   Future<List<MultimediaItem>> multiSearch({
     required String query,
     String language = 'en-US',

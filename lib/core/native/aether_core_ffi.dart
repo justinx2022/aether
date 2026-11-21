@@ -186,6 +186,23 @@ class AetherCoreFfi {
     }
   }
 
+  /// Hardware-accelerated filtering and sorting via Rust SIMD engine.
+  String? filterAndSort(String itemsJson, String filterJson) {
+    if (!isAvailable || _filterSortFn == null || _stringFreeFn == null) return null;
+    try {
+      final itemsPtr = itemsJson.toNativeUtf8();
+      final filterPtr = filterJson.toNativeUtf8();
+      final resultPtr = _filterSortFn!(itemsPtr, filterPtr);
+      final str = resultPtr.toDartString();
+      _stringFreeFn!(resultPtr);
+      malloc.free(itemsPtr);
+      malloc.free(filterPtr);
+      return str;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Hardware-accelerated SHA-256 calculation.
   String? sha256(String input) {
     if (!isAvailable || _cryptoSha256Fn == null || _stringFreeFn == null) {
@@ -231,15 +248,15 @@ class AetherCoreFfi {
       return const [];
     }
     try {
-      final reqMap = {
+      final reqMap = <String, dynamic>{
         'title': title,
         'media_type': mediaType,
-        if (season != null) 'season': season,
-        if (episode != null) 'episode': episode,
-        if (year != null) 'year': year,
-        if (imdbId != null) 'imdb_id': imdbId,
-        if (tmdbId != null) 'tmdb_id': tmdbId,
       };
+      if (season != null) reqMap['season'] = season;
+      if (episode != null) reqMap['episode'] = episode;
+      if (year != null) reqMap['year'] = year;
+      if (imdbId != null) reqMap['imdb_id'] = imdbId;
+      if (tmdbId != null) reqMap['tmdb_id'] = tmdbId;
       final reqJson = jsonEncode(reqMap);
       final reqPtr = reqJson.toNativeUtf8();
       final resultPtr = _resolveStreamsFn!(reqPtr);

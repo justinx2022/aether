@@ -9,7 +9,6 @@ import 'package:aether/core/domain/entity/multimedia_item.dart';
 import 'package:aether/core/extensions/extension_manager.dart';
 import 'package:aether/core/router/app_router.dart';
 import 'package:aether/core/services/notification_service.dart';
-import 'package:aether/core/theme/app_world.dart';
 import 'package:aether/core/utils/image_fallbacks.dart';
 import 'package:aether/core/utils/image_utils.dart';
 import 'package:aether/core/utils/layout_constants.dart';
@@ -115,19 +114,6 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
     return null;
   }
 
-  String _formatDuration(int milliseconds) {
-    if (milliseconds <= 0) return '00:00';
-    final d = Duration(milliseconds: milliseconds);
-    final h = d.inHours;
-    final m = d.inMinutes.remainder(60);
-    final s = d.inSeconds.remainder(60);
-    if (h > 0) {
-      if (m > 0) return '${h}h ${m}m';
-      return '${h}h';
-    }
-    return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
-  }
-
   String _formatRemaining(int posMs, int durMs) {
     final diff = durMs - posMs;
     if (diff <= 0) return '';
@@ -155,7 +141,7 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
           border: Border.all(color: Colors.white12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.6),
+              color: Colors.black.withValues(alpha: 0.6),
               blurRadius: 30,
               offset: const Offset(0, 10),
             ),
@@ -378,26 +364,26 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
                 borderRadius: BorderRadius.circular(LayoutConstants.radiusLg),
                 border: Border.all(
                   color: _isAttended
-                      ? Colors.white.withOpacity(0.35)
-                      : Colors.white.withOpacity(0.08),
+                      ? Colors.white.withValues(alpha: 0.35)
+                      : Colors.white.withValues(alpha: 0.08),
                   width: _isAttended ? 1.5 : 1.0,
                 ),
                 boxShadow: _isAttended
                     ? [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.55),
+                          color: Colors.black.withValues(alpha: 0.55),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),
                         BoxShadow(
-                          color: theme.colorScheme.primary.withOpacity(0.25),
+                          color: theme.colorScheme.primary.withValues(alpha: 0.25),
                           blurRadius: 16,
                           spreadRadius: 1,
                         ),
                       ]
                     : [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.35),
+                          color: Colors.black.withValues(alpha: 0.35),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
@@ -437,10 +423,10 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
                             end: Alignment.bottomCenter,
                             stops: const [0.0, 0.45, 0.75, 1.0],
                             colors: [
-                              Colors.black.withOpacity(0.35),
+                              Colors.black.withValues(alpha: 0.35),
                               Colors.transparent,
-                              Colors.black.withOpacity(0.65),
-                              Colors.black.withOpacity(0.92),
+                              Colors.black.withValues(alpha: 0.65),
+                              Colors.black.withValues(alpha: 0.92),
                             ],
                           ),
                         ),
@@ -462,11 +448,11 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
                                 vertical: 3,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.red.withOpacity(0.85),
+                                color: Colors.red.withValues(alpha: 0.85),
                                 borderRadius: BorderRadius.circular(100),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.red.withOpacity(0.5),
+                                    color: Colors.red.withValues(alpha: 0.5),
                                     blurRadius: 8,
                                   ),
                                 ],
@@ -503,7 +489,7 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.55),
+                                color: Colors.black.withValues(alpha: 0.55),
                                 borderRadius: BorderRadius.circular(100),
                                 border: Border.all(color: Colors.white12),
                               ),
@@ -546,14 +532,14 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
                               height: 48,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Colors.white.withOpacity(0.28),
+                                color: Colors.white.withValues(alpha: 0.28),
                                 border: Border.all(
-                                  color: Colors.white.withOpacity(0.55),
+                                  color: Colors.white.withValues(alpha: 0.55),
                                   width: 1.5,
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.4),
+                                    color: Colors.black.withValues(alpha: 0.4),
                                     blurRadius: 16,
                                     spreadRadius: 2,
                                   ),
@@ -588,7 +574,7 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  color: Colors.white.withOpacity(0.7),
+                                  color: Colors.white.withValues(alpha: 0.7),
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: 0.9,
@@ -622,7 +608,7 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
                                 child: Container(
                                   height: 3.5,
                                   width: double.infinity,
-                                  color: Colors.white.withOpacity(0.20),
+                                  color: Colors.white.withValues(alpha: 0.20),
                                   child: FractionallySizedBox(
                                     alignment: Alignment.centerLeft,
                                     widthFactor: progress,
@@ -634,7 +620,7 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
                                         boxShadow: [
                                           BoxShadow(
                                             color: theme.colorScheme.primary
-                                                .withOpacity(0.8),
+                                                .withValues(alpha: 0.8),
                                             blurRadius: 6,
                                             spreadRadius: 1,
                                           ),

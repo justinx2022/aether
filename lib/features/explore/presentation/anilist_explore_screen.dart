@@ -8,6 +8,8 @@ import '../../../../core/utils/layout_constants.dart';
 import '../../../../core/utils/responsive_breakpoints.dart';
 import '../../../../shared/widgets/shimmer_placeholder.dart';
 import '../../../../core/domain/entity/multimedia_item.dart';
+import '../../../../core/router/app_router.dart';
+import '../../../../core/recommendations/recommendations_service.dart';
 import 'view_all_screen.dart';
 
 class AnilistExploreScreen extends ConsumerStatefulWidget {
@@ -28,6 +30,21 @@ class AnilistExploreScreen extends ConsumerStatefulWidget {
 }
 
 class _AnilistExploreScreenState extends ConsumerState<AnilistExploreScreen> {
+  void _openDetails(BuildContext context, MultimediaItem item) {
+    final itemToOpen = item.url.isNotEmpty && !item.url.startsWith('aether:')
+        ? item
+        : item.copyWith(
+            url: RecommendationsService.catalogueToken(
+              imdbId: item.imdbId ?? (item.tmdbId != null ? 'tmdb:${item.tmdbId}' : ''),
+              type: item.contentType == MultimediaContentType.series ? 'series' : 'movie',
+              title: item.title,
+              year: item.year?.toString(),
+            ),
+            provider: RecommendationsService.catalogueProvider,
+          );
+    DetailsRoute($extra: DetailsRouteExtra(item: itemToOpen)).push<void>(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     return CustomScrollView(
@@ -55,6 +72,7 @@ class _AnilistExploreScreenState extends ConsumerState<AnilistExploreScreen> {
                         onNavigateUp: () =>
                             widget.firstActionFocusNode.requestFocus(),
                         onControllerReady: widget.onControllerReady,
+                        onTap: (item) => _openDetails(context, item),
                       ),
               AsyncLoading() => _buildCarouselShimmer(context),
               AsyncError() => Container(
@@ -171,6 +189,7 @@ class _AnilistExploreScreenState extends ConsumerState<AnilistExploreScreen> {
                 mediaList: value,
                 category: category,
                 heroTagPrefix: 'explore_anilist',
+                onTap: (item) => _openDetails(context, item),
               ),
       AsyncLoading() => _buildListShimmer(context),
       AsyncError() => const SizedBox.shrink(),

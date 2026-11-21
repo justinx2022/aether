@@ -30,6 +30,7 @@ import '../../../shared/widgets/profile_app_bar_button.dart';
 import 'package:aether/core/extensions/extension_manager.dart';
 import 'package:aether/core/extensions/base_provider.dart';
 import 'package:aether/core/router/app_router.dart';
+import '../../../core/recommendations/aether_discovery_intelligence.dart';
 
 import 'delegates/home_search_delegate.dart';
 import '../../../shared/widgets/cards_wrapper.dart';
@@ -404,6 +405,70 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     ),
                   ),
               ],
+
+              // ── Aether Discovery Intelligence (ADI) Shelves ──
+              SliverToBoxAdapter(
+                child: Consumer(
+                  builder: (context, ref, _) {
+                    final aetherForYou = ref.watch(aetherForYouProvider);
+                    return aetherForYou.when(
+                      data: (items) => items.isEmpty
+                          ? const SizedBox.shrink()
+                          : MediaHorizontalList(
+                              title: 'Aether For You',
+                              mediaList: items,
+                              category: ViewAllCategory.providerContent,
+                              onTap: (item) => DetailsRoute($extra: DetailsRouteExtra(item: item)).push<void>(context),
+                              heroTagPrefix: 'aether_for_you',
+                            ),
+                      loading: () => const SizedBox.shrink(),
+                      error: (_, __) => const SizedBox.shrink(),
+                    );
+                  },
+                ),
+              ),
+
+              SliverToBoxAdapter(
+                child: Consumer(
+                  builder: (context, ref, _) {
+                    final orbit = ref.watch(beyondYourOrbitProvider);
+                    return orbit.when(
+                      data: (items) => items.isEmpty
+                          ? const SizedBox.shrink()
+                          : MediaHorizontalList(
+                              title: 'Beyond Your Orbit',
+                              mediaList: items,
+                              category: ViewAllCategory.providerContent,
+                              onTap: (item) => DetailsRoute($extra: DetailsRouteExtra(item: item)).push<void>(context),
+                              heroTagPrefix: 'beyond_orbit',
+                            ),
+                      loading: () => const SizedBox.shrink(),
+                      error: (_, __) => const SizedBox.shrink(),
+                    );
+                  },
+                ),
+              ),
+
+              SliverToBoxAdapter(
+                child: Consumer(
+                  builder: (context, ref, _) {
+                    final gems = ref.watch(hiddenGemsProvider);
+                    return gems.when(
+                      data: (items) => items.isEmpty
+                          ? const SizedBox.shrink()
+                          : MediaHorizontalList(
+                              title: 'Hidden Gems',
+                              mediaList: items,
+                              category: ViewAllCategory.providerContent,
+                              onTap: (item) => DetailsRoute($extra: DetailsRouteExtra(item: item)).push<void>(context),
+                              heroTagPrefix: 'hidden_gems',
+                            ),
+                      loading: () => const SizedBox.shrink(),
+                      error: (_, __) => const SizedBox.shrink(),
+                    );
+                  },
+                ),
+              ),
 
               if (syncedProgressAsync.asData?.value.isNotEmpty == true)
                 SliverToBoxAdapter(

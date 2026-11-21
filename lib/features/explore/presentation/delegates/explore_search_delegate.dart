@@ -19,7 +19,6 @@ import '../../../../shared/widgets/loading_indicator.dart';
 import '../../../../core/utils/responsive_breakpoints.dart';
 import '../../../../core/domain/entity/multimedia_item.dart';
 import '../../../../shared/widgets/cards_wrapper.dart';
-import '../../data/explore_mode_provider.dart';
 
 class ExploreSearchDelegate extends SearchDelegate<void> {
   final FocusNode _firstSuggestionFocusNode = FocusNode();

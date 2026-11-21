@@ -24,6 +24,7 @@ import '../../../../core/domain/entity/multimedia_item.dart';
 import 'widgets/explore_mode_selector_dialog.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/router/app_router.dart';
+import '../../../core/recommendations/recommendations_service.dart';
 
 import 'dart:async';
 
@@ -69,6 +70,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
     final showFade = maxScroll > 0 && currentScroll < maxScroll - 10;
     if (showFade != _showBottomFade.value) {
       _showBottomFade.value = showFade;
+    }
+
+    // Infinite discovery pagination trigger: load more seamlessly when approaching bottom
+    if (maxScroll > 0 && currentScroll >= maxScroll - 450) {
+      ref.read(exploreDiscoveryNotifierProvider.notifier).loadMore();
     }
 
     // On widescreen there is no mobile AppBar, skip calculations
@@ -367,6 +373,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
   }
 
   void _refreshAll() {
+    ref.read(exploreDiscoveryNotifierProvider.notifier).loadInitial();
     ref.invalidate(exploreDiscoveryProvider);
     ref.invalidate(genresProvider);
   }
@@ -913,13 +920,38 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                         title: item.title,
                         heroTag: uniqueTag,
                         onTap: () {
-                          DetailsRoute($extra: DetailsRouteExtra(item: item))
+                          final itemToOpen = item.url.isNotEmpty && !item.url.startsWith('aether:')
+                              ? item
+                              : item.copyWith(
+                                  url: RecommendationsService.catalogueToken(
+                                    imdbId: item.imdbId ?? (item.tmdbId != null ? 'tmdb:${item.tmdbId}' : ''),
+                                    type: item.contentType == MultimediaContentType.series ? 'series' : 'movie',
+                                    title: item.title,
+                                    year: item.year?.toString(),
+                                  ),
+                                  provider: RecommendationsService.catalogueProvider,
+                                );
+                          DetailsRoute($extra: DetailsRouteExtra(item: itemToOpen))
                               .push<void>(context);
                         },
                       );
                     },
                     childCount: value.length,
                   ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Consumer(
+                  builder: (context, ref, _) {
+                    final discoveryState = ref.watch(exploreDiscoveryNotifierProvider);
+                    if (!discoveryState.isLoadingMore) return const SizedBox.shrink();
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(
+                        child: CircularProgressIndicator.adaptive(),
+                      ),
+                    );
+                  },
                 ),
               ),
             ],

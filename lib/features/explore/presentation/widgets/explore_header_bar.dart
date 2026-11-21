@@ -12,8 +12,6 @@ import 'package:aether/features/explore/presentation/widgets/explore_mode_select
 
 import 'dart:async';
 
-import '../../../../core/router/app_router.dart';
-
 /// A custom header bar for the explore screen in widescreen/desktop layout.
 ///
 /// Contains: carousel prev/next arrows, capsule search, filter chip.

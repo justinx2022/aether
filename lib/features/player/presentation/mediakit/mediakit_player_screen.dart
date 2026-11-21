@@ -2835,7 +2835,6 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     final playerSettings = ref.watch(playerSettingsProvider).asData?.value;
     final stremioTheme = playerSettings?.stremioLoadScreen ?? true;
     final seamlessMode = playerSettings?.seamlessPlayback ?? true;
-    final accentColor = Color(playerSettings?.playerThemeColor ?? 0xFFA855F7);
     // Watched, so a profile that resolves after the first frame - the usual
     // case on a television - re-lays the chrome out at ten-foot size.
     _form = playerFormFactorOf(ref.watch(deviceProfileProvider).asData?.value);

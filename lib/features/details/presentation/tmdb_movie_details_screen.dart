@@ -14,7 +14,6 @@ import '../data/tmdb_details_provider.dart';
 
 import 'package:aether/l10n/generated/app_localizations.dart';
 
-import '../../../../core/utils/layout_constants.dart';
 import 'widgets/tmdb_details_desktop_hero.dart';
 import 'widgets/provider_search_section.dart';
 import 'widgets/tmdb_details_stats_section.dart';

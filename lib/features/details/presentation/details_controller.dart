@@ -58,16 +58,23 @@ MultimediaItem _withCatalogueTokenIfLegacy(MultimediaItem item) {
 
   if ((imdb == null || !imdb.startsWith('tt')) && tmdb == null) return item;
 
-  final token = jsonEncode({
-    if (imdb != null && imdb.startsWith('tt')) 'id': imdb,
-    if (imdb != null && imdb.startsWith('tt')) 'imdbId': imdb,
-    if (tmdb != null) 'tmdbId': tmdb,
+  final map = <String, dynamic>{
     'type': item.contentType == MultimediaContentType.series
         ? 'series'
         : 'movie',
     'title': item.title,
-    if (item.year != null) 'year': item.year.toString(),
-  });
+  };
+  if (imdb != null && imdb.startsWith('tt')) {
+    map['id'] = imdb;
+    map['imdbId'] = imdb;
+  }
+  if (tmdb != null) {
+    map['tmdbId'] = tmdb;
+  }
+  if (item.year != null) {
+    map['year'] = item.year.toString();
+  }
+  final token = jsonEncode(map);
 
   return item.copyWith(
     url: token,

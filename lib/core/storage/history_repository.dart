@@ -51,7 +51,7 @@ class HistoryItem {
         imdbId: map['imdbId'] as String?,
         episodes: map['episodes'] != null
             ? (map['episodes'] as List)
-                .whereType<Map>()
+                .whereType<Map<dynamic, dynamic>>()
                 .map<Episode>(
                   (e) => Episode.fromJson(Map<String, dynamic>.from(e)),
                 )

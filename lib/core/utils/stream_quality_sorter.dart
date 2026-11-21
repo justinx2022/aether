@@ -1,6 +1,5 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:aether/l10n/generated/app_localizations.dart';
-import '../models/stream_type.dart';
 import '../../features/settings/presentation/player_settings_provider.dart';
 import '../domain/entity/multimedia_item.dart';
 

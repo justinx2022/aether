@@ -627,7 +627,7 @@ void _showPlayerThemeColorDialog(
                 child: ListView.separated(
                   shrinkWrap: true,
                   itemCount: kPlayerColorThemes.length,
-                  separatorBuilder: (_, __) => const Divider(color: Colors.white12, height: 1),
+                  separatorBuilder: (context, index) => const Divider(color: Colors.white12, height: 1),
                   itemBuilder: (ctx, index) {
                     final item = kPlayerColorThemes[index];
                     final isSelected = item.$2 == currentColor;
