@@ -50,11 +50,13 @@ class ExploreDiscoveryState {
 }
 
 /// Notifier driving infinite pagination and ADI recommendation scoring for Explore.
-class ExploreDiscoveryNotifier extends StateNotifier<ExploreDiscoveryState> {
-  final Ref _ref;
-
-  ExploreDiscoveryNotifier(this._ref) : super(const ExploreDiscoveryState(isRefreshing: true)) {
-    loadInitial();
+class ExploreDiscoveryNotifier extends Notifier<ExploreDiscoveryState> {
+  @override
+  ExploreDiscoveryState build() {
+    ref.watch(exploreFilterProvider);
+    ref.watch(languageProvider);
+    Future.microtask(() => loadInitial());
+    return const ExploreDiscoveryState(isRefreshing: true);
   }
 
   Future<void> loadInitial() async {
@@ -108,15 +110,15 @@ class ExploreDiscoveryNotifier extends StateNotifier<ExploreDiscoveryState> {
   }
 
   Future<List<MultimediaItem>> _fetchPage(int page) async {
-    final filters = _ref.read(exploreFilterProvider);
-    final lang = _ref.read(languageProvider);
-    final activeProvider = _ref.read(activeProviderProvider);
-    final tmdbService = _ref.read(tmdbServiceProvider);
+    final filters = ref.read(exploreFilterProvider);
+    final lang = ref.read(languageProvider);
+    final activeProvider = ref.read(activeProviderProvider);
+    final tmdbService = ref.read(tmdbServiceProvider);
 
     // 1. Anime mode or Anime media type selection
     if (filters.mediaType == 'anime') {
-      final titleLang = _ref.read(animeTitleLanguageProvider);
-      final anilist = _ref.read(anilistRepositoryProvider);
+      final titleLang = ref.read(animeTitleLanguageProvider);
+      final anilist = ref.read(anilistRepositoryProvider);
       final animeList = await anilist.fetchSection(
         'trending',
         genre: filters.selectedGenre?.name,
@@ -282,17 +284,14 @@ class ExploreDiscoveryNotifier extends StateNotifier<ExploreDiscoveryState> {
   }
 }
 
-/// Global StateNotifier provider for infinite Explore discovery
+/// Global Notifier provider for infinite Explore discovery
 final exploreDiscoveryNotifierProvider =
-    StateNotifierProvider.autoDispose<ExploreDiscoveryNotifier, ExploreDiscoveryState>((ref) {
-  // Auto-refresh when filters change
-  ref.watch(exploreFilterProvider);
-  ref.watch(languageProvider);
-  return ExploreDiscoveryNotifier(ref);
-});
+    NotifierProvider<ExploreDiscoveryNotifier, ExploreDiscoveryState>(
+  ExploreDiscoveryNotifier.new,
+);
 
 /// Backwards-compatible AsyncValue provider for existing consumers
-final exploreDiscoveryProvider = Provider.autoDispose<AsyncValue<List<MultimediaItem>>>((ref) {
+final exploreDiscoveryProvider = Provider<AsyncValue<List<MultimediaItem>>>((ref) {
   final state = ref.watch(exploreDiscoveryNotifierProvider);
   if (state.items.isEmpty && state.isRefreshing) {
     return const AsyncLoading();

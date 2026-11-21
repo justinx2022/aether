@@ -189,7 +189,7 @@ class AdiScorer {
     final f = max(0.1, 1.0 - (age * 0.035));
 
     // P: External Popularity [0, 1] (supporting, not dominating)
-    final p = 0.5; // Normalized baseline
+    const p = 0.5; // Normalized baseline
 
     // D: Discovery Potential (High rating with low-to-medium mainstream saturation)
     final d = (q >= 0.72) ? 0.85 : 0.40;
@@ -276,7 +276,7 @@ class AdiService {
     String profileId = 'default',
     int limit = 20,
   }) async {
-    final history = _historyRepo.getHistory();
+    final history = _historyRepo.getWatchHistory();
     final profile = AdiTasteProfile.fromHistory(history);
 
     final candidates = <MultimediaItem>[];
@@ -333,7 +333,7 @@ class AdiService {
   }) async {
     try {
       final top = await _tmdb.getTopRated();
-      final history = _historyRepo.getHistory();
+      final history = _historyRepo.getWatchHistory();
       final profile = AdiTasteProfile.fromHistory(history);
 
       final gems = top.where((item) {
@@ -357,7 +357,7 @@ class AdiService {
     String profileId = 'default',
     int limit = 20,
   }) async {
-    final history = _historyRepo.getHistory();
+    final history = _historyRepo.getWatchHistory();
     final profile = AdiTasteProfile.fromHistory(history);
 
     final topGenres = profile.genreWeights.entries.toList()

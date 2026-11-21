@@ -943,7 +943,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
               SliverToBoxAdapter(
                 child: Consumer(
                   builder: (context, ref, _) {
-                    final discoveryState = ref.watch(exploreDiscoveryNotifierProvider);
+                    final discoveryState = ref.watch<ExploreDiscoveryState>(exploreDiscoveryNotifierProvider);
                     if (!discoveryState.isLoadingMore) return const SizedBox.shrink();
                     return const Padding(
                       padding: EdgeInsets.symmetric(vertical: 24),

@@ -422,7 +422,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                               heroTagPrefix: 'aether_for_you',
                             ),
                       loading: () => const SizedBox.shrink(),
-                      error: (_, __) => const SizedBox.shrink(),
+                      error: (err, stack) => const SizedBox.shrink(),
                     );
                   },
                 ),
@@ -443,7 +443,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                               heroTagPrefix: 'beyond_orbit',
                             ),
                       loading: () => const SizedBox.shrink(),
-                      error: (_, __) => const SizedBox.shrink(),
+                      error: (err, stack) => const SizedBox.shrink(),
                     );
                   },
                 ),
@@ -464,7 +464,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                               heroTagPrefix: 'hidden_gems',
                             ),
                       loading: () => const SizedBox.shrink(),
-                      error: (_, __) => const SizedBox.shrink(),
+                      error: (err, stack) => const SizedBox.shrink(),
                     );
                   },
                 ),
