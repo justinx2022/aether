@@ -65,15 +65,16 @@ class TorrentCandidateManager {
       try {
         final status = await torrentService.getCurrentStatus();
         if (status != null) {
-          connectedSeeders = status.connectedSeeders;
+          connectedSeeders = status.seeds;
           if (status.downloadSpeed > maxObservedSpeed) {
             maxObservedSpeed = status.downloadSpeed;
           }
-          if (status.durationSeconds > 0) {
-            durationSeconds = status.durationSeconds.round();
+          final rawDuration = (status.data['duration'] as num?)?.toDouble() ?? 0.0;
+          if (rawDuration > 0) {
+            durationSeconds = rawDuration.round();
           }
-          if (status.torrentSize > 0) {
-            totalSizeBytes = status.torrentSize;
+          if (status.totalSize > 0) {
+            totalSizeBytes = status.totalSize;
           }
         }
       } catch (_) {}

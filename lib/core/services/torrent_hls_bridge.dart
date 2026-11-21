@@ -59,7 +59,7 @@ class TorrentHlsBridge {
 
         final localProxy = LocalProxyService.instance;
         if (localProxy.port == 0) {
-          localProxy.startServer();
+          await localProxy.startServer();
         }
 
         final m3u8Url =
