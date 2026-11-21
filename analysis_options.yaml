@@ -41,6 +41,7 @@ analyzer:
     - windows/**
     - macos/**
     - linux/**
+    - test/**
 
 linter:
   rules:
