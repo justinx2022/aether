@@ -48,6 +48,7 @@ import '../subtitle_search_provider.dart' show subtitleLanguageProvider;
 import '../vlc/next_episode_countdown.dart';
 import '../vlc/panel/player_panel_metrics.dart';
 import '../vlc/panel/player_panel_row.dart';
+import '../vlc/panel/player_panel_labels.dart';
 import '../vlc/panel/player_episodes_tab.dart';
 import '../vlc/panel/player_subtitle_search_page.dart';
 import '../vlc/player_startup_view.dart';
@@ -122,6 +123,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   Timer? _midstreamStallWatchdog;
   DateTime? _attemptOpenedAt;
   Duration _attemptStartAt = Duration.zero;
+  bool _hasAppliedResumeSeek = false;
   bool _attemptHasVideoTrack = false;
   bool _attemptSawVideoParamsReset = false;
   String _attemptProviderId = '';
@@ -893,6 +895,14 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
       _player.stream.duration.listen((dur) {
         if (_disposed || !mounted) return;
         setState(() => _duration = dur);
+        if (dur > Duration.zero &&
+            _attemptStartAt > Duration.zero &&
+            !_hasAppliedResumeSeek &&
+            _position < const Duration(seconds: 3) &&
+            dur > _attemptStartAt) {
+          _hasAppliedResumeSeek = true;
+          unawaited(_player.seek(_attemptStartAt));
+        }
       }),
     );
 
@@ -918,6 +928,15 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
               'since-open=${elapsed.inMilliseconds}ms',
         );
         _recordProviderHealth(success: true, responseTime: elapsed);
+
+        // Fallback: If player began rendering at 0 despite an explicit resume position, seek now
+        if (_attemptStartAt > Duration.zero &&
+            !_hasAppliedResumeSeek &&
+            _position < const Duration(seconds: 3) &&
+            _duration > _attemptStartAt) {
+          _hasAppliedResumeSeek = true;
+          unawaited(_player.seek(_attemptStartAt));
+        }
       }),
     );
 
@@ -939,6 +958,14 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
             _isBuffering = false;
             _isSwitching = false;
             _hasPlayedOnce = true;
+
+            if (_attemptStartAt > Duration.zero &&
+                !_hasAppliedResumeSeek &&
+                _position < const Duration(seconds: 3) &&
+                _duration > _attemptStartAt) {
+              _hasAppliedResumeSeek = true;
+              unawaited(_player.seek(_attemptStartAt));
+            }
           }
         });
       }),
@@ -1565,6 +1592,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     _startupWatchdog = null;
     _attemptOpenedAt = null;
     _attemptStartAt = at ?? Duration.zero;
+    _hasAppliedResumeSeek = false;
     _attemptHasVideoTrack = false;
     _attemptSawVideoParamsReset = false;
     _attemptTriedProxy = false;
@@ -2508,9 +2536,13 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                           )
                         else
                           for (final (index, stream) in streams.indexed)
-                            PanelRow(
-                              label: stream.displaySource,
-                              detail: [
+                            () {
+                              final facts = sourceFactsOf(stream);
+                              final isTorrent = isTorrentStream(stream);
+                              final label = facts.title.isNotEmpty
+                                  ? facts.title
+                                  : stream.displaySource;
+                              final detail = [
                                 if (stream.providerName.isNotEmpty &&
                                     stream.providerName.toLowerCase() !=
                                         'unknown')
@@ -2519,19 +2551,31 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                                   'HLS Adaptive'
                                 else if (stream.url.contains('.mp4') ||
                                     stream.url.contains('.mkv'))
-                                  'Direct Container',
-                              ].join(' • '),
-                              badges: <String>[qualityBadgeLabel(stream)],
-                              selected: index == playingIndex,
-                              selectedLabel: 'Now playing',
-                              autofocus: index == playingIndex,
-                              onTap: () {
-                                Navigator.of(sheetContext).maybePop();
-                                if (index != playingIndex) {
-                                  unawaited(_switchSource(index));
-                                }
-                              },
-                            ),
+                                  'Direct Container'
+                                else if (isTorrent)
+                                  'P2P Torrent Stream',
+                              ].join(' • ');
+
+                              return PanelRow(
+                                label: label,
+                                detail: detail,
+                                badges: <String>[
+                                  qualityBadgeLabel(stream),
+                                  if (facts.size != null) facts.size!,
+                                  if (facts.seeders != null)
+                                    '${facts.seeders} seeds',
+                                ],
+                                selected: index == playingIndex,
+                                selectedLabel: 'Now playing',
+                                autofocus: index == playingIndex,
+                                onTap: () {
+                                  Navigator.of(sheetContext).maybePop();
+                                  if (index != playingIndex) {
+                                    unawaited(_switchSource(index));
+                                  }
+                                },
+                              );
+                            }(),
 
                         // SECTION 3: SAVE FULLY BUFFERED VIDEO
                         const SizedBox(height: 12),

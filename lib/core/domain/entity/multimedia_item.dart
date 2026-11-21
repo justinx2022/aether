@@ -610,7 +610,7 @@ class StreamResult {
   const StreamResult({
     required this.url,
     required this.source,
-    this.providerName = 'Unknown',
+    this.providerName = '',
     this.headers,
     this.subtitles,
     this.drmKid,
@@ -618,8 +618,16 @@ class StreamResult {
     this.licenseUrl,
   });
 
-  String get displaySource =>
-      providerName.trim().isEmpty ? source : '$providerName · $source';
+  String get displaySource {
+    final p = providerName.trim();
+    if (p.isEmpty || p.toLowerCase() == 'unknown') {
+      return source;
+    }
+    if (source.toLowerCase().startsWith(p.toLowerCase())) {
+      return source;
+    }
+    return '$p · $source';
+  }
 
   StreamResult copyWith({
     String? url,
@@ -657,8 +665,8 @@ class StreamResult {
   factory StreamResult.fromJson(Map<String, dynamic> json) {
     return StreamResult(
       url: (json['url'] as String?) ?? '',
-      source: (json['source'] as String?) ?? 'Unknown',
-      providerName: (json['providerName'] as String?) ?? 'Unknown',
+      source: (json['source'] as String?) ?? 'Auto',
+      providerName: (json['providerName'] as String?) ?? '',
       headers: json['headers'] != null
           ? Map<String, String>.from(json['headers'] as Map)
           : null,

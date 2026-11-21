@@ -13,6 +13,7 @@ import '../engine/js_bytecode_compiler.dart';
 import '../models/extension_plugin.dart';
 import '../../services/local_proxy_service.dart';
 import '../../logger/app_logger.dart';
+import '../../utils/stream_quality_sorter.dart';
 
 // Top-level function for compute() isolate
 Map<String, List<MultimediaItem>> _parseHomeResults(dynamic result) {
@@ -784,7 +785,7 @@ class JsBasedProvider extends AetherProvider {
           }
           // Bounded-concurrency chunks: an unbounded Future.wait would spawn
           // one compute() and one proxy fetch per entry.
-          return await _processInChunks(bounded, _kStreamFanoutConcurrency, (
+          final streams = await _processInChunks(bounded, _kStreamFanoutConcurrency, (
             e,
           ) async {
             final map = Map<String, dynamic>.from(e as Map);
@@ -796,9 +797,16 @@ class JsBasedProvider extends AetherProvider {
               entryHeaders,
             );
 
+            final sourceStr = (map['source'] as String?) ?? "Auto";
+            final pName = (map['providerName'] as String?) ??
+                (sourceStr.toLowerCase().contains('torrentio')
+                    ? 'Torrentio'
+                    : name);
+
             return StreamResult(
               url: finalUrl,
-              source: (map['source'] as String?) ?? "Auto",
+              source: sourceStr,
+              providerName: pName.isNotEmpty ? pName : name,
               headers: map['headers'] != null
                   ? Map<String, String>.from(map['headers'] as Map)
                   : null,
@@ -810,6 +818,11 @@ class JsBasedProvider extends AetherProvider {
               licenseUrl: map['licenseUrl'] as String?,
             );
           });
+
+          // Strictly filter out any torrent candidate exceeding 1080p
+          return streams
+              .where((s) => !isTorrentStream(s) || isTorrentAtOrUnder1080p(s))
+              .toList();
         }
         return [];
       } on JsPluginException catch (e) {

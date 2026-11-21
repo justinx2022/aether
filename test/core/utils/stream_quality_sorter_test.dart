@@ -157,4 +157,56 @@ void main() {
       expect(await isOnMeteredNetwork(), isTrue);
     });
   });
+
+  group('torrent resolution and display formatting', () {
+    test('isTorrentAtOrUnder1080p rejects 4K and 2160p torrents and accepts <= 1080p', () {
+      final t4k = StreamResult(
+        url: 'magnet:?xt=urn:btih:abc',
+        source: 'Avatar.2022.2160p.UHD.Remux · 👤 145 💾 60 GB',
+        providerName: 'Torrentio',
+      );
+      final t4kWord = StreamResult(
+        url: 'magnet:?xt=urn:btih:def',
+        source: 'Movie.4K.HDR · 👤 50 💾 15 GB',
+        providerName: 'Torrentio',
+      );
+      final t1080 = StreamResult(
+        url: 'magnet:?xt=urn:btih:123',
+        source: 'Avatar.2022.1080p.BluRay · 👤 200 💾 4.5 GB',
+        providerName: 'Torrentio',
+      );
+      final t720 = StreamResult(
+        url: 'magnet:?xt=urn:btih:456',
+        source: 'Avatar.2022.720p.HD · 👤 80 💾 1.2 GB',
+        providerName: 'Torrentio',
+      );
+
+      expect(isTorrentAtOrUnder1080p(t4k), isFalse);
+      expect(isTorrentAtOrUnder1080p(t4kWord), isFalse);
+      expect(isTorrentAtOrUnder1080p(t1080), isTrue);
+      expect(isTorrentAtOrUnder1080p(t720), isTrue);
+    });
+
+    test('displaySource cleanly renders provider and release name without Unknown', () {
+      final stream1 = StreamResult(
+        url: 'magnet:?xt=urn:btih:123',
+        source: 'Avatar.2022.1080p.BluRay',
+        providerName: 'Torrentio',
+      );
+      final stream2 = StreamResult(
+        url: 'magnet:?xt=urn:btih:123',
+        source: 'Torrentio · Avatar.2022.1080p.BluRay',
+        providerName: 'Torrentio',
+      );
+      final stream3 = StreamResult(
+        url: 'https://cdn.example.com/stream.m3u8',
+        source: 'VixSrc Master HLS',
+        providerName: 'Unknown',
+      );
+
+      expect(stream1.displaySource, 'Torrentio · Avatar.2022.1080p.BluRay');
+      expect(stream2.displaySource, 'Torrentio · Avatar.2022.1080p.BluRay');
+      expect(stream3.displaySource, 'VixSrc Master HLS');
+    });
+  });
 }

@@ -9,6 +9,7 @@ var PluginModule = (() => {
         this.url = t.url;
         this.source = t.source || t.name;
         this.name = t.name || t.source;
+        this.providerName = t.providerName || '';
         this.headers = t.headers || {};
         this.protocol = t.protocol || 'hls';
         this.file_index = t.file_index;
@@ -822,7 +823,8 @@ var PluginModule = (() => {
             if (!imdbId) return;
             var tType = type === 'movie' ? 'movie' : 'series';
             var tId = imdbId + (type === 'series' ? (':' + season + ':' + episode) : '');
-            var tUrl = 'https://torrentio.strem.fun/stream/' + tType + '/' + tId + '.json';
+            // Instruct Torrentio to exclude 4k / 2160p and low-grade releases
+            var tUrl = 'https://torrentio.strem.fun/qualityfilter=4k,other,scr,cam/stream/' + tType + '/' + tId + '.json';
             var tData = await fetchJson(tUrl, {
               'User-Agent': DEFAULT_HEADERS['User-Agent']
             });
@@ -847,18 +849,25 @@ var PluginModule = (() => {
                 var item = tData.streams[ti];
                 if (!item || !item.infoHash) continue;
 
-                var rawTitle = (item.title || '').split('\n')[0] || title;
+                var titleLines = (item.title || '').split('\n');
+                var rawTitle = titleLines[0] || (item.name ? item.name.replace(/\n/g, ' ') : title);
                 var q = parseQuality(rawTitle || item.name);
+                // STRICT 1080p MAXIMUM: reject 4K / 2160p torrent candidates
+                if (q > 1080) continue;
+
+                var statsLine = titleLines.slice(1).join(' ').trim();
                 var magnet = 'magnet:?xt=urn:btih:' + item.infoHash + '&dn=' + encodeURIComponent(rawTitle) + trackerParams;
 
                 if (!seenUrls.has(magnet)) {
                   seenUrls.add(magnet);
                   count++;
-                  var qLabel = q ? (q + 'p') : 'HD';
+                  var qLabel = q ? (q + 'p') : '1080p';
+                  var cleanSource = rawTitle + (statsLine ? (' · ' + statsLine) : '');
                   streams.push(new Nt({
                     url: magnet,
-                    source: 'Torrentio P2P (' + qLabel + ')',
-                    name: '⚡ Torrentio [' + qLabel + ' Torrent]',
+                    source: cleanSource,
+                    providerName: 'Torrentio',
+                    name: '⚡ Torrentio [' + qLabel + '] ' + (statsLine ? statsLine : rawTitle),
                     quality: q || 1080,
                     protocol: 'torrent',
                     type: 'torrent',

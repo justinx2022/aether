@@ -148,22 +148,6 @@ class PlaybackLauncher {
     Episode? episode,
     List<StreamResult> preloadedStreams = const <StreamResult>[],
   }) {
-    // Proactively record item into watch history so Continue Watching reflects the title immediately
-    try {
-      final toSave = item.copyWith(provider: item.provider ?? 'Unknown');
-      _ref.read(watchHistoryProvider.notifier).saveProgress(
-        toSave,
-        1000,
-        60000,
-        lastEpisodeUrl:
-            episode?.url ??
-            (item.contentType == MultimediaContentType.series ? videoUrl : null),
-        season: episode?.season,
-        episode: episode?.episode,
-        episodeTitle: episode?.name,
-      );
-    } catch (_) {}
-
     return PlayerRoute(
       $extra: PlayerRouteExtra(
         item: item,
