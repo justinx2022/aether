@@ -215,12 +215,13 @@ Future<bool> isOnMeteredNetwork() async {
 bool isTorrentStream(StreamResult stream) {
   final url = stream.url.toLowerCase();
   final source = stream.source.toLowerCase();
-  final name = stream.name.toLowerCase();
+  final provider = stream.providerName.toLowerCase();
   return url.startsWith('magnet:') ||
       url.endsWith('.torrent') ||
       source.contains('torrent') ||
       source.contains('p2p') ||
-      name.contains('torrent') ||
+      provider.contains('torrent') ||
+      provider.contains('p2p') ||
       (url.startsWith('/') && source.contains('torrent'));
 }
 
