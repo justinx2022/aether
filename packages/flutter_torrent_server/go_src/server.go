@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -9,8 +8,6 @@ import (
 
 	"server/log"
 	"server/settings"
-	"server/torr"
-	"server/torr/state"
 	"server/torr/utils"
 	"server/web"
 )
@@ -21,7 +18,7 @@ import (
 // Callers that need to talk to those endpoints (the Flutter plugin) generate
 // one and pass it in. Passing "" mints an unguessable token that nobody holds,
 // which locks the privileged surface rather than opening it.
-func Start(pathdb, port, authToken string, roSets, searchWA bool) error {
+func Start(pathdb, port, authToken string, roSets, searchWA bool) {
 	settings.Path = pathdb
 	settings.InitSets(roSets, searchWA)
 	if roSets {
@@ -46,15 +43,14 @@ func Start(pathdb, port, authToken string, roSets, searchWA bool) error {
 		l.Close()
 	}
 	if err != nil {
-		log.TLogln("Port", port, "already in use! Please set different sslport for HTTP.")
-		return fmt.Errorf("port %s already in use", port)
+		log.TLogln("Port", port, "already in use! Please set different sslport for HTTP. Abort")
+		os.Exit(1)
 	}
 	// remove old disk caches
 	go cleanCache()
 	// set settings http Start web server.
 	settings.Port = port
 	web.Start()
-	return nil
 }
 
 func cleanCache() {
@@ -94,10 +90,15 @@ func cleanCache() {
 }
 
 func removeAllFiles(path string) {
-	err := os.RemoveAll(path)
+	files, err := os.ReadDir(path)
 	if err != nil {
-		log.TLogln("RemoveAll failed for", path, ":", err)
+		return
 	}
+	for _, f := range files {
+		name := filepath.Join(path, f.Name())
+		os.Remove(name)
+	}
+	os.Remove(path)
 }
 
 func WaitServer() string {
@@ -116,38 +117,4 @@ func Stop() {
 func AddTrackers(trackers string) {
 	tracks := strings.Split(trackers, ",\n")
 	utils.SetDefTrackers(tracks)
-}
-
-// AddTorrentViaHTTP submits a magnet URI or torrent URL. Returns the torrent's
-// InfoHash hex string.
-func AddTorrentViaHTTP(link, title, poster string, saveToDB bool) (string, error) {
-	spec, err := utils.ParseLink(link)
-	if err != nil {
-		return "", fmt.Errorf("parse link: %w", err)
-	}
-
-	tor, err := torr.AddTorrent(spec, title, poster, "")
-	if err != nil {
-		return "", fmt.Errorf("add torrent: %w", err)
-	}
-
-	if tor.Stat != state.TorrentInDB && saveToDB {
-		torr.SaveTorrentToDB(tor)
-	}
-
-	return tor.Hash().HexString(), nil
-}
-
-// TorrentStatusByHash returns the status string of a torrent by InfoHash.
-func TorrentStatusByHash(infoHash string) (string, error) {
-	tor := torr.GetTorrent(infoHash)
-	if tor == nil {
-		return "", fmt.Errorf("torrent not found")
-	}
-	return tor.Status().Hash, nil
-}
-
-// RemoveTorrentByHash removes a torrent by InfoHash.
-func RemoveTorrentByHash(infoHash string) {
-	torr.RemTorrent(infoHash)
 }
