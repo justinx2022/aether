@@ -12,7 +12,9 @@ import '../media/dash_manifest.dart';
 import '../network/doh_resolver.dart';
 import '../network/http_defaults.dart';
 import '../network/probe_answer.dart';
+import 'package:path/path.dart' as p;
 import 'segment_prefetch_manager.dart';
+import 'torrent_hls_session_manager.dart';
 
 class ProxyOptions {
   final List<String> mirrorHosts;
@@ -546,6 +548,12 @@ class LocalProxyService {
         return;
       }
 
+      // TORRENT HLS HANDLER
+      if (path.startsWith('/torrent/hls/')) {
+        await _handleTorrentHlsRequest(request, path);
+        return;
+      }
+
       // M3U8 HANDLER
       // Expected path: /<uuid>.m3u8
       if (path.length > 1 && path.endsWith('.m3u8')) {
@@ -568,6 +576,86 @@ class LocalProxyService {
         }
       }
     }
+  }
+
+  Future<void> _handleTorrentHlsRequest(HttpRequest request, String path) async {
+    // Expected path: /torrent/hls/<sessionId>/<resource>
+    final segments = request.uri.pathSegments;
+    if (segments.length < 3) {
+      request.response.statusCode = HttpStatus.notFound;
+      unawaited(request.response.close());
+      return;
+    }
+
+    final sessionId = segments[2];
+    final resource = segments.length > 3 ? segments[3] : 'master.m3u8';
+    final session = TorrentHlsSessionManager().getSession(sessionId);
+
+    if (session == null) {
+      request.response.statusCode = HttpStatus.notFound;
+      unawaited(request.response.close());
+      return;
+    }
+
+    request.response.headers.add("Access-Control-Allow-Origin", "*");
+
+    if (resource.endsWith('.m3u8')) {
+      final ffmpegLive = File(p.join(session.sessionDir, 'live.m3u8'));
+      String content;
+      if (await ffmpegLive.exists()) {
+        final lines = await ffmpegLive.readAsLines();
+        final buffer = StringBuffer();
+        for (final line in lines) {
+          if (line.endsWith('.ts') && !line.startsWith('http')) {
+            buffer.writeln(
+              'http://127.0.0.1:$_serverPort/torrent/hls/${session.sessionId}/$line',
+            );
+          } else {
+            buffer.writeln(line);
+          }
+        }
+        content = buffer.toString();
+      } else {
+        content = TorrentHlsSessionManager().generateVodPlaylist(session);
+      }
+
+      request.response.headers.contentType = ContentType(
+        "application",
+        "vnd.apple.mpegurl",
+        charset: "utf-8",
+      );
+      request.response.add(utf8.encode(content));
+      unawaited(request.response.close());
+      return;
+    }
+
+    if (resource.endsWith('.ts')) {
+      final match = RegExp(r'seg_(\d+)\.ts').firstMatch(resource);
+      final segmentIndex = match != null ? int.tryParse(match.group(1)!) : null;
+
+      if (segmentIndex == null) {
+        request.response.statusCode = HttpStatus.notFound;
+        unawaited(request.response.close());
+        return;
+      }
+
+      final file = await session.seekController.ensureSegmentReady(segmentIndex);
+      if (file == null || !await file.exists()) {
+        request.response.statusCode = HttpStatus.notFound;
+        unawaited(request.response.close());
+        return;
+      }
+
+      final length = await file.length();
+      request.response.headers.contentType = ContentType("video", "mp2t");
+      request.response.headers.contentLength = length;
+      await request.response.addStream(file.openRead());
+      unawaited(request.response.close());
+      return;
+    }
+
+    request.response.statusCode = HttpStatus.notFound;
+    unawaited(request.response.close());
   }
 
   Future<void> _handlePlaylistRequest(HttpRequest request, String path) async {

@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 import 'package:flutter_torrent_server/flutter_torrent_server.dart';
 import '../utils/torrent_file_parser.dart';
 import '../utils/app_utils.dart';
@@ -16,6 +19,23 @@ class TorrentService {
   String? _serverUrl;
   bool _isStarted = false;
   String? _activeTorrentHash;
+  String? _torrentsSavePath;
+
+  String? get serverUrl => _serverUrl;
+  String? get activeTorrentHash => _activeTorrentHash;
+  String? get authToken => _server.authToken;
+  bool get isStarted => _isStarted;
+
+  Future<String> getTorrentsSavePath() async {
+    if (_torrentsSavePath != null) return _torrentsSavePath!;
+    final appDir = await getApplicationSupportDirectory();
+    final dir = Directory(p.join(appDir.path, 'cache', 'torrents'));
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+    _torrentsSavePath = dir.path;
+    return _torrentsSavePath!;
+  }
 
   /// The cache the server is configured with, in megabytes, and how much of it
   /// is held ahead of the read point.
@@ -25,7 +45,7 @@ class TorrentService {
   /// - 60% read-ahead (was 85%) = serves first byte immediately
   /// [applyBufferSettings] overrides with user preferences when player starts.
   int _cacheMb = 128;
-  int _readAheadPercent = 95; // Now matches TorrServer config (95% ahead)
+  int _readAheadPercent = 80; // 80% forward read-ahead, 20% backward rewind margin
 
   /// Points the server's cache at the size the viewer chose for the player.
   ///
@@ -87,16 +107,23 @@ class TorrentService {
         FlutterTorrentServer.authTokenHeader: ?token,
       };
 
+      final savePath = await getTorrentsSavePath();
+      // CacheSize sets the active per-torrent streaming working-set buffer in bytes
+      // (respecting user buffer setting _cacheMb).
+      final int workingSetCacheBytes = _cacheMb * 1024 * 1024;
+
       final settings = {
         "action": "set",
         "sets": {
-          "CacheSize": _cacheMb * 1024 * 1024,
+          "CacheSize": workingSetCacheBytes,
           "ReaderReadAHead": _readAheadPercent,
-          "PreloadCache": 2,                  // 2% = ~2.5MB forces head+tail fetch
+          "PreloadCache": 2,                  // 2% forces head+tail fetch (~2.5MB)
           "ConnectionsLimit": 120,            // High connection limit = fast parallel swarms
           "TorrentDisconnectTimeout": 30,     // 30s = stable peer handshake without dropping
           "RetrackersMode": 1,
-          "UseDisk": false,                   // RAM-only = faster, zero disk I/O bottleneck
+          "UseDisk": true,                    // Disk persistence enabled
+          "TorrentsSavePath": savePath,       // Persistent cache directory
+          "RemoveCacheOnDrop": false,         // Guarded by Aether eviction manager
           "EnableIPv6": true,
           "DisableDHT": false,
           "DisablePEX": false,
@@ -104,7 +131,7 @@ class TorrentService {
           "DisableTCP": false,
           "DisableUTP": false,
           "DownloadRateLimit": 0,             // 0 = unlimited throughput
-          "UploadRateLimit": 0,               // 0 = unlimited upload for protocol reciprocation
+          "UploadRateLimit": 0,               // 0 = unlimited upload
         }
       };
 
@@ -138,6 +165,39 @@ class TorrentService {
       _serverUrl = null;
       _activeTorrentHash = null;
     }
+  }
+
+  /// Adds a torrent link to TorrServer, returning its info-hash.
+  Future<String?> addTorrent(String link) async {
+    if (!_isStarted) await start();
+    if (_serverUrl == null) return null;
+    final prepared = await _prepareMagnetLink(link);
+    final hash = await _server.addTorrent(prepared);
+    if (hash != null) {
+      _activeTorrentHash = hash;
+    }
+    return hash;
+  }
+
+  /// Polls for torrent metadata until file_stats is populated or timeout expires.
+  Future<Map<String, dynamic>?> pollForMetadata(
+    String hash, {
+    Duration timeout = const Duration(seconds: 20),
+  }) async {
+    final deadline = DateTime.now().add(timeout);
+    while (DateTime.now().isBefore(deadline)) {
+      await Future<void>.delayed(const Duration(milliseconds: 350));
+      try {
+        final status = await _server.getTorrentStatus(hash);
+        if (status != null && status['file_stats'] is List) {
+          final fileStats = status['file_stats'] as List;
+          if (fileStats.isNotEmpty) {
+            return _findSequentialVideoFile(fileStats);
+          }
+        }
+      } catch (_) {}
+    }
+    return null;
   }
 
   Future<String?> getStreamUrl(String magnetLink) async {
@@ -223,22 +283,7 @@ class TorrentService {
   }
 
   Future<Map<String, dynamic>?> _pollForMetadata(String hash) async {
-    int attempts = 0;
-    // Check every 400ms up to 120 attempts (~48 seconds max) to allow DHT peer discovery and handshake
-    while (attempts < 120) {
-      await Future<void>.delayed(const Duration(milliseconds: 400));
-      try {
-        final status = await _server.getTorrentStatus(hash);
-        if (status != null && status['file_stats'] is List) {
-          final fileStats = status['file_stats'] as List;
-          if (fileStats.isNotEmpty) {
-            return _findSequentialVideoFile(fileStats);
-          }
-        }
-      } catch (_) {}
-      attempts++;
-    }
-    return null;
+    return pollForMetadata(hash, timeout: const Duration(seconds: 48));
   }
 
   Map<String, dynamic> _findSequentialVideoFile(List<dynamic> fileStats) {

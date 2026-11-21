@@ -23,6 +23,7 @@ import '../../../../core/models/torrent_status.dart';
 import '../../../../core/services/download_service.dart';
 import '../../../../core/services/provider_health_service.dart';
 import '../../../../core/services/local_proxy_service.dart';
+import '../../../../core/services/torrent_hls_bridge.dart';
 import '../../../../core/storage/episode_watch_repository.dart';
 import '../../../../core/storage/history_repository.dart';
 import '../../../../core/utils/app_utils.dart';
@@ -1253,10 +1254,14 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
     // One path: hand the engine the candidate resolution chose.
     String? playable;
     if (isTorrentSource(stream)) {
-      final torrentService = _read(torrentServiceProvider);
       _setStatus(_l10n?.playerPreparingTorrent ?? 'Preparing torrent…');
       _startedTorrent = true;
-      playable = await torrentService.getStreamUrl(stream.url);
+      playable = await TorrentHlsBridge().prepareHlsStream(magnet: stream.url);
+      if (playable == null) {
+        // Fallback to progressive TorrServer stream if bridge didn't output HLS
+        final torrentService = _read(torrentServiceProvider);
+        playable = await torrentService.getStreamUrl(stream.url);
+      }
     } else {
       playable = playableUrlFor(stream);
     }

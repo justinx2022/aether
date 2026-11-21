@@ -14,12 +14,12 @@ import 'package:aether/core/theme/theme_presets.dart';
 void main() {
   group('the tokens are the pack, verbatim', () {
     test('SKY at night', () {
-      expect(kSkyDark.background, const Color(0xFF0B1220));
-      expect(kSkyDark.elevated, const Color(0xFF172338));
+      expect(kSkyDark.background, const Color(0xFF000000));
+      expect(kSkyDark.elevated, const Color(0xFF0A0C14));
       expect(kSkyDark.accent, const Color(0xFFA9C2E4));
       expect(kSkyDark.textPrimary, const Color(0xFFF4F6FA));
       expect(kSkyDark.textSecondary, const Color(0xFFAAB7C9));
-      expect(kSkyDark.divider, const Color(0xFF2A384D));
+      expect(kSkyDark.divider, const Color(0xFF18202F));
     });
 
     test('GROUND at night', () {

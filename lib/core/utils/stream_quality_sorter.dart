@@ -340,3 +340,44 @@ List<StreamResult> filterStreamsByQuality(
 String qualityBadgeLabel(StreamResult stream) {
   return detectQualityTier(stream.source).label;
 }
+
+/// Extracts advertised seeder count from a torrent stream's source label.
+int extractSeeders(StreamResult stream) {
+  final label = stream.source;
+  final match = RegExp(
+        r'(?:\u{1F331}|\bS:|\bseeds?:\s*|\bseeders?:\s*|\bS\s*=\s*)(\d+)',
+        caseSensitive: false,
+        unicode: true,
+      ).firstMatch(label) ??
+      RegExp(r'(\d+)\s*(?:seeds?|seeders?)\b', caseSensitive: false).firstMatch(label);
+  if (match != null) {
+    return int.tryParse(match.group(1)!) ?? 0;
+  }
+  return 0;
+}
+
+/// Extracts file size in gigabytes from a stream's source label.
+double? extractFileSizeGb(StreamResult stream) {
+  final match = RegExp(
+    r'(\d+(?:[.,]\d+)?)\s*([KMGT]i?B)',
+    caseSensitive: false,
+  ).firstMatch(stream.source);
+  if (match == null) return null;
+  final val = double.tryParse(match.group(1)!.replaceAll(',', '.')) ?? 0;
+  final unit = match.group(2)!.toUpperCase();
+  if (unit.startsWith('T')) return val * 1024;
+  if (unit.startsWith('G')) return val;
+  if (unit.startsWith('M')) return val / 1024;
+  if (unit.startsWith('K')) return val / (1024 * 1024);
+  return val;
+}
+
+/// Checks whether a torrent candidate is at or below 1080p resolution.
+bool isTorrentAtOrUnder1080p(StreamResult stream) {
+  final tier = detectQualityTier(stream.source);
+  if (tier == QualityTier.q4k || tier == QualityTier.q1440) return false;
+  if (_uhdWords.hasMatch(stream.source)) return false;
+  final height = _labelledHeight(stream.source);
+  if (height != null && height > 1080) return false;
+  return true;
+}

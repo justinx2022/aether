@@ -18,6 +18,17 @@ class ProfilesScreen extends ConsumerStatefulWidget {
 
 class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
   bool _isManaging = false;
+  final _pinController = TextEditingController();
+  final _addNameController = TextEditingController();
+  final _editNameController = TextEditingController();
+
+  @override
+  void dispose() {
+    _pinController.dispose();
+    _addNameController.dispose();
+    _editNameController.dispose();
+    super.dispose();
+  }
 
   void _selectProfile(UserProfile profile) {
     if (_isManaging) {
@@ -39,7 +50,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
   }
 
   void _showPinDialog(UserProfile profile) {
-    final controller = TextEditingController();
+    _pinController.clear();
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -53,7 +64,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
           style: const TextStyle(color: Colors.white, fontSize: 18),
         ),
         content: TextField(
-          controller: controller,
+          controller: _pinController,
           obscureText: true,
           keyboardType: TextInputType.number,
           maxLength: 4,
@@ -112,7 +123,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
   }
 
   void _showAddProfileDialog() {
-    final nameController = TextEditingController();
+    _addNameController.clear();
     String selectedAvatarId = ProfileAvatars.all.first.id;
     String selectedCategory = ProfileAvatars.categories.first;
     bool isKids = false;
@@ -156,7 +167,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   TextField(
-                    controller: nameController,
+                    controller: _addNameController,
                     autofocus: true,
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
@@ -364,7 +375,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
               onPressed: () {
-                final name = nameController.text.trim().isEmpty ? 'Viewer' : nameController.text.trim();
+                final name = _addNameController.text.trim().isEmpty ? 'Viewer' : _addNameController.text.trim();
                 ref.read(profileControllerProvider.notifier).addProfile(
                   name: name,
                   avatarId: selectedAvatarId,
@@ -386,7 +397,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
   }
 
   void _showEditProfileDialog(UserProfile profile) {
-    final nameController = TextEditingController(text: profile.name);
+    _editNameController.text = profile.name;
     String selectedAvatarId = profile.avatarId;
     final currentAvatar = ProfileAvatars.get(profile.avatarId);
     String selectedCategory = currentAvatar.category;
@@ -431,7 +442,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   TextField(
-                    controller: nameController,
+                    controller: _editNameController,
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       labelText: 'Profile Name',
@@ -588,7 +599,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
               onPressed: () {
                 ref.read(profileControllerProvider.notifier).updateProfile(
                   profile.copyWith(
-                    name: nameController.text.trim(),
+                    name: _editNameController.text.trim(),
                     avatarId: selectedAvatarId,
                     isKids: isKids,
                     preferredGenres: selectedGenres,
