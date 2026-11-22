@@ -23,6 +23,9 @@ var PluginModule = (() => {
 
     var CINEMETA_CATALOG = 'https://cinemeta-catalogs.strem.io/top/catalog';
     var CINEMETA_V3 = 'https://v3-cinemeta.strem.io';
+    var TMDB_KEY = '4e44d9029b1270a757cddc766a1bcb63';
+    var TMDB_BASE = 'https://api.themoviedb.org/3';
+    var TMDB_IMG = 'https://image.tmdb.org/t/p/w500';
 
     var DEFAULT_HEADERS = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
@@ -99,6 +102,39 @@ var PluginModule = (() => {
             }
           }
         }
+        if (Object.keys(data).length === 0) {
+          var tmdbFeeds = [
+            { title: 'Popular Movies', url: TMDB_BASE + '/movie/popular?api_key=' + TMDB_KEY, type: 'movie' },
+            { title: 'Popular Series', url: TMDB_BASE + '/tv/popular?api_key=' + TMDB_KEY, type: 'series' },
+            { title: 'Top Rated Movies', url: TMDB_BASE + '/movie/top_rated?api_key=' + TMDB_KEY, type: 'movie' },
+            { title: 'Top Rated Series', url: TMDB_BASE + '/tv/top_rated?api_key=' + TMDB_KEY, type: 'series' },
+            { title: 'Action & Adventure', url: TMDB_BASE + '/discover/movie?api_key=' + TMDB_KEY + '&with_genres=28', type: 'movie' },
+            { title: 'Sci-Fi & Fantasy', url: TMDB_BASE + '/discover/tv?api_key=' + TMDB_KEY + '&with_genres=10765', type: 'series' }
+          ];
+          for (var tf = 0; tf < tmdbFeeds.length; tf++) {
+            var tfItem = tmdbFeeds[tf];
+            var tfJson = await fetchJson(tfItem.url);
+            if (tfJson && Array.isArray(tfJson.results)) {
+              var tItems = [];
+              for (var tj = 0; tj < Math.min(tfJson.results.length, 24); tj++) {
+                var tm = tfJson.results[tj];
+                var tTitle = tm.title || tm.name || '';
+                var tYear = parseInt((tm.release_date || tm.first_air_date || '').split('-')[0], 10) || undefined;
+                tItems.push(new mt({
+                  title: tTitle,
+                  url: JSON.stringify({ tmdbId: tm.id, type: tfItem.type, title: tTitle, year: tYear }),
+                  posterUrl: tm.poster_path ? (TMDB_IMG + tm.poster_path) : '',
+                  bannerUrl: tm.backdrop_path ? (TMDB_IMG + tm.backdrop_path) : '',
+                  description: tm.overview || '',
+                  year: tYear,
+                  score: parseFloat(tm.vote_average) || undefined,
+                  type: tfItem.type
+                }));
+              }
+              if (tItems.length > 0) data[tfItem.title] = tItems;
+            }
+          }
+        }
         cb({ success: true, data: data });
       } catch (err) {
         cb({ success: false, errorCode: 'SITE_OFFLINE', message: err.message || String(err) });
@@ -168,6 +204,28 @@ var PluginModule = (() => {
                 year: parseInt(m.releaseInfo, 10) || undefined,
                 score: parseFloat(m.imdbRating) || undefined,
                 type: t
+              }));
+            }
+          }
+        }
+        if (results.length === 0) {
+          var tmdbSearch = await fetchJson(TMDB_BASE + '/search/multi?api_key=' + TMDB_KEY + '&query=' + q);
+          if (tmdbSearch && Array.isArray(tmdbSearch.results)) {
+            for (var tk = 0; tk < tmdbSearch.results.length; tk++) {
+              var tr = tmdbSearch.results[tk];
+              if (tr.media_type !== 'movie' && tr.media_type !== 'tv') continue;
+              var trType = tr.media_type === 'tv' ? 'series' : 'movie';
+              var trTitle = tr.title || tr.name || '';
+              var trYear = parseInt((tr.release_date || tr.first_air_date || '').split('-')[0], 10) || undefined;
+              results.push(new mt({
+                title: trTitle,
+                url: JSON.stringify({ tmdbId: tr.id, type: trType, title: trTitle, year: trYear }),
+                posterUrl: tr.poster_path ? (TMDB_IMG + tr.poster_path) : '',
+                bannerUrl: tr.backdrop_path ? (TMDB_IMG + tr.backdrop_path) : '',
+                description: tr.overview || '',
+                year: trYear,
+                score: parseFloat(tr.vote_average) || undefined,
+                type: trType
               }));
             }
           }
@@ -924,90 +982,7 @@ var PluginModule = (() => {
           } catch (e) {}
         })();
 
-        // 6. Torrentio Multi-Tracker Streams (P2P Torrent Fallback - Strictly Demoted)
-        var torrentioPromise = (async function() {
-          try {
-            var tType = type === 'movie' ? 'movie' : 'series';
-            var resolvedImdb = imdbId;
-            if (!resolvedImdb && title) {
-              try {
-                var cmSearch = await fetchJson(CINEMETA_V3 + '/catalog/' + tType + '/top/search=' + encodeURIComponent(title) + '.json');
-                if (cmSearch && Array.isArray(cmSearch.metas) && cmSearch.metas.length > 0) {
-                  resolvedImdb = cmSearch.metas[0].imdb_id || cmSearch.metas[0].id;
-                }
-              } catch (e) {}
-            }
-            if (!resolvedImdb) return;
-
-            var tId = resolvedImdb + (type === 'series' ? (':' + season + ':' + episode) : '');
-            var tUrl = 'https://torrentio.strem.fun/qualityfilter=4k,other,scr,cam/stream/' + tType + '/' + tId + '.json';
-            var tData = await fetchJson(tUrl, {
-              'User-Agent': DEFAULT_HEADERS['User-Agent']
-            });
-
-            if (tData && Array.isArray(tData.streams) && tData.streams.length > 0) {
-              tData.streams.sort(function(a, b) {
-                var sa = (a.title || '').match(/👤\s*(\d+)/);
-                var sb = (b.title || '').match(/👤\s*(\d+)/);
-                var na = sa ? parseInt(sa[1], 10) : 0;
-                var nb = sb ? parseInt(sb[1], 10) : 0;
-                return nb - na;
-              });
-
-              var trackers = [
-                'udp://tracker.opentrackr.org:1337/announce',
-                'udp://open.stealth.si:80/announce',
-                'udp://tracker.torrent.eu.org:451/announce',
-                'udp://open.demonii.com:1337/announce',
-                'udp://open.tracker.cl:1337/announce',
-                'udp://explodie.org:6969/announce',
-                'udp://tracker.qu.ax:6969/announce',
-                'udp://tracker.coppersurfer.tk:6969/announce',
-                'http://tracker.opentrackr.org:1337/announce',
-                'udp://tracker.openbittorrent.com:6969/announce'
-              ];
-              var trackerParams = trackers.map(function(tr) {
-                return '&tr=' + encodeURIComponent(tr);
-              }).join('');
-
-              var count = 0;
-              for (var ti = 0; ti < tData.streams.length && count < 6; ti++) {
-                var item = tData.streams[ti];
-                if (!item || !item.infoHash) continue;
-
-                var titleLines = (item.title || '').split('\n');
-                var rawTitle = titleLines[0] || (item.name ? item.name.replace(/\n/g, ' ') : title);
-                var q = parseQuality(rawTitle || item.name);
-                if (q > 1080) continue;
-
-                var statsLine = titleLines.slice(1).join(' ').trim();
-                var magnet = 'magnet:?xt=urn:btih:' + item.infoHash + '&dn=' + encodeURIComponent(rawTitle) + trackerParams;
-
-                if (!seenUrls.has(magnet)) {
-                  seenUrls.add(magnet);
-                  count++;
-                  var qLabel = q ? (q + 'p') : '1080p';
-                  var cleanSource = rawTitle + (statsLine ? (' · ' + statsLine) : '');
-                  var fIdx = item.fileIdx !== undefined ? item.fileIdx : 0;
-                  streams.push(new Nt({
-                    url: magnet,
-                    source: cleanSource,
-                    providerName: 'Torrentio',
-                    name: '⚡ Torrentio [' + qLabel + '] ' + (statsLine ? statsLine : rawTitle),
-                    quality: q || 1080,
-                    protocol: 'torrent',
-                    type: 'torrent',
-                    file_index: fIdx,
-                    fileIndex: fIdx,
-                    isM3U8: false
-                  }));
-                }
-              }
-            }
-          } catch (e) {}
-        })();
-
-        // Execute all extractors in parallel with timeout protection
+        // Execute all high-speed HLS extractors in parallel with timeout protection
         await Promise.all([
           withTimeout(vidzeePromise, 7000),
           withTimeout(vidrockPromise, 7000),
@@ -1015,8 +990,7 @@ var PluginModule = (() => {
           withTimeout(vixsrcPromise, 7000),
           withTimeout(vidapiPromise, 6000),
           withTimeout(hcsPromise, 8000),
-          withTimeout(archivePromise, 6000),
-          withTimeout(torrentioPromise, 6000)
+          withTimeout(archivePromise, 6000)
         ]);
 
         // Prioritize fast, high-performance Direct HLS sources over everything:

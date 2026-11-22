@@ -126,6 +126,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
     _addNameController.clear();
     String selectedAvatarId = ProfileAvatars.all.first.id;
     String selectedCategory = ProfileAvatars.categories.first;
+    String searchQuery = '';
     bool isKids = false;
     final List<String> selectedGenres = [];
     String feedMode = 'all';
@@ -145,253 +146,260 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
     showDialog<void>(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setModalState) => AlertDialog(
-          backgroundColor: const Color(0xFF0D0F18),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(22),
-            side: const BorderSide(color: Color(0xFF1E2638), width: 1),
-          ),
-          title: const Text(
-            'Create New Profile',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-              fontSize: 19,
+        builder: (context, setModalState) {
+          final displayedAvatars = searchQuery.isNotEmpty
+              ? ProfileAvatars.all.where((a) {
+                  final q = searchQuery.toLowerCase();
+                  return a.label.toLowerCase().contains(q) ||
+                      a.subtitle.toLowerCase().contains(q) ||
+                      a.category.toLowerCase().contains(q);
+                }).toList()
+              : ProfileAvatars.byCategory(selectedCategory);
+
+          return AlertDialog(
+            backgroundColor: const Color(0xFF0D0F18),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(22),
+              side: const BorderSide(color: Color(0xFF1E2638), width: 1),
             ),
-          ),
-          content: SizedBox(
-            width: 520,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextField(
-                    controller: _addNameController,
-                    autofocus: true,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      labelText: 'Profile Name',
-                      labelStyle: const TextStyle(color: Colors.white60),
-                      hintText: 'e.g. Baby, Holden, Walter, Alex',
-                      hintStyle: const TextStyle(color: Colors.white30),
-                      filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.05),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
+            title: const Text(
+              'Create New Profile',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 19,
+              ),
+            ),
+            content: SizedBox(
+              width: 520,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: _addNameController,
+                      autofocus: true,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        labelText: 'Profile Name',
+                        labelStyle: const TextStyle(color: Colors.white60),
+                        hintText: 'e.g. Sara, Mathew, Walter, Alex',
+                        hintStyle: const TextStyle(color: Colors.white30),
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.05),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
+                    const SizedBox(height: 18),
 
-                  // Category Selector
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Choose Avatar',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                    // Search and Category Selector
+                    TextField(
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Search 100+ character avatars...',
+                        hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
+                        prefixIcon: const Icon(Icons.search_rounded, color: Colors.white54, size: 18),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.05),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
                         ),
                       ),
-                      Text(
-                        selectedCategory,
-                        style: const TextStyle(
-                          color: Color(0xFF818CF8),
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: ProfileAvatars.categories.map((cat) {
-                        final isCatSelected = cat == selectedCategory;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 6),
-                          child: ChoiceChip(
-                            label: Text(
-                              cat,
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: isCatSelected
-                                    ? Colors.white
-                                    : Colors.white60,
-                                fontWeight: isCatSelected
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
+                      onChanged: (val) => setModalState(() => searchQuery = val.trim()),
+                    ),
+                    const SizedBox(height: 10),
+
+                    if (searchQuery.isEmpty)
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: ProfileAvatars.categories.map((cat) {
+                            final isCatSelected = cat == selectedCategory;
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: ChoiceChip(
+                                label: Text(
+                                  cat,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: isCatSelected ? Colors.white : Colors.white60,
+                                    fontWeight: isCatSelected ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                ),
+                                selected: isCatSelected,
+                                selectedColor: const Color(0xFF4F46E5),
+                                backgroundColor: const Color(0xFF151926),
+                                onSelected: (val) {
+                                  if (val) {
+                                    setModalState(() => selectedCategory = cat);
+                                  }
+                                },
                               ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    const SizedBox(height: 14),
+
+                    // Avatar Grid with Actual Character Art
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 240),
+                      child: SingleChildScrollView(
+                        child: Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: displayedAvatars.map((avatar) {
+                            final isSelected = avatar.id == selectedAvatarId;
+                            return GestureDetector(
+                              onTap: () => setModalState(() => selectedAvatarId = avatar.id),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  CharacterAvatarWidget(
+                                    avatarId: avatar.id,
+                                    size: 56,
+                                    isSelected: isSelected,
+                                    showGlow: isSelected,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  SizedBox(
+                                    width: 64,
+                                    child: Text(
+                                      avatar.label,
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: isSelected ? Colors.white : Colors.white60,
+                                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+                    const Divider(color: Color(0xFF1E2638)),
+                    const SizedBox(height: 8),
+
+                    const Text(
+                      'Content Affinity (Genres)',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: availableGenres.map((genre) {
+                        final isSelected = selectedGenres.contains(genre);
+                        return FilterChip(
+                          label: Text(
+                            genre,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isSelected ? Colors.white : Colors.white70,
                             ),
-                            selected: isCatSelected,
-                            selectedColor: const Color(0xFF4F46E5),
-                            backgroundColor: const Color(0xFF151926),
-                            onSelected: (val) {
-                              if (val) {
-                                setModalState(() => selectedCategory = cat);
-                              }
-                            },
                           ),
+                          selected: isSelected,
+                          selectedColor: const Color(0xFF6366F1),
+                          backgroundColor: Colors.white.withValues(alpha: 0.05),
+                          onSelected: (val) {
+                            setModalState(() {
+                              if (val) {
+                                selectedGenres.add(genre);
+                              } else {
+                                selectedGenres.remove(genre);
+                              }
+                            });
+                          },
                         );
                       }).toList(),
                     ),
-                  ),
-                  const SizedBox(height: 14),
-
-                  // Avatar Grid with Actual Character Art
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: ProfileAvatars.byCategory(selectedCategory).map((avatar) {
-                      final isSelected = avatar.id == selectedAvatarId;
-                      return GestureDetector(
-                        onTap: () => setModalState(() => selectedAvatarId = avatar.id),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            CharacterAvatarWidget(
-                              avatarId: avatar.id,
-                              size: 56,
-                              isSelected: isSelected,
-                              showGlow: isSelected,
-                            ),
-                            const SizedBox(height: 4),
-                            SizedBox(
-                              width: 64,
-                              child: Text(
-                                avatar.label,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: isSelected ? Colors.white : Colors.white60,
-                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ],
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: feedMode,
+                      dropdownColor: const Color(0xFF0F121C),
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: InputDecoration(
+                        labelText: 'Initial Feed Experience',
+                        labelStyle: const TextStyle(color: Colors.white60),
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.05),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
                         ),
-                      );
-                    }).toList(),
-                  ),
-
-                  const SizedBox(height: 20),
-                  const Divider(color: Color(0xFF1E2638)),
-                  const SizedBox(height: 8),
-
-                  const Text(
-                    'Content Affinity (Genres)',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'all', child: Text('Universal Feed (All Content)')),
+                        DropdownMenuItem(value: 'movies', child: Text('Cinema Only (Feature Films)')),
+                        DropdownMenuItem(value: 'series', child: Text('Series Only (Television Focus)')),
+                        DropdownMenuItem(value: 'anime', child: Text('Anime Priority')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) setModalState(() => feedMode = val);
+                      },
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: availableGenres.map((genre) {
-                      final isChosen = selectedGenres.contains(genre);
-                      return FilterChip(
-                        label: Text(genre, style: const TextStyle(fontSize: 11)),
-                        selected: isChosen,
-                        selectedColor: const Color(0xFF6366F1).withValues(alpha: 0.35),
-                        checkmarkColor: const Color(0xFF818CF8),
-                        backgroundColor: const Color(0xFF141824),
-                        labelStyle: TextStyle(
-                          color: isChosen ? const Color(0xFFA5B4FC) : Colors.white60,
-                        ),
-                        onSelected: (val) {
-                          setModalState(() {
-                            if (val) {
-                              selectedGenres.add(genre);
-                            } else {
-                              selectedGenres.remove(genre);
-                            }
-                          });
-                        },
-                      );
-                    }).toList(),
-                  ),
-
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Feed Mode',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                    const SizedBox(height: 8),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Kids Safe Shield', style: TextStyle(color: Colors.white, fontSize: 13)),
+                      subtitle: const Text('Filters out adult & mature content', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                      value: isKids,
+                      activeTrackColor: const Color(0xFF6366F1),
+                      onChanged: (val) => setModalState(() => isKids = val),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    initialValue: feedMode,
-                    dropdownColor: const Color(0xFF151926),
-                    style: const TextStyle(color: Colors.white, fontSize: 13),
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.05),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'all', child: Text('All Streams (Universal)')),
-                      DropdownMenuItem(value: 'movies', child: Text('Cinematic Movies Only')),
-                      DropdownMenuItem(value: 'series', child: Text('Binge Series Focus')),
-                    ],
-                    onChanged: (val) {
-                      if (val != null) setModalState(() => feedMode = val);
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Kids Safe Shield', style: TextStyle(color: Colors.white, fontSize: 14)),
-                    subtitle: const Text('Filters out adult & mature content', style: TextStyle(color: Colors.white54, fontSize: 12)),
-                    value: isKids,
-                    activeTrackColor: const Color(0xFF6366F1),
-                    onChanged: (val) => setModalState(() => isKids = val),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel', style: TextStyle(color: Colors.white60)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6366F1),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel', style: TextStyle(color: Colors.white60)),
               ),
-              onPressed: () {
-                final name = _addNameController.text.trim().isEmpty ? 'Viewer' : _addNameController.text.trim();
-                ref.read(profileControllerProvider.notifier).addProfile(
-                  name: name,
-                  avatarId: selectedAvatarId,
-                  isKids: isKids,
-                  preferredGenres: selectedGenres,
-                  feedMode: feedMode,
-                );
-                Navigator.pop(ctx);
-              },
-              child: const Text(
-                'Create Profile',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6366F1),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () {
+                  final name = _addNameController.text.trim().isEmpty ? 'Viewer' : _addNameController.text.trim();
+                  ref.read(profileControllerProvider.notifier).addProfile(
+                    name: name,
+                    avatarId: selectedAvatarId,
+                    isKids: isKids,
+                    preferredGenres: selectedGenres,
+                    feedMode: feedMode,
+                  );
+                  Navigator.pop(ctx);
+                },
+                child: const Text(
+                  'Create Profile',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -401,8 +409,9 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
     String selectedAvatarId = profile.avatarId;
     final currentAvatar = ProfileAvatars.get(profile.avatarId);
     String selectedCategory = currentAvatar.category;
+    String searchQuery = '';
     final List<String> selectedGenres = List.from(profile.preferredGenres);
-    final feedMode = profile.feedMode;
+    String feedMode = profile.feedMode;
     bool isKids = profile.isKids;
 
     final availableGenres = [
@@ -420,208 +429,267 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
     showDialog<void>(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setModalState) => AlertDialog(
-          backgroundColor: const Color(0xFF0D0F18),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(22),
-            side: const BorderSide(color: Color(0xFF1E2638), width: 1),
-          ),
-          title: Text(
-            'Edit ${profile.name}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-              fontSize: 19,
-            ),
-          ),
-          content: SizedBox(
-            width: 520,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextField(
-                    controller: _editNameController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      labelText: 'Profile Name',
-                      labelStyle: const TextStyle(color: Colors.white60),
-                      filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.05),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
+        builder: (context, setModalState) {
+          final displayedAvatars = searchQuery.isNotEmpty
+              ? ProfileAvatars.all.where((a) {
+                  final q = searchQuery.toLowerCase();
+                  return a.label.toLowerCase().contains(q) ||
+                      a.subtitle.toLowerCase().contains(q) ||
+                      a.category.toLowerCase().contains(q);
+                }).toList()
+              : ProfileAvatars.byCategory(selectedCategory);
 
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Choose Avatar',
-                        style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+          return AlertDialog(
+            backgroundColor: const Color(0xFF0D0F18),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(22),
+              side: const BorderSide(color: Color(0xFF1E2638), width: 1),
+            ),
+            title: Text(
+              'Edit ${profile.name}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 19,
+              ),
+            ),
+            content: SizedBox(
+              width: 520,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: _editNameController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        labelText: 'Profile Name',
+                        labelStyle: const TextStyle(color: Colors.white60),
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.05),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
                       ),
-                      Text(
-                        selectedCategory,
-                        style: const TextStyle(color: Color(0xFF818CF8), fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 18),
+
+                    // Search and Category Selector
+                    TextField(
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Search 100+ character avatars...',
+                        hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
+                        prefixIcon: const Icon(Icons.search_rounded, color: Colors.white54, size: 18),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.05),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: ProfileAvatars.categories.map((cat) {
-                        final isCatSelected = cat == selectedCategory;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 6),
-                          child: ChoiceChip(
-                            label: Text(
-                              cat,
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: isCatSelected ? Colors.white : Colors.white60,
-                                fontWeight: isCatSelected ? FontWeight.bold : FontWeight.normal,
+                      onChanged: (val) => setModalState(() => searchQuery = val.trim()),
+                    ),
+                    const SizedBox(height: 10),
+
+                    if (searchQuery.isEmpty)
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: ProfileAvatars.categories.map((cat) {
+                            final isCatSelected = cat == selectedCategory;
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: ChoiceChip(
+                                label: Text(
+                                  cat,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: isCatSelected ? Colors.white : Colors.white60,
+                                    fontWeight: isCatSelected ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                ),
+                                selected: isCatSelected,
+                                selectedColor: const Color(0xFF4F46E5),
+                                backgroundColor: const Color(0xFF151926),
+                                onSelected: (val) {
+                                  if (val) {
+                                    setModalState(() => selectedCategory = cat);
+                                  }
+                                },
                               ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    const SizedBox(height: 14),
+
+                    // Avatar Grid with Actual Character Art
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 240),
+                      child: SingleChildScrollView(
+                        child: Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: displayedAvatars.map((avatar) {
+                            final isSelected = avatar.id == selectedAvatarId;
+                            return GestureDetector(
+                              onTap: () => setModalState(() => selectedAvatarId = avatar.id),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  CharacterAvatarWidget(
+                                    avatarId: avatar.id,
+                                    size: 56,
+                                    isSelected: isSelected,
+                                    showGlow: isSelected,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  SizedBox(
+                                    width: 64,
+                                    child: Text(
+                                      avatar.label,
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: isSelected ? Colors.white : Colors.white60,
+                                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+                    const Divider(color: Color(0xFF1E2638)),
+                    const SizedBox(height: 8),
+
+                    const Text(
+                      'Content Affinity (Genres)',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: availableGenres.map((genre) {
+                        final isSelected = selectedGenres.contains(genre);
+                        return FilterChip(
+                          label: Text(
+                            genre,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isSelected ? Colors.white : Colors.white70,
                             ),
-                            selected: isCatSelected,
-                            selectedColor: const Color(0xFF4F46E5),
-                            backgroundColor: const Color(0xFF151926),
-                            onSelected: (val) {
-                              if (val) setModalState(() => selectedCategory = cat);
-                            },
                           ),
+                          selected: isSelected,
+                          selectedColor: const Color(0xFF6366F1),
+                          backgroundColor: Colors.white.withValues(alpha: 0.05),
+                          onSelected: (val) {
+                            setModalState(() {
+                              if (val) {
+                                selectedGenres.add(genre);
+                              } else {
+                                selectedGenres.remove(genre);
+                              }
+                            });
+                          },
                         );
                       }).toList(),
                     ),
-                  ),
-                  const SizedBox(height: 14),
-
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: ProfileAvatars.byCategory(selectedCategory).map((avatar) {
-                      final isSelected = avatar.id == selectedAvatarId;
-                      return GestureDetector(
-                        onTap: () => setModalState(() => selectedAvatarId = avatar.id),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            CharacterAvatarWidget(
-                              avatarId: avatar.id,
-                              size: 56,
-                              isSelected: isSelected,
-                              showGlow: isSelected,
-                            ),
-                            const SizedBox(height: 4),
-                            SizedBox(
-                              width: 64,
-                              child: Text(
-                                avatar.label,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: isSelected ? Colors.white : Colors.white60,
-                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ],
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: feedMode,
+                      dropdownColor: const Color(0xFF0F121C),
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: InputDecoration(
+                        labelText: 'Initial Feed Experience',
+                        labelStyle: const TextStyle(color: Colors.white60),
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.05),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
                         ),
-                      );
-                    }).toList(),
-                  ),
-
-                  const SizedBox(height: 20),
-                  const Divider(color: Color(0xFF1E2638)),
-                  const SizedBox(height: 8),
-
-                  const Text(
-                    'Content Affinity (Genres)',
-                    style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: availableGenres.map((genre) {
-                      final isChosen = selectedGenres.contains(genre);
-                      return FilterChip(
-                        label: Text(genre, style: const TextStyle(fontSize: 11)),
-                        selected: isChosen,
-                        selectedColor: const Color(0xFF6366F1).withValues(alpha: 0.35),
-                        checkmarkColor: const Color(0xFF818CF8),
-                        backgroundColor: const Color(0xFF141824),
-                        labelStyle: TextStyle(
-                          color: isChosen ? const Color(0xFFA5B4FC) : Colors.white60,
-                        ),
-                        onSelected: (val) {
-                          setModalState(() {
-                            if (val) {
-                              selectedGenres.add(genre);
-                            } else {
-                              selectedGenres.remove(genre);
-                            }
-                          });
-                        },
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 16),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Kids Safe Shield', style: TextStyle(color: Colors.white, fontSize: 14)),
-                    subtitle: const Text('Filters out adult & mature content', style: TextStyle(color: Colors.white54, fontSize: 12)),
-                    value: isKids,
-                    activeTrackColor: const Color(0xFF6366F1),
-                    onChanged: (val) => setModalState(() => isKids = val),
-                  ),
-                ],
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'all', child: Text('Universal Feed (All Content)')),
+                        DropdownMenuItem(value: 'movies', child: Text('Cinema Only (Feature Films)')),
+                        DropdownMenuItem(value: 'series', child: Text('Series Only (Television Focus)')),
+                        DropdownMenuItem(value: 'anime', child: Text('Anime Priority')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) setModalState(() => feedMode = val);
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Kids Safe Shield', style: TextStyle(color: Colors.white, fontSize: 13)),
+                      subtitle: const Text('Filters out adult & mature content', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                      value: isKids,
+                      activeTrackColor: const Color(0xFF6366F1),
+                      onChanged: (val) => setModalState(() => isKids = val),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                ref.read(profileControllerProvider.notifier).deleteProfile(profile.id);
-              },
-              child: const Text('Delete Profile', style: TextStyle(color: Colors.redAccent)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6366F1),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel', style: TextStyle(color: Colors.white60)),
               ),
-              onPressed: () {
-                ref.read(profileControllerProvider.notifier).updateProfile(
-                  profile.copyWith(
-                    name: _editNameController.text.trim(),
-                    avatarId: selectedAvatarId,
-                    isKids: isKids,
-                    preferredGenres: selectedGenres,
-                    feedMode: feedMode,
-                  ),
-                );
-                Navigator.pop(ctx);
-              },
-              child: const Text('Save Changes', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6366F1),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () {
+                  ref.read(profileControllerProvider.notifier).updateProfile(
+                    profile.copyWith(
+                      name: _editNameController.text.trim().isEmpty ? profile.name : _editNameController.text.trim(),
+                      avatarId: selectedAvatarId,
+                      isKids: isKids,
+                      preferredGenres: selectedGenres,
+                      feedMode: feedMode,
+                    ),
+                  );
+                  Navigator.pop(ctx);
+                },
+                child: const Text(
+                  'Save Changes',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
-  @override
+    @override
   Widget build(BuildContext context) {
     final profileState = ref.watch(profileControllerProvider);
     final profiles = profileState.profiles;
 
-    // ── Glamorous First-Run Netflix-Style Setup when no profiles exist ──
     if (profiles.isEmpty) {
       return Scaffold(
         backgroundColor: const Color(0xFF000000),
@@ -634,7 +702,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF000000), // Pure OLED pitch-black
+      backgroundColor: const Color(0xFF000000),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -665,74 +733,33 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
           ),
         ],
       ),
-      body: AppBackdropLayer(
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment(0.0, -0.35),
+            radius: 1.3,
+            colors: [
+              Color(0xFF0D2524),
+              Color(0xFF091717),
+              Color(0xFF040A0A),
+              Color(0xFF000000),
+            ],
+            stops: [0.0, 0.4, 0.75, 1.0],
+          ),
+        ),
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // ── Glowing Celestial Aether Brand Emblem ──
-                Container(
-                  width: 72,
-                  height: 72,
-                  margin: const EdgeInsets.only(bottom: 20),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF6366F1).withValues(alpha: 0.35),
-                        blurRadius: 28,
-                        spreadRadius: 4,
-                      ),
-                      BoxShadow(
-                        color: const Color(0xFF06B6D4).withValues(alpha: 0.20),
-                        blurRadius: 40,
-                        spreadRadius: 8,
-                      ),
-                    ],
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.25),
-                      width: 1.5,
-                    ),
-                  ),
-                  child: ClipOval(
-                    child: Image.asset(
-                      'assets/images/aether_logo.jpg',
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Color(0xFF6366F1), Color(0xFF06B6D4)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.auto_awesome,
-                          color: Colors.white,
-                          size: 32,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
                 const Text(
-                  'A E T H E R',
-                  style: TextStyle(
-                    color: Color(0xFFA5B4FC),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 4.0,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Who is watching?',
+                  "Who's watching?",
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 28,
+                    fontSize: 34,
                     fontWeight: FontWeight.w700,
                     letterSpacing: -0.5,
                   ),
@@ -740,26 +767,41 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                 const SizedBox(height: 8),
                 Text(
                   _isManaging
-                      ? 'Select a profile to customize characters and preferences'
-                      : 'Choose your profile to resume your personalized cinema',
-                  style: const TextStyle(color: Colors.white54, fontSize: 14),
+                      ? 'Tap a profile to edit its settings'
+                      : 'Select a profile to continue',
+                  style: const TextStyle(
+                    color: Colors.white60,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w400,
+                  ),
                 ),
-                const SizedBox(height: 48),
+                const SizedBox(height: 52),
                 Wrap(
-                  spacing: 28,
-                  runSpacing: 28,
+                  spacing: 32,
+                  runSpacing: 32,
                   alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    ...profiles.map(
-                      (p) => _ProfileCard(
-                        profile: p,
+                    for (int i = 0; i < profiles.length; i++)
+                      _ProfileCard(
+                        profile: profiles[i],
+                        isPrimary: profiles[i].isPrimary || (i == 0),
                         isManaging: _isManaging,
-                        onTap: () => _selectProfile(p),
+                        onTap: () => _selectProfile(profiles[i]),
+                        onLongPress: () => _showEditProfileDialog(profiles[i]),
                       ),
-                    ),
                     if (profiles.length < 5)
                       _AddProfileCard(onTap: _showAddProfileDialog),
                   ],
+                ),
+                const SizedBox(height: 64),
+                Text(
+                  'Hold to manage profile',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.35),
+                    fontSize: 13,
+                    letterSpacing: 0.3,
+                  ),
                 ),
               ],
             ),
@@ -772,13 +814,17 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
 
 class _ProfileCard extends StatefulWidget {
   final UserProfile profile;
+  final bool isPrimary;
   final bool isManaging;
   final VoidCallback onTap;
+  final VoidCallback onLongPress;
 
   const _ProfileCard({
     required this.profile,
+    this.isPrimary = false,
     required this.isManaging,
     required this.onTap,
+    required this.onLongPress,
   });
 
   @override
@@ -795,6 +841,7 @@ class _ProfileCardState extends State<_ProfileCard> {
       onShowFocusHighlight: (val) => setState(() => _isHovered = val),
       child: GestureDetector(
         onTap: widget.onTap,
+        onLongPress: widget.onLongPress,
         child: AnimatedScale(
           scale: _isHovered ? 1.08 : 1.0,
           duration: const Duration(milliseconds: 180),
@@ -803,20 +850,22 @@ class _ProfileCardState extends State<_ProfileCard> {
             children: [
               Stack(
                 alignment: Alignment.center,
+                clipBehavior: Clip.none,
                 children: [
                   CharacterAvatarWidget(
                     avatarId: widget.profile.avatarId,
-                    size: 104,
+                    size: 96,
                     isSelected: _isHovered,
                     showGlow: true,
+                    isPrimary: widget.isPrimary,
                   ),
                   if (widget.isManaging)
                     Container(
-                      width: 104,
-                      height: 104,
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.55),
-                        borderRadius: BorderRadius.circular(22),
+                      width: 96,
+                      height: 96,
+                      decoration: const BoxDecoration(
+                        color: Colors.black54,
+                        shape: BoxShape.circle,
                       ),
                       child: const Icon(
                         Icons.edit_rounded,
@@ -826,18 +875,19 @@ class _ProfileCardState extends State<_ProfileCard> {
                     ),
                   if (widget.profile.hasPin)
                     Positioned(
-                      bottom: 6,
-                      right: 6,
+                      bottom: 0,
+                      left: 0,
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
                           color: Colors.black87,
-                          borderRadius: BorderRadius.circular(8),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white24, width: 1),
                         ),
                         child: const Icon(
                           Icons.lock_rounded,
                           color: Colors.white70,
-                          size: 12,
+                          size: 11,
                         ),
                       ),
                     ),
@@ -847,14 +897,28 @@ class _ProfileCardState extends State<_ProfileCard> {
               Text(
                 widget.profile.name,
                 style: TextStyle(
-                  color: _isHovered ? Colors.white : Colors.white70,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
+                  color: _isHovered ? Colors.white : Colors.white.withValues(alpha: 0.9),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: -0.2,
                 ),
               ),
-              if (widget.profile.feedMode != 'all')
+              if (widget.isPrimary)
+                const Padding(
+                  padding: EdgeInsets.only(top: 3),
+                  child: Text(
+                    'PRIMARY',
+                    style: TextStyle(
+                      color: Color(0xFFF59E0B),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                )
+              else if (widget.profile.feedMode != 'all')
                 Padding(
-                  padding: const EdgeInsets.only(top: 2),
+                  padding: const EdgeInsets.only(top: 3),
                   child: Text(
                     widget.profile.feedMode.toUpperCase(),
                     style: const TextStyle(
@@ -899,29 +963,31 @@ class _AddProfileCardState extends State<_AddProfileCard> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 104,
-                height: 104,
+                width: 96,
+                height: 96,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.04),
-                  borderRadius: BorderRadius.circular(22),
+                  shape: BoxShape.circle,
+                  color: _isHovered
+                      ? Colors.white.withValues(alpha: 0.12)
+                      : const Color(0xFF22282A).withValues(alpha: 0.8),
                   border: Border.all(
-                    color: _isHovered ? Colors.white70 : Colors.white24,
+                    color: _isHovered ? Colors.white70 : Colors.white.withValues(alpha: 0.15),
                     width: 1.5,
                   ),
                 ),
                 child: Icon(
                   Icons.add_rounded,
-                  color: _isHovered ? Colors.white : Colors.white54,
-                  size: 44,
+                  color: _isHovered ? Colors.white : Colors.white60,
+                  size: 40,
                 ),
               ),
               const SizedBox(height: 12),
               Text(
                 'Add Profile',
                 style: TextStyle(
-                  color: _isHovered ? Colors.white : Colors.white54,
+                  color: _isHovered ? Colors.white : Colors.white60,
                   fontSize: 15,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ],
@@ -932,7 +998,6 @@ class _AddProfileCardState extends State<_AddProfileCard> {
   }
 }
 
-// ══════════════════════════════════════════════════════════════════════
 // ── FIRST-RUN GLAMOROUS NETFLIX-STYLE SETUP VIEW ──
 // ══════════════════════════════════════════════════════════════════════
 

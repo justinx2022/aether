@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../config/tmdb_config.dart';
 import '../domain/entity/multimedia_item.dart';
 import '../network/dio_client_provider.dart';
 
@@ -73,7 +74,7 @@ class RecommendationsService {
       return item.recommendations!;
     }
 
-    final cacheKey = '${item.imdbId ?? item.title}_${item.contentType.name}';
+    final cacheKey = '${item.imdbId ?? item.tmdbId ?? item.title}_${item.contentType.name}';
     if (_cache.containsKey(cacheKey)) {
       return _cache[cacheKey]!;
     }
@@ -81,9 +82,114 @@ class RecommendationsService {
     try {
       final isSeries = item.contentType == MultimediaContentType.series;
       final type = isSeries ? 'series' : 'movie';
+      final tmdbType = isSeries ? 'tv' : 'movie';
+      int? resolvedTmdb = item.tmdbId;
       String? targetImdb = item.imdbId ?? imdbFromCatalogueToken(item.url);
 
-      // 2. Resolve IMDb ID if missing
+      // A. Primary High-Accuracy Recommendation Engine: TMDB
+      if (resolvedTmdb == null && targetImdb != null && targetImdb.startsWith('tt')) {
+        try {
+          final findUrl = 'https://api.themoviedb.org/3/find/$targetImdb?api_key=${TmdbConfig.apiKey}&external_source=imdb_id';
+          final findResp = await _dio.get<dynamic>(findUrl, options: Options(receiveTimeout: const Duration(seconds: 6)));
+          if (findResp.data is Map) {
+            final hits = (isSeries ? findResp.data['tv_results'] : findResp.data['movie_results']) as List?;
+            if (hits != null && hits.isNotEmpty && hits.first is Map) {
+              resolvedTmdb = hits.first['id'] as int?;
+            }
+          }
+        } catch (_) {}
+      }
+
+      if (resolvedTmdb == null && item.title.isNotEmpty) {
+        try {
+          final sUrl = 'https://api.themoviedb.org/3/search/$tmdbType?api_key=${TmdbConfig.apiKey}&query=${Uri.encodeComponent(item.title)}';
+          final sResp = await _dio.get<dynamic>(sUrl, options: Options(receiveTimeout: const Duration(seconds: 6)));
+          if (sResp.data is Map && sResp.data['results'] is List) {
+            final rList = sResp.data['results'] as List;
+            if (rList.isNotEmpty && rList.first is Map) {
+              resolvedTmdb = rList.first['id'] as int?;
+            }
+          }
+        } catch (_) {}
+      }
+
+      if (resolvedTmdb != null) {
+        final recsFuture = _dio.get<dynamic>(
+          'https://api.themoviedb.org/3/$tmdbType/$resolvedTmdb/recommendations?api_key=${TmdbConfig.apiKey}&language=en-US',
+          options: Options(receiveTimeout: const Duration(seconds: 8)),
+        );
+        final simFuture = _dio.get<dynamic>(
+          'https://api.themoviedb.org/3/$tmdbType/$resolvedTmdb/similar?api_key=${TmdbConfig.apiKey}&language=en-US',
+          options: Options(receiveTimeout: const Duration(seconds: 8)),
+        );
+
+        final responses = await Future.wait([
+          recsFuture.catchError((_) => Response(requestOptions: RequestOptions(), statusCode: 500)),
+          simFuture.catchError((_) => Response(requestOptions: RequestOptions(), statusCode: 500)),
+        ]);
+
+        final candidateList = <Map<String, dynamic>>[];
+        for (final resp in responses) {
+          if (resp.statusCode == 200 && resp.data is Map && resp.data['results'] is List) {
+            for (final entry in (resp.data['results'] as List)) {
+              if (entry is Map<String, dynamic>) {
+                candidateList.add(entry);
+              } else if (entry is Map) {
+                candidateList.add(Map<String, dynamic>.from(entry));
+              }
+            }
+          }
+        }
+
+        if (candidateList.isNotEmpty) {
+          final seenIds = <int>{resolvedTmdb};
+          final tmdbResults = <MultimediaItem>[];
+
+          for (final hit in candidateList) {
+            final id = hit['id'] as int?;
+            if (id == null || seenIds.contains(id)) continue;
+            seenIds.add(id);
+
+            final hitTitle = (hit['title'] ?? hit['name'] ?? '') as String;
+            if (hitTitle.isEmpty) continue;
+            final posterPath = hit['poster_path'] as String?;
+            final backdropPath = hit['backdrop_path'] as String?;
+            final dateStr = (hit['release_date'] ?? hit['first_air_date'] ?? '') as String;
+            final hitYear = int.tryParse(dateStr.split('-').first);
+            final overview = hit['overview'] as String?;
+            final rating = (hit['vote_average'] as num?)?.toDouble();
+
+            tmdbResults.add(
+              MultimediaItem(
+                title: hitTitle,
+                url: catalogueToken(
+                  imdbId: 'tmdb:$id',
+                  type: type,
+                  title: hitTitle,
+                  year: hitYear?.toString(),
+                ),
+                posterUrl: posterPath != null ? '${TmdbConfig.imageBaseUrl}$posterPath' : '',
+                bannerUrl: backdropPath != null ? '${TmdbConfig.imageBaseUrl}$backdropPath' : null,
+                description: overview,
+                year: hitYear,
+                score: rating,
+                contentType: isSeries ? MultimediaContentType.series : MultimediaContentType.movie,
+                tmdbId: id,
+                provider: catalogueProvider,
+              ),
+            );
+
+            if (tmdbResults.length >= 24) break;
+          }
+
+          if (tmdbResults.isNotEmpty) {
+            _cache[cacheKey] = tmdbResults;
+            return tmdbResults;
+          }
+        }
+      }
+
+      // B. Secondary Fallback: Cinemeta
       if (targetImdb == null || !targetImdb.startsWith('tt')) {
         final searchUrl =
             '$cinemetaUrl/catalog/$type/top/search=${Uri.encodeComponent(item.title)}.json';
@@ -99,7 +205,6 @@ class RecommendationsService {
         }
       }
 
-      // 3. Extract primary genre from meta
       String primaryGenre = isSeries ? 'Drama' : 'Action';
       if (targetImdb != null && targetImdb.startsWith('tt')) {
         final metaUrl = '$cinemetaUrl/meta/$type/$targetImdb.json';
@@ -116,7 +221,6 @@ class RecommendationsService {
         }
       }
 
-      // 4. Query top titles in the discovered genre
       final catalogUrl =
           '$cinemetaUrl/catalog/$type/top/genre=${Uri.encodeComponent(primaryGenre)}.json';
       final catResp = await _dio.get<dynamic>(
@@ -133,14 +237,11 @@ class RecommendationsService {
           final id = (entry['imdb_id'] ?? entry['id']) as String? ?? '';
           if (name.isEmpty) continue;
 
-          // Exclude the source item itself
           if (name.toLowerCase() == item.title.toLowerCase() ||
               (targetImdb != null && id == targetImdb)) {
             continue;
           }
 
-          // A Cinemeta catalogue only ever yields IMDb ids, so a card without
-          // one has no row in the catalogue and nothing to play.
           if (!id.startsWith('tt')) continue;
 
           final poster = entry['poster'] as String? ?? '';
@@ -151,9 +252,6 @@ class RecommendationsService {
           results.add(
             MultimediaItem(
               title: name,
-              // Same token a home/search row from `dev.justin.catalogue`
-              // carries, so `loadStreams` resolves it straight to the
-              // catalogue's direct HLS links.
               url: catalogueToken(
                 imdbId: id,
                 type: type,

@@ -1379,6 +1379,16 @@ class LocalProxyService {
     final outputLines = <String>[];
     bool skippingAdSegment = false;
 
+    // Detect if this master manifest has multiple audio tracks with an English option
+    final hasAudioMedia = rawLines.any((l) => l.startsWith('#EXT-X-MEDIA:TYPE=AUDIO'));
+    final hasEnglishAudio = hasAudioMedia && rawLines.any((l) {
+      if (!l.startsWith('#EXT-X-MEDIA:TYPE=AUDIO')) return false;
+      final lower = l.toLowerCase();
+      return lower.contains('language="en') ||
+             lower.contains('name="english') ||
+             lower.contains('name="eng');
+    });
+
     for (int i = 0; i < rawLines.length; i++) {
       final line = rawLines[i];
       final trimmed = line.trim();
@@ -1407,9 +1417,25 @@ class LocalProxyService {
           }
         }
 
-        if (trimmed.contains('URI="')) {
-          final isSub = trimmed.contains('TYPE=SUBTITLES');
-          final rew = trimmed.replaceAllMapped(RegExp(r'URI="([^"]+)"'), (
+        var processedLine = trimmed;
+        if (hasEnglishAudio && processedLine.startsWith('#EXT-X-MEDIA:TYPE=AUDIO')) {
+          final isEng = processedLine.toLowerCase().contains('language="en') ||
+              processedLine.toLowerCase().contains('name="english') ||
+              processedLine.toLowerCase().contains('name="eng');
+          if (isEng) {
+            processedLine = processedLine
+                .replaceAll('DEFAULT=NO', 'DEFAULT=YES')
+                .replaceAll('AUTOSELECT=NO', 'AUTOSELECT=YES');
+          } else {
+            processedLine = processedLine
+                .replaceAll('DEFAULT=YES', 'DEFAULT=NO')
+                .replaceAll('AUTOSELECT=YES', 'AUTOSELECT=NO');
+          }
+        }
+
+        if (processedLine.contains('URI="')) {
+          final isSub = processedLine.contains('TYPE=SUBTITLES');
+          final rew = processedLine.replaceAllMapped(RegExp(r'URI="([^"]+)"'), (
             match,
           ) {
             final uri = match.group(1)!;
@@ -1426,7 +1452,7 @@ class LocalProxyService {
           continue;
         }
 
-        outputLines.add(line);
+        outputLines.add(processedLine);
         continue;
       }
 

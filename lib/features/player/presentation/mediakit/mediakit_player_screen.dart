@@ -1026,6 +1026,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                   title.contains('eng');
             });
             if (engTrack != null && engTrack.id != curAudio.id) {
+              _holdThroughTrackChange();
               unawaited(_player.setAudioTrack(engTrack));
             }
           }

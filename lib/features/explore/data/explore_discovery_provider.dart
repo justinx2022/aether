@@ -81,8 +81,13 @@ class ExploreDiscoveryNotifier extends Notifier<ExploreDiscoveryState> {
     final nextPage = state.page + 1;
 
     try {
-      final newItems = await _fetchPage(nextPage);
-      if (newItems.isEmpty) {
+      // Endless discovery: fetch next 2 pages in parallel for massive, seamless depth (1000+ items)
+      final p1Future = _fetchPage(nextPage);
+      final p2Future = nextPage < 60 ? _fetchPage(nextPage + 1) : Future.value(<MultimediaItem>[]);
+      final pages = await Future.wait([p1Future, p2Future]);
+      final newItems = [...pages[0], ...pages[1]];
+
+      if (newItems.isEmpty && nextPage > 50) {
         state = state.copyWith(isLoadingMore: false, hasMore: false);
         return;
       }
@@ -91,11 +96,12 @@ class ExploreDiscoveryNotifier extends Notifier<ExploreDiscoveryState> {
       final existingKeys = state.items.map((i) => _itemKey(i)).toSet();
       final fresh = newItems.where((i) => !existingKeys.contains(_itemKey(i))).toList();
 
+      final advancedPage = pages[1].isNotEmpty ? (nextPage + 1) : nextPage;
       state = state.copyWith(
         items: [...state.items, ...fresh],
-        page: nextPage,
+        page: advancedPage,
         isLoadingMore: false,
-        hasMore: fresh.isNotEmpty,
+        hasMore: advancedPage < 80,
       );
     } catch (e) {
       if (kDebugMode) debugPrint('ExploreDiscoveryNotifier loadMore error: $e');

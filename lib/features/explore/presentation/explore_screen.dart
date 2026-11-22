@@ -73,7 +73,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
     }
 
     // Infinite discovery pagination trigger: load more seamlessly when approaching bottom
-    if (maxScroll > 0 && currentScroll >= maxScroll - 450) {
+    if (maxScroll > 0 && currentScroll >= maxScroll - 1200) {
       ref.read(exploreDiscoveryNotifierProvider.notifier).loadMore();
     }
 

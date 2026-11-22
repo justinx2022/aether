@@ -3,14 +3,14 @@ import 'package:flutter/material.dart';
 import 'user_profile.dart';
 
 /// Renders genuine vector-crafted cinematic character art and natural landscapes
-/// for Aether profiles. Contains 30 iconic live-action film/series characters
-/// (Baby Driver, The Expanse, Dune, Blade Runner, Drive, Heisenberg, etc.)
-/// and scenic vistas.
+/// for Aether profiles, with full support for photo avatars, selection rings,
+/// and primary badges.
 class CharacterAvatarWidget extends StatelessWidget {
   final String avatarId;
   final double size;
   final bool isSelected;
   final bool showGlow;
+  final bool isPrimary;
   final VoidCallback? onTap;
 
   const CharacterAvatarWidget({
@@ -19,57 +19,131 @@ class CharacterAvatarWidget extends StatelessWidget {
     this.size = 80,
     this.isSelected = false,
     this.showGlow = true,
+    this.isPrimary = false,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final avatar = ProfileAvatars.get(avatarId);
+    final hasImage = avatar.imageUrl != null && avatar.imageUrl!.isNotEmpty;
 
-    final widgetContent = Container(
-      width: size,
-      height: size,
+    final innerAvatar = Container(
+      width: isSelected ? (size - 10).clamp(16.0, size) : size,
+      height: isSelected ? (size - 10).clamp(16.0, size) : size,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(size * 0.22),
+        shape: BoxShape.circle,
+        color: avatar.backgroundColor,
         gradient: LinearGradient(
           colors: avatar.gradientColors,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        boxShadow: showGlow
-            ? [
-                BoxShadow(
-                  color: avatar.glowColor.withValues(alpha: isSelected ? 0.65 : 0.25),
-                  blurRadius: isSelected ? size * 0.25 : size * 0.15,
-                  spreadRadius: isSelected ? 2.5 : 0.0,
-                  offset: const Offset(0, 4),
+      ),
+      child: ClipOval(
+        child: hasImage
+            ? Image.network(
+                avatar.imageUrl!,
+                fit: BoxFit.cover,
+                width: isSelected ? (size - 10).clamp(16.0, size) : size,
+                height: isSelected ? (size - 10).clamp(16.0, size) : size,
+                errorBuilder: (context, error, stackTrace) => CustomPaint(
+                  size: Size(size, size),
+                  painter: _getPainter(avatar.id),
                 ),
-              ]
-            : null,
-        border: Border.all(
-          color: isSelected
-              ? Colors.white
-              : Colors.white.withValues(alpha: 0.18),
-          width: isSelected ? 3.0 : 1.5,
-        ),
+              )
+            : CustomPaint(
+                size: Size(size, size),
+                painter: _getPainter(avatar.id),
+              ),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(size * 0.22),
-        child: CustomPaint(
-          size: Size(size, size),
-          painter: _getPainter(avatar.id),
-        ),
-      ),
+    );
+
+    final avatarBody = isSelected
+        ? Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white,
+                width: (size * 0.035).clamp(2.0, 3.5),
+              ),
+              boxShadow: showGlow
+                  ? [
+                      BoxShadow(
+                        color: avatar.glowColor.withValues(alpha: 0.45),
+                        blurRadius: size * 0.22,
+                        spreadRadius: 1.0,
+                      ),
+                    ]
+                  : null,
+            ),
+            alignment: Alignment.center,
+            child: innerAvatar,
+          )
+        : Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: showGlow
+                  ? [
+                      BoxShadow(
+                        color: avatar.glowColor.withValues(alpha: 0.25),
+                        blurRadius: size * 0.15,
+                        offset: const Offset(0, 3),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: innerAvatar,
+          );
+
+    final widgetWithBadge = Stack(
+      clipBehavior: Clip.none,
+      children: [
+        avatarBody,
+        if (isPrimary)
+          Positioned(
+            right: 0,
+            bottom: 2,
+            child: Container(
+              width: (size * 0.26).clamp(14.0, 28.0),
+              height: (size * 0.26).clamp(14.0, 28.0),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFFF59E0B),
+                border: Border.all(
+                  color: const Color(0xFF0F172A),
+                  width: 2.0,
+                ),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black45,
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Icon(
+                Icons.star_rounded,
+                color: Colors.white,
+                size: (size * 0.18).clamp(10.0, 20.0),
+              ),
+            ),
+          ),
+      ],
     );
 
     if (onTap != null) {
       return GestureDetector(
         onTap: onTap,
-        child: widgetContent,
+        child: widgetWithBadge,
       );
     }
 
-    return widgetContent;
+    return widgetWithBadge;
   }
 
   static CustomPainter _getPainter(String id) {

@@ -20,9 +20,10 @@ class DohResolver {
   static final DohResolver instance = DohResolver._();
 
   static const List<String> _dohEndpoints = [
-    'https://cloudflare-dns.com/dns-query',
-    'https://dns.google/resolve',
-    'https://dns.quad9.net/dns-query',
+    'https://1.1.1.1/dns-query',
+    'https://8.8.8.8/resolve',
+    'https://1.0.0.1/dns-query',
+    'https://9.9.9.9/dns-query',
   ];
 
   final Map<String, ({String ip, DateTime expiresAt})> _cache = {};

@@ -394,10 +394,13 @@ class SearchSuggestionState {
 @riverpod
 class SearchSuggestionController extends _$SearchSuggestionController {
   Timer? _debounce;
+  bool _isDisposed = false;
 
   @override
   SearchSuggestionState build() {
+    _isDisposed = false;
     ref.onDispose(() {
+      _isDisposed = true;
       _debounce?.cancel();
     });
     return const SearchSuggestionState();
@@ -421,7 +424,9 @@ class SearchSuggestionController extends _$SearchSuggestionController {
 
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 250), () async {
+      if (_isDisposed) return;
       try {
+        if (_isDisposed) return;
         final tmdb = ref.read(tmdbServiceProvider);
         final history = ref.read(searchHistoryProvider);
         final fuzzyHistory = matchingSearchHistory(history, query, limit: 5);
@@ -434,18 +439,19 @@ class SearchSuggestionController extends _$SearchSuggestionController {
           );
         } catch (_) {}
 
+        if (_isDisposed) return;
         final combined = <String>{...fuzzyHistory, ...tmdbSuggestions}.toList();
         combined.sort((a, b) => FuzzyMatcher.matchScore(b, query)
             .compareTo(FuzzyMatcher.matchScore(a, query)));
 
-        if (state.query == query) {
+        if (!_isDisposed && state.query == query) {
           state = state.copyWith(
             suggestions: combined.take(10).toList(),
             isLoading: false,
           );
         }
       } catch (_) {
-        if (state.query == query) {
+        if (!_isDisposed && state.query == query) {
           state = state.copyWith(suggestions: const [], isLoading: false);
         }
       }
@@ -454,6 +460,8 @@ class SearchSuggestionController extends _$SearchSuggestionController {
 
   void clear() {
     _debounce?.cancel();
-    state = const SearchSuggestionState();
+    if (!_isDisposed) {
+      state = const SearchSuggestionState();
+    }
   }
 }

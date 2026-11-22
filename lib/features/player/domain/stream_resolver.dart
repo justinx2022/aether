@@ -324,7 +324,7 @@ Future<ResolvedPlayback> resolvePlayback({
     final sw = Stopwatch()..start();
     try {
       raw = (await provider!.loadStreams(videoUrl))
-          .where((s) => !isTorrentStream(s) || isTorrentAtOrUnder1080p(s))
+          .where((s) => !isTorrentStream(s))
           .toList(growable: false);
       sw.stop();
       try {

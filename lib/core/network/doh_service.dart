@@ -252,15 +252,15 @@ class DohService {
   String get _endpoint {
     switch (_provider) {
       case DohProvider.cloudflare:
-        return 'https://cloudflare-dns.com/dns-query';
+        return 'https://1.1.1.1/dns-query';
       case DohProvider.google:
-        return 'https://dns.google/dns-query';
+        return 'https://8.8.8.8/dns-query';
       case DohProvider.adguard:
         return 'https://dns.adguard.com/dns-query';
       case DohProvider.dnsWatch:
         return 'https://resolver2.dns.watch/dns-query';
       case DohProvider.quad9:
-        return 'https://dns.quad9.net/dns-query';
+        return 'https://9.9.9.9/dns-query';
       case DohProvider.dnsSb:
         return 'https://doh.dns.sb/dns-query';
       case DohProvider.canadianShield:
