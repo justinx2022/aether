@@ -606,6 +606,7 @@ class StreamResult {
   final String? drmKid;
   final String? drmKey;
   final String? licenseUrl;
+  final int? fileIndex;
 
   const StreamResult({
     required this.url,
@@ -616,6 +617,7 @@ class StreamResult {
     this.drmKid,
     this.drmKey,
     this.licenseUrl,
+    this.fileIndex,
   });
 
   String get displaySource {
@@ -638,6 +640,7 @@ class StreamResult {
     String? drmKid,
     String? drmKey,
     String? licenseUrl,
+    int? fileIndex,
   }) {
     return StreamResult(
       url: url ?? this.url,
@@ -648,6 +651,7 @@ class StreamResult {
       drmKid: drmKid ?? this.drmKid,
       drmKey: drmKey ?? this.drmKey,
       licenseUrl: licenseUrl ?? this.licenseUrl,
+      fileIndex: fileIndex ?? this.fileIndex,
     );
   }
 
@@ -660,6 +664,7 @@ class StreamResult {
     'drmKid': drmKid,
     'drmKey': drmKey,
     'licenseUrl': licenseUrl,
+    'fileIndex': fileIndex,
   };
 
   factory StreamResult.fromJson(Map<String, dynamic> json) {
@@ -682,6 +687,7 @@ class StreamResult {
       drmKid: json['drmKid'] as String?,
       drmKey: json['drmKey'] as String?,
       licenseUrl: json['licenseUrl'] as String?,
+      fileIndex: (json['fileIndex'] as int?) ?? (json['file_index'] as int?),
     );
   }
 }

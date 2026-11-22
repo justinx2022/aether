@@ -208,5 +208,31 @@ void main() {
       expect(stream2.displaySource, 'Torrentio · Avatar.2022.1080p.BluRay');
       expect(stream3.displaySource, 'VixSrc Master HLS');
     });
+
+    test('extractSeeders parses Unicode user icon from Torrentio', () {
+      final stream = StreamResult(
+        url: 'magnet:?xt=urn:btih:123',
+        source: 'Reasonable.Doubt.S04E04.1080p · 👤 53 💾 325.11 MB ⚙️ EZTV',
+        providerName: 'Torrentio',
+      );
+      expect(extractSeeders(stream), 53);
+    });
+
+    test('sortStreamsByQuality prioritizes highest seeded torrent within same quality tier', () {
+      final lowSeed = StreamResult(
+        url: 'magnet:?xt=urn:btih:low',
+        source: 'Show.S01E01.1080p · 👤 2 💾 2.1 GB',
+        providerName: 'Torrentio',
+      );
+      final highSeed = StreamResult(
+        url: 'magnet:?xt=urn:btih:high',
+        source: 'Show.S01E01.1080p · 👤 53 💾 500 MB',
+        providerName: 'Torrentio',
+      );
+
+      final sorted = sortStreamsByQuality([lowSeed, highSeed], QualityPreference.q1080);
+      expect(sorted.first.url, 'magnet:?xt=urn:btih:high');
+      expect(sorted.last.url, 'magnet:?xt=urn:btih:low');
+    });
   });
 }

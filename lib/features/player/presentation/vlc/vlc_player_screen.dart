@@ -1260,7 +1260,12 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
       if (playable == null) {
         // Fallback to progressive TorrServer stream if bridge didn't output HLS
         final torrentService = _read(torrentServiceProvider);
-        playable = await torrentService.getStreamUrl(stream.url);
+        playable = await torrentService.getStreamUrl(
+          stream.url,
+          fileIndex: stream.fileIndex,
+          season: _currentEpisode?.season,
+          episode: _currentEpisode?.episode,
+        );
       }
     } else {
       playable = playableUrlFor(stream);

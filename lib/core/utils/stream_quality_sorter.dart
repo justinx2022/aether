@@ -257,8 +257,8 @@ List<StreamResult> sortStreamsByQuality(
     }
   }
 
-  List<StreamResult> sortGroup(List<StreamResult> group) {
-    if (preference == QualityPreference.any || group.length <= 1) {
+  List<StreamResult> sortGroup(List<StreamResult> group, {bool isTorrent = false}) {
+    if (group.length <= 1) {
       return group;
     }
 
@@ -271,24 +271,33 @@ List<StreamResult> sortStreamsByQuality(
             index: e.key,
             stream: e.value,
             tier: detectQualityTier(e.value.source),
+            seeders: isTorrent ? extractSeeders(e.value) : 0,
           ),
         )
         .toList();
 
     indexed.sort((a, b) {
-      final ka = _sortKey(a.tier, prefRank);
-      final kb = _sortKey(b.tier, prefRank);
-      if (ka != kb) return ka.compareTo(kb);
+      if (preference != QualityPreference.any) {
+        final ka = _sortKey(a.tier, prefRank);
+        final kb = _sortKey(b.tier, prefRank);
+        if (ka != kb) return ka.compareTo(kb);
+      }
+      if (isTorrent && b.seeders != a.seeders) {
+        return b.seeders.compareTo(a.seeders);
+      }
       return a.index.compareTo(b.index); // stable: preserve original order
     });
 
     return indexed.map((e) => e.stream).toList();
   }
 
+  final sortedDirect = sortGroup(directStreams, isTorrent: false);
+  final sortedTorrent = sortGroup(torrentStreams, isTorrent: true);
+
   if (preferredStreamType == PreferredStreamType.torrent) {
-    return [...sortGroup(torrentStreams), ...sortGroup(directStreams)];
+    return [...sortedTorrent, ...sortedDirect];
   } else {
-    return [...sortGroup(directStreams), ...sortGroup(torrentStreams)];
+    return [...sortedDirect, ...sortedTorrent];
   }
 }
 
@@ -345,7 +354,7 @@ String qualityBadgeLabel(StreamResult stream) {
 int extractSeeders(StreamResult stream) {
   final label = stream.source;
   final match = RegExp(
-        r'(?:\u{1F331}|\bS:|\bseeds?:\s*|\bseeders?:\s*|\bS\s*=\s*)(\d+)',
+        r'(?:[\u{1F464}\u{1F465}\u{1F331}]\s*|\bS\s*[:=]\s*|\bseeds?[:\s]*|\bseeders?[:\s]*)(\d+)',
         caseSensitive: false,
         unicode: true,
       ).firstMatch(label) ??

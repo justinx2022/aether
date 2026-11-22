@@ -816,6 +816,7 @@ class JsBasedProvider extends AetherProvider {
               drmKid: map['drmKid'] as String?,
               drmKey: map['drmKey'] as String?,
               licenseUrl: map['licenseUrl'] as String?,
+              fileIndex: (map['fileIndex'] as int?) ?? (map['file_index'] as int?),
             );
           });
 

@@ -117,7 +117,7 @@ class TorrentService {
         "sets": {
           "CacheSize": workingSetCacheBytes,
           "ReaderReadAHead": _readAheadPercent,
-          "PreloadCache": 2,                  // 2% forces head+tail fetch (~2.5MB)
+          "PreloadCache": 1,                  // 1% preload ensures quick container probing
           "ConnectionsLimit": 120,            // High connection limit = fast parallel swarms
           "TorrentDisconnectTimeout": 30,     // 30s = stable peer handshake without dropping
           "RetrackersMode": 1,
@@ -182,7 +182,10 @@ class TorrentService {
   /// Polls for torrent metadata until file_stats is populated or timeout expires.
   Future<Map<String, dynamic>?> pollForMetadata(
     String hash, {
-    Duration timeout = const Duration(seconds: 20),
+    Duration timeout = const Duration(seconds: 48),
+    int? targetIndex,
+    int? season,
+    int? episode,
   }) async {
     final deadline = DateTime.now().add(timeout);
     while (DateTime.now().isBefore(deadline)) {
@@ -192,7 +195,12 @@ class TorrentService {
         if (status != null && status['file_stats'] is List) {
           final fileStats = status['file_stats'] as List;
           if (fileStats.isNotEmpty) {
-            return _findSequentialVideoFile(fileStats);
+            return _findSequentialVideoFile(
+              fileStats,
+              targetIndex: targetIndex,
+              season: season,
+              episode: episode,
+            );
           }
         }
       } catch (_) {}
@@ -200,7 +208,12 @@ class TorrentService {
     return null;
   }
 
-  Future<String?> getStreamUrl(String magnetLink) async {
+  Future<String?> getStreamUrl(
+    String magnetLink, {
+    int? fileIndex,
+    int? season,
+    int? episode,
+  }) async {
     if (!_isStarted) {
       await start();
     }
@@ -221,24 +234,29 @@ class TorrentService {
       _activeTorrentHash = hash;
 
       // Poll for Status to get Filename and File Index
-      final fileInfo = await _pollForMetadata(hash);
+      final fileInfo = await _pollForMetadata(
+        hash,
+        targetIndex: fileIndex,
+        season: season,
+        episode: episode,
+      );
       if (fileInfo == null) {
         throw Exception("Timed out waiting for torrent metadata");
       }
 
-      final int fileIndex = fileInfo['index'] as int;
+      final int resolvedIndex = fileInfo['index'] as int;
       final rawPath = fileInfo['path'] as String? ?? 'video.mp4';
       final fileName = Uri.encodeComponent(rawPath.split(RegExp(r'[/\\]')).last);
 
       // Construct URL with proper filename and extension for instant container demuxing
       // Try to fetch from playlist first
-      final playlistStreamUrl = await _fetchPlaylistUrl(hash, fileIndex);
+      final playlistStreamUrl = await _fetchPlaylistUrl(hash, resolvedIndex);
       if (playlistStreamUrl != null) {
         return playlistStreamUrl;
       }
 
       // Fallback: Direct stream with filename
-      return "$_serverUrl/stream/$fileName?link=$hash&index=$fileIndex&play";
+      return "$_serverUrl/stream/$fileName?link=$hash&index=$resolvedIndex&play";
     } catch (e) {
       if (kDebugMode) debugPrint("Error generating stream URL: $e");
       return null;
@@ -254,6 +272,11 @@ class TorrentService {
     'udp://explodie.org:6969/announce',
     'udp://tracker.qu.ax:6969/announce',
     'udp://tracker.coppersurfer.tk:6969/announce',
+    'http://tracker.opentrackr.org:1337/announce',
+    'udp://tracker.openbittorrent.com:6969/announce',
+    'udp://opentracker.i2p.rocks:6969/announce',
+    'udp://tracker.internetwarriors.net:1337/announce',
+    'udp://p4p.arenabg.com:1337/announce',
   ];
 
   Future<String> _prepareMagnetLink(String link) async {
@@ -282,11 +305,39 @@ class TorrentService {
     return resolved;
   }
 
-  Future<Map<String, dynamic>?> _pollForMetadata(String hash) async {
-    return pollForMetadata(hash, timeout: const Duration(seconds: 48));
+  Future<Map<String, dynamic>?> _pollForMetadata(
+    String hash, {
+    int? targetIndex,
+    int? season,
+    int? episode,
+  }) async {
+    return pollForMetadata(
+      hash,
+      timeout: const Duration(seconds: 48),
+      targetIndex: targetIndex,
+      season: season,
+      episode: episode,
+    );
   }
 
-  Map<String, dynamic> _findSequentialVideoFile(List<dynamic> fileStats) {
+  Map<String, dynamic> _findSequentialVideoFile(
+    List<dynamic> fileStats, {
+    int? targetIndex,
+    int? season,
+    int? episode,
+  }) {
+    if (targetIndex != null) {
+      for (int i = 0; i < fileStats.length; i++) {
+        final f = fileStats[i];
+        if (f is Map) {
+          final id = (f['id'] as num?)?.toInt() ?? i;
+          if (id == targetIndex) {
+            return {'index': id, 'path': f['path']?.toString() ?? 'video.mp4'};
+          }
+        }
+      }
+    }
+
     final videoExtensions = ['.mp4', '.mkv', '.avi', '.mov', '.webm'];
     final videoFiles = <Map<dynamic, dynamic>>[];
 
@@ -303,6 +354,32 @@ class TorrentService {
     }
 
     if (videoFiles.isNotEmpty) {
+      // If season & episode are requested, find matching episode file
+      if (season != null && episode != null) {
+        final sPad = season.toString().padLeft(2, '0');
+        final ePad = episode.toString().padLeft(2, '0');
+        final patterns = [
+          RegExp('s0*$season\\s*e0*$episode\\b', caseSensitive: false),
+          RegExp('s$sPad\\s*e$ePad', caseSensitive: false),
+          RegExp('\\b$season\\s*x\\s*0*$episode\\b', caseSensitive: false),
+          RegExp('\\bep(?:isode)?\\s*0*$episode\\b', caseSensitive: false),
+          RegExp('\\be0*$episode\\b', caseSensitive: false),
+        ];
+
+        for (final regex in patterns) {
+          for (final vf in videoFiles) {
+            final p = (vf['path']?.toString() ?? '').toLowerCase();
+            if (regex.hasMatch(p)) {
+              final idx = (vf['id'] as num?)?.toInt() ?? videoFiles.indexOf(vf);
+              if (kDebugMode) {
+                debugPrint("Matched episode file: ${vf['path']} (Index: $idx)");
+              }
+              return {'index': idx, 'path': vf['path']};
+            }
+          }
+        }
+      }
+
       // Sort alphabetically to find the "first" file in sequence (e.g. S01E01)
       videoFiles.sort(
         (a, b) => (a['path'] as String).compareTo(b['path'] as String),
@@ -315,11 +392,15 @@ class TorrentService {
       }
       if (kDebugMode) {
         debugPrint(
-          "Auto-selected first video file: ${selectedFile['path']} (Index: $fileIndex)",
+          "Auto-selected video file: ${selectedFile['path']} (Index: $fileIndex)",
         );
       }
       return {'index': fileIndex, 'path': selectedFile['path']};
     }
+
+    // Fallback to largest file if no video extension matches (e.g. strict naming)
+    return _findLargestFile(fileStats);
+  }
 
     // Fallback to largest file if no video extension matches (e.g. strict naming)
     return _findLargestFile(fileStats);

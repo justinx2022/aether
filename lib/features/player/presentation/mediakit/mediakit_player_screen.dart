@@ -1310,7 +1310,8 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     await _describeSilentOpen();
     if (_disposed || !mounted || token != _openToken) return;
 
-    if (!_attemptTriedProxy) {
+    final isTorrent = isTorrentSource(stream);
+    if (!isTorrent && !_attemptTriedProxy) {
       if (await _tryProxyFallback(url, headers, at, token)) return;
     } else if (!_attemptTriedDirect) {
       if (await _tryDirectOpen(url, headers, at, token)) return;
@@ -1338,7 +1339,11 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     if (_attemptIndex < 0 || _attemptIndex >= streams.length) {
       return _kSilentOpenWatchdog;
     }
-    final uri = Uri.tryParse(AppUtils.normalizeUrl(streams[_attemptIndex].url));
+    final stream = streams[_attemptIndex];
+    if (isTorrentSource(stream)) {
+      return const Duration(seconds: 60);
+    }
+    final uri = Uri.tryParse(AppUtils.normalizeUrl(stream.url));
     return uri != null && looksLikeHls(uri)
         ? _kSilentOpenWatchdogHls
         : _kSilentOpenWatchdog;
@@ -1572,7 +1577,12 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     if (isTorrentSource(stream)) {
       final torrentService = _read(torrentServiceProvider);
       _startedTorrent = true;
-      playableUrl = await torrentService.getStreamUrl(stream.url);
+      playableUrl = await torrentService.getStreamUrl(
+        stream.url,
+        fileIndex: stream.fileIndex,
+        season: _effectiveCurrentEpisode?.season,
+        episode: _effectiveCurrentEpisode?.episode,
+      );
       if (_disposed || token != _openToken) return;
       if (playableUrl == null) {
         _failoverNext();
@@ -2362,6 +2372,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     final playingIndex = _attemptIndex;
     final videoTracks = _videoTracks.value;
     final activeTrack = _currentVideoTrack.value;
+    int selectedTab = 0; // 0 = Sources, 1 = Quality & Tracks
 
     showModalBottomSheet<void>(
       context: context,
@@ -2372,241 +2383,315 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
       ),
       builder: (sheetContext) {
         final l10n = AppLocalizations.of(sheetContext)!;
-        return PlayerPanelMetricsScope(
-          metrics: PlayerPanelMetrics.forTv(_isTv),
-          child: SafeArea(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.78,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  PlayerSheetHeader(
-                    title: l10n.playerQualityAndSources,
-                    isTv: _isTv,
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return PlayerPanelMetricsScope(
+              metrics: PlayerPanelMetrics.forTv(_isTv),
+              child: SafeArea(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.78,
                   ),
-                  Flexible(
-                    child: ListView(
-                      shrinkWrap: true,
-                      padding: const EdgeInsets.only(bottom: 16),
-                      children: [
-                        // SECTION 1: RESOLUTION / STREAM QUALITY
-                        const PanelSubheader(title: 'Quality & Resolution'),
-
-                        // 1. Auto (Adaptive)
-                        PanelRow(
-                          label: l10n.playerAutoAdaptive,
-                          detail: 'Automatically matches connection speed',
-                          badges: const <String>['Adaptive'],
-                          icon: Icons.auto_awesome_rounded,
-                          selected:
-                              _manualQualitySelection == null ||
-                              _manualQualitySelection == 'Auto',
-                          selectedLabel: 'Active',
-                          onTap: () {
-                            setState(() {
-                              _manualQualitySelection = 'Auto';
-                            });
-                            unawaited(_player.setVideoTrack(VideoTrack.auto()));
-                            Navigator.of(sheetContext).maybePop();
-                          },
-                        ),
-
-                        // 2. Direct HLS Renditions (if demuxed by mpv)
-                        if (videoTracks.length > 1) ...[
-                          for (final track in videoTracks)
-                            PanelRow(
-                              label: track.h != null
-                                  ? '${track.h}p ${track.h! >= 1080 ? 'Full HD' : (track.h! >= 720 ? 'HD' : 'SD')}'
-                                  : (track.title ?? 'Track ${track.id}'),
-                              detail: [
-                                if (track.w != null && track.h != null)
-                                  '${track.w}x${track.h}',
-                                if (track.bitrate != null && track.bitrate! > 0)
-                                  '${(track.bitrate! / 1000000).toStringAsFixed(1)} Mbps',
-                                if (track.fps != null && track.fps! > 0)
-                                  '${track.fps!.toStringAsFixed(0)} fps',
-                                if (track.codec != null) track.codec!,
-                              ].join(' • '),
-                              badges: <String>[
-                                if (track.h != null) '${track.h}p',
-                              ],
-                              selected: activeTrack?.id == track.id,
-                              selectedLabel: 'Selected',
-                              onTap: () {
-                                setState(() {
-                                  _manualQualitySelection = track.h != null
-                                      ? '${track.h}p'
-                                      : track.id;
-                                });
-                                unawaited(_player.setVideoTrack(track));
-                                Navigator.of(sheetContext).maybePop();
-                              },
-                            ),
-                        ],
-
-                        // 3. Discrete Target Tiers (4K, 1080p, 720p, 480p, 360p)
-                        for (final targetTier in const [
-                          (QualityTier.q4k, '4K Ultra HD', '4K'),
-                          (QualityTier.q1080, '1080p Full HD', '1080p'),
-                          (QualityTier.q720, '720p High Definition', '720p'),
-                          (
-                            QualityTier.q480,
-                            '480p Standard Definition',
-                            '480p',
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      PlayerSheetHeader(
+                        title: l10n.playerQualityAndSources,
+                        isTv: _isTv,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: HotstarPlayerStyle.panelSubheader,
+                            borderRadius: BorderRadius.circular(10),
                           ),
-                          (QualityTier.q360, '360p Data Saver', '360p'),
-                        ]) ...[
-                          () {
-                            final tier = targetTier.$1;
-                            final title = targetTier.$2;
-                            final badge = targetTier.$3;
-
-                            final matchingTrack = videoTracks.firstWhereOrNull(
-                              (t) => t.h != null && tierForHeight(t.h!) == tier,
-                            );
-
-                            final matchingCandidates = streams
-                                .asMap()
-                                .entries
-                                .where(
-                                  (e) =>
-                                      detectQualityTier(e.value.source) == tier,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(8),
+                                  onTap: () => setSheetState(() => selectedTab = 0),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: selectedTab == 0
+                                          ? HotstarPlayerStyle.accent
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      'Sources (${streams.length})',
+                                      style: TextStyle(
+                                        color: selectedTab == 0
+                                            ? Colors.white
+                                            : Colors.white70,
+                                        fontWeight: selectedTab == 0
+                                            ? FontWeight.w700
+                                            : FontWeight.w500,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(8),
+                                  onTap: () => setSheetState(() => selectedTab = 1),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: selectedTab == 1
+                                          ? HotstarPlayerStyle.accent
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      'Quality & Tracks',
+                                      style: TextStyle(
+                                        color: selectedTab == 1
+                                            ? Colors.white
+                                            : Colors.white70,
+                                        fontWeight: selectedTab == 1
+                                            ? FontWeight.w700
+                                            : FontWeight.w500,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Flexible(
+                        child: ListView(
+                          shrinkWrap: true,
+                          padding: const EdgeInsets.only(bottom: 16),
+                          children: [
+                            if (selectedTab == 0) ...[
+                              // TAB 0: PROVIDER SERVERS & SOURCES
+                              const PanelSubheader(
+                                title: 'Provider Servers & Mirrors',
+                              ),
+                              if (streams.isEmpty)
+                                const PanelEmpty(
+                                  text: 'No sources were found for this title.',
                                 )
-                                .toList();
+                              else
+                                for (final (index, stream) in streams.indexed)
+                                  () {
+                                    final facts = sourceFactsOf(stream);
+                                    final isTorrent = isTorrentStream(stream);
+                                    final label = facts.title.isNotEmpty
+                                        ? facts.title
+                                        : stream.displaySource;
+                                    final detail = [
+                                      if (stream.providerName.isNotEmpty &&
+                                          stream.providerName.toLowerCase() !=
+                                              'unknown')
+                                        stream.providerName,
+                                      if (stream.url.contains('.m3u8'))
+                                        'HLS Adaptive'
+                                      else if (stream.url.contains('.mp4') ||
+                                          stream.url.contains('.mkv'))
+                                        'Direct Container'
+                                      else if (isTorrent)
+                                        'P2P Torrent Stream',
+                                    ].join(' • ');
 
-                            final isAvailable =
-                                matchingTrack != null ||
-                                matchingCandidates.isNotEmpty;
-                            final isCurrentlyActive =
-                                _currentQualityLabel == badge ||
-                                (activeTrack != null &&
-                                    activeTrack.h != null &&
-                                    tierForHeight(activeTrack.h!) == tier);
+                                    return PanelRow(
+                                      label: label,
+                                      detail: detail,
+                                      badges: <String>[
+                                        qualityBadgeLabel(stream),
+                                        if (facts.size != null) facts.size!,
+                                        if (facts.seeders != null)
+                                          '${facts.seeders} seeds',
+                                      ],
+                                      selected: index == playingIndex,
+                                      selectedLabel: 'Now playing',
+                                      autofocus: index == playingIndex,
+                                      onTap: () {
+                                        Navigator.of(sheetContext).maybePop();
+                                        if (index != playingIndex) {
+                                          unawaited(_switchSource(index));
+                                        }
+                                      },
+                                    );
+                                  }(),
 
-                            if (!isAvailable && videoTracks.isNotEmpty) {
-                              return const SizedBox.shrink();
-                            }
+                              const SizedBox(height: 12),
+                              const PanelSubheader(
+                                title: 'Save & Export Video',
+                              ),
+                              () {
+                                final bufferMs = _player.state.buffer.inMilliseconds;
+                                final durationMs = _player.state.duration.inMilliseconds;
+                                final pct = durationMs > 0 ? (bufferMs / durationMs).clamp(0.0, 1.0) : 0.0;
+                                final isFull = pct >= 0.95;
+                                return PanelRow(
+                                  label: 'Save Video to Downloads',
+                                  detail: isFull
+                                      ? 'Fully buffered (100%) • Direct instant save to Downloads/Aether'
+                                      : '${(pct * 100).toInt()}% buffered • Save current stream to Downloads/Aether',
+                                  icon: isFull ? Icons.download_done_rounded : Icons.save_alt_rounded,
+                                  badges: isFull ? const <String>['Ready to Save'] : const <String>[],
+                                  onTap: () {
+                                    Navigator.of(sheetContext).maybePop();
+                                    unawaited(_saveBufferedVideoToDownloads());
+                                  },
+                                );
+                              }(),
+                            ] else ...[
+                              // TAB 1: RESOLUTION / STREAM QUALITY
+                              const PanelSubheader(title: 'Quality & Resolution'),
 
-                            return PanelRow(
-                              label: title,
-                              detail: isAvailable
-                                  ? (matchingTrack != null
-                                        ? 'Stream video track'
-                                        : '${matchingCandidates.length} server mirror${matchingCandidates.length > 1 ? 's' : ''}')
-                                  : 'No server reported this exact resolution',
-                              badges: <String>[badge],
-                              icon: Icons.high_quality_rounded,
-                              selected: isCurrentlyActive,
-                              selectedLabel: 'Active',
-                              enabled: isAvailable,
-                              onTap: () {
-                                setState(() {
-                                  _manualQualitySelection = badge;
-                                });
-                                Navigator.of(sheetContext).maybePop();
-
-                                if (matchingTrack != null) {
-                                  unawaited(
-                                    _player.setVideoTrack(matchingTrack),
-                                  );
-                                } else if (matchingCandidates.isNotEmpty) {
-                                  final bestIndex =
-                                      matchingCandidates.first.key;
-                                  if (bestIndex != playingIndex) {
-                                    unawaited(_switchSource(bestIndex));
-                                  }
-                                }
-                              },
-                            );
-                          }(),
-                        ],
-
-                        // SECTION 2: PROVIDER SERVERS / SOURCES
-                        const SizedBox(height: 12),
-                        const PanelSubheader(
-                          title: 'Provider Servers & Mirrors',
-                        ),
-
-                        if (streams.isEmpty)
-                          const PanelEmpty(
-                            text: 'No other sources were found for this title.',
-                          )
-                        else
-                          for (final (index, stream) in streams.indexed)
-                            () {
-                              final facts = sourceFactsOf(stream);
-                              final isTorrent = isTorrentStream(stream);
-                              final label = facts.title.isNotEmpty
-                                  ? facts.title
-                                  : stream.displaySource;
-                              final detail = [
-                                if (stream.providerName.isNotEmpty &&
-                                    stream.providerName.toLowerCase() !=
-                                        'unknown')
-                                  stream.providerName,
-                                if (stream.url.contains('.m3u8'))
-                                  'HLS Adaptive'
-                                else if (stream.url.contains('.mp4') ||
-                                    stream.url.contains('.mkv'))
-                                  'Direct Container'
-                                else if (isTorrent)
-                                  'P2P Torrent Stream',
-                              ].join(' • ');
-
-                              return PanelRow(
-                                label: label,
-                                detail: detail,
-                                badges: <String>[
-                                  qualityBadgeLabel(stream),
-                                  if (facts.size != null) facts.size!,
-                                  if (facts.seeders != null)
-                                    '${facts.seeders} seeds',
-                                ],
-                                selected: index == playingIndex,
-                                selectedLabel: 'Now playing',
-                                autofocus: index == playingIndex,
+                              // 1. Auto (Adaptive)
+                              PanelRow(
+                                label: l10n.playerAutoAdaptive,
+                                detail: 'Automatically matches connection speed',
+                                badges: const <String>['Adaptive'],
+                                icon: Icons.auto_awesome_rounded,
+                                selected:
+                                    _manualQualitySelection == null ||
+                                    _manualQualitySelection == 'Auto',
+                                selectedLabel: 'Active',
                                 onTap: () {
+                                  setState(() {
+                                    _manualQualitySelection = 'Auto';
+                                  });
+                                  unawaited(_player.setVideoTrack(VideoTrack.auto()));
                                   Navigator.of(sheetContext).maybePop();
-                                  if (index != playingIndex) {
-                                    unawaited(_switchSource(index));
-                                  }
                                 },
-                              );
-                            }(),
+                              ),
 
-                        // SECTION 3: SAVE FULLY BUFFERED VIDEO
-                        const SizedBox(height: 12),
-                        const PanelSubheader(
-                          title: 'Save & Export Video',
+                              // 2. Direct HLS Renditions (if demuxed by mpv)
+                              if (videoTracks.length > 1) ...[
+                                for (final track in videoTracks)
+                                  PanelRow(
+                                    label: track.h != null
+                                        ? '${track.h}p ${track.h! >= 1080 ? 'Full HD' : (track.h! >= 720 ? 'HD' : 'SD')}'
+                                        : (track.title ?? 'Track ${track.id}'),
+                                    detail: [
+                                      if (track.w != null && track.h != null)
+                                        '${track.w}x${track.h}',
+                                      if (track.bitrate != null && track.bitrate! > 0)
+                                        '${(track.bitrate! / 1000000).toStringAsFixed(1)} Mbps',
+                                      if (track.fps != null && track.fps! > 0)
+                                        '${track.fps!.toStringAsFixed(0)} fps',
+                                      if (track.codec != null) track.codec!,
+                                    ].join(' • '),
+                                    badges: <String>[
+                                      if (track.h != null) '${track.h}p',
+                                    ],
+                                    selected: activeTrack?.id == track.id,
+                                    selectedLabel: 'Selected',
+                                    onTap: () {
+                                      setState(() {
+                                        _manualQualitySelection = track.h != null
+                                            ? '${track.h}p'
+                                            : track.id;
+                                      });
+                                      unawaited(_player.setVideoTrack(track));
+                                      Navigator.of(sheetContext).maybePop();
+                                    },
+                                  ),
+                              ] else ...[
+                                // 3. Discrete Target Tiers (only when no multiple demuxed video tracks)
+                                for (final targetTier in const [
+                                  (QualityTier.q4k, '4K Ultra HD', '4K'),
+                                  (QualityTier.q1080, '1080p Full HD', '1080p'),
+                                  (QualityTier.q720, '720p High Definition', '720p'),
+                                  (
+                                    QualityTier.q480,
+                                    '480p Standard Definition',
+                                    '480p',
+                                  ),
+                                  (QualityTier.q360, '360p Data Saver', '360p'),
+                                ]) ...[
+                                  () {
+                                    final tier = targetTier.$1;
+                                    final title = targetTier.$2;
+                                    final badge = targetTier.$3;
+
+                                    final matchingTrack = videoTracks.firstWhereOrNull(
+                                      (t) => t.h != null && tierForHeight(t.h!) == tier,
+                                    );
+
+                                    final matchingCandidates = streams
+                                        .asMap()
+                                        .entries
+                                        .where(
+                                          (e) =>
+                                              detectQualityTier(e.value.source) == tier,
+                                        )
+                                        .toList();
+
+                                    final isAvailable =
+                                        matchingTrack != null ||
+                                        matchingCandidates.isNotEmpty;
+                                    final isCurrentlyActive =
+                                        _currentQualityLabel == badge ||
+                                        (activeTrack != null &&
+                                            activeTrack.h != null &&
+                                            tierForHeight(activeTrack.h!) == tier);
+
+                                    if (!isAvailable) {
+                                      return const SizedBox.shrink();
+                                    }
+
+                                    return PanelRow(
+                                      label: title,
+                                      detail: isAvailable
+                                          ? (matchingTrack != null
+                                                ? 'Stream video track'
+                                                : '${matchingCandidates.length} server mirror${matchingCandidates.length > 1 ? 's' : ''}')
+                                          : 'No server reported this exact resolution',
+                                      badges: <String>[badge],
+                                      icon: Icons.high_quality_rounded,
+                                      selected: isCurrentlyActive,
+                                      selectedLabel: 'Active',
+                                      enabled: isAvailable,
+                                      onTap: () {
+                                        setState(() {
+                                          _manualQualitySelection = badge;
+                                        });
+                                        Navigator.of(sheetContext).maybePop();
+
+                                        if (matchingTrack != null) {
+                                          unawaited(
+                                            _player.setVideoTrack(matchingTrack),
+                                          );
+                                        } else if (matchingCandidates.isNotEmpty) {
+                                          final bestIndex =
+                                              matchingCandidates.first.key;
+                                          if (bestIndex != playingIndex) {
+                                            unawaited(_switchSource(bestIndex));
+                                          }
+                                        }
+                                      },
+                                    );
+                                  }(),
+                                ],
+                              ],
+                            ],
+                          ],
                         ),
-                        () {
-                          final bufferMs = _player.state.buffer.inMilliseconds;
-                          final durationMs = _player.state.duration.inMilliseconds;
-                          final pct = durationMs > 0 ? (bufferMs / durationMs).clamp(0.0, 1.0) : 0.0;
-                          final isFull = pct >= 0.95;
-                          return PanelRow(
-                            label: 'Save Video to Downloads',
-                            detail: isFull
-                                ? 'Fully buffered (100%) • Direct instant save to Downloads/Aether'
-                                : '${(pct * 100).toInt()}% buffered • Save current stream to Downloads/Aether',
-                            icon: isFull ? Icons.download_done_rounded : Icons.save_alt_rounded,
-                            badges: isFull ? const <String>['Ready to Save'] : const <String>[],
-                            onTap: () {
-                              Navigator.of(sheetContext).maybePop();
-                              unawaited(_saveBufferedVideoToDownloads());
-                            },
-                          );
-                        }(),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );

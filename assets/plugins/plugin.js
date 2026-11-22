@@ -820,9 +820,19 @@ var PluginModule = (() => {
         // 3. Torrentio Multi-Tracker Streams (P2P Torrent Fallback)
         var torrentioPromise = (async function() {
           try {
-            if (!imdbId) return;
             var tType = type === 'movie' ? 'movie' : 'series';
-            var tId = imdbId + (type === 'series' ? (':' + season + ':' + episode) : '');
+            var resolvedImdb = imdbId;
+            if (!resolvedImdb && title) {
+              try {
+                var cmSearch = await fetchJson(CINEMETA_V3 + '/catalog/' + tType + '/top/search=' + encodeURIComponent(title) + '.json');
+                if (cmSearch && Array.isArray(cmSearch.metas) && cmSearch.metas.length > 0) {
+                  resolvedImdb = cmSearch.metas[0].imdb_id || cmSearch.metas[0].id;
+                }
+              } catch (e) {}
+            }
+            if (!resolvedImdb) return;
+
+            var tId = resolvedImdb + (type === 'series' ? (':' + season + ':' + episode) : '');
             // Instruct Torrentio to exclude 4k / 2160p and low-grade releases
             var tUrl = 'https://torrentio.strem.fun/qualityfilter=4k,other,scr,cam/stream/' + tType + '/' + tId + '.json';
             var tData = await fetchJson(tUrl, {
@@ -830,6 +840,15 @@ var PluginModule = (() => {
             });
 
             if (tData && Array.isArray(tData.streams) && tData.streams.length > 0) {
+              // Prioritize highest healthy seeder counts first
+              tData.streams.sort(function(a, b) {
+                var sa = (a.title || '').match(/👤\s*(\d+)/);
+                var sb = (b.title || '').match(/👤\s*(\d+)/);
+                var na = sa ? parseInt(sa[1], 10) : 0;
+                var nb = sb ? parseInt(sb[1], 10) : 0;
+                return nb - na;
+              });
+
               var trackers = [
                 'udp://tracker.opentrackr.org:1337/announce',
                 'udp://open.stealth.si:80/announce',
@@ -838,7 +857,9 @@ var PluginModule = (() => {
                 'udp://open.tracker.cl:1337/announce',
                 'udp://explodie.org:6969/announce',
                 'udp://tracker.qu.ax:6969/announce',
-                'udp://tracker.coppersurfer.tk:6969/announce'
+                'udp://tracker.coppersurfer.tk:6969/announce',
+                'http://tracker.opentrackr.org:1337/announce',
+                'udp://tracker.openbittorrent.com:6969/announce'
               ];
               var trackerParams = trackers.map(function(tr) {
                 return '&tr=' + encodeURIComponent(tr);
@@ -863,6 +884,7 @@ var PluginModule = (() => {
                   count++;
                   var qLabel = q ? (q + 'p') : '1080p';
                   var cleanSource = rawTitle + (statsLine ? (' · ' + statsLine) : '');
+                  var fIdx = item.fileIdx !== undefined ? item.fileIdx : 0;
                   streams.push(new Nt({
                     url: magnet,
                     source: cleanSource,
@@ -871,7 +893,8 @@ var PluginModule = (() => {
                     quality: q || 1080,
                     protocol: 'torrent',
                     type: 'torrent',
-                    file_index: item.fileIdx !== undefined ? item.fileIdx : 0,
+                    file_index: fIdx,
+                    fileIndex: fIdx,
                     isM3U8: false
                   }));
                 }
