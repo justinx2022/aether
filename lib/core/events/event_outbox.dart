@@ -75,6 +75,8 @@ class EventOutbox {
   final AetherEventBus _bus;
   bool _isFlushing = false;
 
+  AetherEventBus get bus => _bus;
+
   EventOutbox({
     required StorageService storage,
     AetherEventBus? bus,

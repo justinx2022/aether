@@ -102,7 +102,7 @@ class BackgroundOrchestrator {
     final task = _queue.removeAt(0);
     if (task.isCancelled) {
       if (!task.completer.isCompleted) task.completer.complete();
-      _drainQueue();
+      unawaited(_drainQueue());
       return;
     }
 
@@ -115,7 +115,7 @@ class BackgroundOrchestrator {
       if (!task.completer.isCompleted) task.completer.completeError(e, stack);
     } finally {
       _activeConcurrentTasks--;
-      _drainQueue();
+      unawaited(_drainQueue());
     }
   }
 

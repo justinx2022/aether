@@ -124,8 +124,8 @@ class RecommendationsService {
         );
 
         final responses = await Future.wait([
-          recsFuture.catchError((_) => Response(requestOptions: RequestOptions(), statusCode: 500)),
-          simFuture.catchError((_) => Response(requestOptions: RequestOptions(), statusCode: 500)),
+          recsFuture.catchError((_) => Response<dynamic>(requestOptions: RequestOptions(), statusCode: 500)),
+          simFuture.catchError((_) => Response<dynamic>(requestOptions: RequestOptions(), statusCode: 500)),
         ]);
 
         final candidateList = <Map<String, dynamic>>[];

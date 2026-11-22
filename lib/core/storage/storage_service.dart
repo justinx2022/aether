@@ -565,6 +565,21 @@ class StorageService {
     return _settingsBox.get(key) as String?;
   }
 
+  int? getInt(String key) {
+    final val = _settingsBox.get(key);
+    if (val is int) return val;
+    if (val is String) return int.tryParse(val);
+    return null;
+  }
+
+  Future<void> setInt(String key, int? value) async {
+    if (value == null) {
+      await _settingsBox.delete(key);
+    } else {
+      await _settingsBox.put(key, value);
+    }
+  }
+
   Future<void> remove(String key) async {
     await _settingsBox.delete(key);
   }

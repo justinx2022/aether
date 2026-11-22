@@ -1,6 +1,4 @@
-import 'dart:math';
 import 'package:flutter/foundation.dart';
-import '../domain/entity/canonical_media_identity.dart';
 
 enum CdnEdgeType {
   cloudflare,
