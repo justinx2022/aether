@@ -56,20 +56,11 @@ class ExtensionRepository {
                 (e) =>
                     ExtensionPlugin.fromJson(e as Map<String, dynamic>, repoId),
               )
-              .where((p) {
-                final pkg = p.packageName.toLowerCase();
-                final name = p.name.toLowerCase();
-                return !pkg.contains('yoturkish') &&
-                    !pkg.contains('wlext') &&
-                    !name.contains('yoturkish') &&
-                    !name.contains('wlext');
-              })
               .toList() ??
           [],
       description: json['description']
           ?.toString()
-          .replaceAll("Justin's", "Aether")
-          .replaceAll(", YoTurkish, and WLEXT", ""),
+          .replaceAll("Justin's", "Aether"),
       iconUrl: json['iconUrl'] as String?,
       manifestVersion: json['manifestVersion'] as int? ?? 1,
       explicitId: json['packageName'] as String?,

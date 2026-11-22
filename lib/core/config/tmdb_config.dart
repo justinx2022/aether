@@ -17,7 +17,7 @@ class TmdbConfig {
   static const String buildTimeApiKey = String.fromEnvironment('TMDB_API_KEY');
 
   /// Embedded zero-configuration background key so the user never has to set up anything.
-  static const String _defaultInternalKey = '281fe4bf4593ccaa494d6027ec02dd94';
+  static const String _defaultInternalKey = '4e44d9029b1270a757cddc766a1bcb63';
 
   /// User-supplied key from Settings, mirrored here from storage at boot by [setUserApiKey].
   static String _userApiKey = '';

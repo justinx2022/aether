@@ -153,14 +153,14 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   /// Nine seconds without the clock moving is well past a cold start and far
   /// short of the engine's own patience; when another mirror exists, moving
   /// to it beats leaving the viewer on a spinner.
-  static const Duration _kSilentOpenWatchdog = Duration(seconds: 14);
+  static const Duration _kSilentOpenWatchdog = Duration(seconds: 24);
 
   /// The same leash for an HLS source.
   ///
   /// Multi-variant master playlists require resolving child variants (360p, 720p, 1080p)
-  /// and downloading the first segment chunk over TLS. 12 seconds provides sufficient
-  /// runway to prevent premature watchdog cancellation on standard networks.
-  static const Duration _kSilentOpenWatchdogHls = Duration(seconds: 12);
+  /// and downloading the first segment chunk over TLS. 22 seconds provides sufficient
+  /// runway to prevent premature watchdog cancellation on slower networks.
+  static const Duration _kSilentOpenWatchdogHls = Duration(seconds: 22);
 
   /// Stage timings for the current start, so `/logs` can say where the time
   /// went without a debugger attached.
@@ -226,6 +226,9 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   BoxFit _fit = BoxFit.contain;
   PlayerSettings? _settings;
   bool _startedTorrent = false;
+  Timer? _torrentStatusTimer;
+  String _torrentStatusText = '';
+  int _torrentSpeedWatchdogTicks = 0;
 
   static BoxFit _fitFromSettings(String mode) => switch (mode.toLowerCase()) {
     'zoom' => BoxFit.cover,
@@ -480,6 +483,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
       _player,
       configuration: VideoControllerConfiguration(
         enableHardwareAcceleration: _settings?.hardwareDecoding ?? true,
+        hwdec: Platform.isWindows ? 'auto-copy' : 'auto',
       ),
     );
 
@@ -589,7 +593,10 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
           // Prefer English audio tracks by default across all containers
           await native.setProperty('alang', 'eng,en,enUS,en-US');
         } else if (!kIsWeb && Platform.isWindows) {
-          await native.setProperty('hwdec', 'auto-safe');
+          // Use 'auto-copy' (d3d11va-copy) on Windows.
+          // This ensures universal compatibility on dual-GPU laptops (AMD Ryzen APU + AMD Radeon dGPU,
+          // AMD SmartShift, Intel + AMD, NVIDIA Optimus) across ALL generations without cross-adapter EGL/D3D sharing crashes.
+          await native.setProperty('hwdec', 'auto-copy');
 
           // Fast GPU Scaling & Low-Overhead Shaders (Optimized for Intel UHD & Integrated GPUs)
           await native.setProperty('scale', 'bilinear');
@@ -603,10 +610,10 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
           await native.setProperty('tone-mapping', 'mobius');
           await native.setProperty('tone-mapping-compute-peak', 'no');
 
-          // Direct Decoder Rendering into surface & Smart Frame Dropping
-          await native.setProperty('vd-lavc-dr', 'yes');
+          // Direct Decoder Rendering disabled on Windows to prevent ANGLE/EGL surface crashes on AMD/hybrid GPUs
+          await native.setProperty('vd-lavc-dr', 'no');
           await native.setProperty('framedrop', 'vo');
-          await native.setProperty('video-sync', 'display-resample');
+          await native.setProperty('video-sync', 'audio');
 
           // High-throughput caching for instant start + full network line speed utilization
           await native.setProperty('cache', 'yes');
@@ -817,6 +824,8 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     _trackSwitchWatchdog?.cancel();
     _startupWatchdog?.cancel();
     _midstreamStallWatchdog?.cancel();
+    _torrentStatusTimer?.cancel();
+    _torrentStatusTimer?.cancel();
     _startupWatchdog = null;
     _attemptOpenedAt = null;
     _attemptHasVideoTrack = false;
@@ -1532,6 +1541,65 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   /// Opens [index] on the engine.
   ///
   /// Resolution has already picked it: a tapped source that answered opens as
+  // ---------------------------------------------------------------------------
+  // Torrent status polling — shows live speed/peers during "Preparing torrent…"
+  // and acts as a speed watchdog: if after 30 s the download speed is still
+  // below 50 KB/s the source is abandoned.
+  // ---------------------------------------------------------------------------
+
+  void _startTorrentStatusPolling() {
+    _stopTorrentStatusPolling();
+    _torrentSpeedWatchdogTicks = 0;
+    _torrentStatusText = '';
+    _torrentStatusTimer = Timer.periodic(
+      const Duration(seconds: 2),
+      (_) => _pollTorrentStatus(),
+    );
+  }
+
+  void _stopTorrentStatusPolling() {
+    _torrentStatusTimer?.cancel();
+    _torrentStatusTimer = null;
+    _torrentSpeedWatchdogTicks = 0;
+    if (mounted && _torrentStatusText.isNotEmpty) {
+      setState(() => _torrentStatusText = '');
+    }
+  }
+
+  Future<void> _pollTorrentStatus() async {
+    if (_disposed || !mounted) {
+      _stopTorrentStatusPolling();
+      return;
+    }
+    final torrentService = _read(torrentServiceProvider);
+    final status = await torrentService.getCurrentStatus();
+    if (_disposed || !mounted) return;
+
+    if (status != null) {
+      final dlSpeed = status.downloadSpeed; // bytes/s
+      final dlKbps = (dlSpeed / 1024).toStringAsFixed(0);
+      final seeds = status.seeds;
+      final peers = status.peers;
+
+      setState(() {
+        _torrentStatusText =
+            'Torrent: $dlKbps KB/s · $seeds seeds · $peers peers';
+      });
+
+      // Speed watchdog: 30 s = 15 ticks at 2 s intervals
+      _torrentSpeedWatchdogTicks++;
+      if (_torrentSpeedWatchdogTicks >= 15 && dlSpeed < 50 * 1024) {
+        // 30 seconds of < 50 KB/s — this swarm is too slow
+        if (kDebugMode) {
+          debugPrint('Torrent speed watchdog: $dlKbps KB/s after '
+              '${_torrentSpeedWatchdogTicks * 2}s — failing over');
+        }
+        _stopTorrentStatusPolling();
+        _failoverNext();
+      }
+    }
+  }
+
   /// tapped, and only one that left the check waiting was replaced by a
   /// quicker mirror. A URL the engine rejects gets one retry through the
   /// local proxy before failover.
@@ -1577,6 +1645,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     if (isTorrentSource(stream)) {
       final torrentService = _read(torrentServiceProvider);
       _startedTorrent = true;
+      _startTorrentStatusPolling();
       playableUrl = await torrentService.getStreamUrl(
         stream.url,
         fileIndex: stream.fileIndex,
@@ -1585,6 +1654,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
       );
       if (_disposed || token != _openToken) return;
       if (playableUrl == null) {
+        _stopTorrentStatusPolling();
         _failoverNext();
         return;
       }
@@ -1651,6 +1721,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
           _isLoading = false;
           _isSwitching = false;
           _hasPlayedOnce = true;
+          _stopTorrentStatusPolling();
         }
       });
     } catch (e) {
@@ -1707,6 +1778,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
           _isLoading = false;
           _isSwitching = false;
           _hasPlayedOnce = true;
+          _stopTorrentStatusPolling();
         }
       });
       return true;
@@ -1769,6 +1841,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
           _isLoading = false;
           _isSwitching = false;
           _hasPlayedOnce = true;
+          _stopTorrentStatusPolling();
         }
       });
       return true;
@@ -2790,6 +2863,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     _trackSwitchWatchdog?.cancel();
     _startupWatchdog?.cancel();
     _midstreamStallWatchdog?.cancel();
+    _torrentStatusTimer?.cancel();
     for (final s in _subscriptions) {
       try {
         s.cancel();
@@ -3134,7 +3208,9 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                           ? (_candidates.isNotEmpty &&
                                     _attemptIndex < _candidates.length
                                 ? (isTorrentSource(_candidates[_attemptIndex])
-                                    ? (AppLocalizations.of(context)?.playerPreparingTorrent ?? 'Preparing torrent…')
+                                    ? (_torrentStatusText.isNotEmpty
+                                        ? _torrentStatusText
+                                        : (AppLocalizations.of(context)?.playerPreparingTorrent ?? 'Preparing torrent…'))
                                     : 'Connecting to ${_candidates[_attemptIndex].source}…')
                                 : 'Loading high-performance stream…')
                           : null,

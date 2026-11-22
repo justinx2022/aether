@@ -691,59 +691,102 @@ var PluginModule = (() => {
           } catch (e) {}
         })();
 
-        // 1. VidApi / VAPlayer Multi-CDN HLS Streams (High-Speed .m3u8)
-        var vidapiPromise = (async function() {
+        // Helper: VidRock AES-256-GCM URL Decryption
+        async function decryptVidrockUrl(enc) {
           try {
-            var resolvedTmdb = tmdbId || await cinemetaPromise;
-            var idsToTry = [];
-            if (resolvedTmdb) idsToTry.push('tmdb=' + resolvedTmdb);
-            if (imdbId) idsToTry.push('imdb=' + imdbId);
-            if (idsToTry.length === 0) return;
+            var b64 = enc.replace(/-/g, '+').replace(/_/g, '/');
+            while (b64.length % 4 !== 0) b64 += '=';
+            var raw = atob(b64);
+            if (raw.length < 28) return null;
+            var ivStr = btoa(raw.slice(0, 12));
+            var cipherTagStr = btoa(raw.slice(12));
+            var keyHex = '7f3e9c2a8b5d1f4e6a9c3b7d2e5f8a1c4b6d9e2f5a8c1b4d7e9f2a5c8b1d4e7f';
+            var keyBytes = '';
+            for (var i = 0; i < keyHex.length; i += 2) {
+              keyBytes += String.fromCharCode(parseInt(keyHex.substr(i, 2), 16));
+            }
+            var keyB64 = btoa(keyBytes);
+            if (globalThis.crypto && typeof globalThis.crypto.decryptAES === 'function') {
+              var plain = await globalThis.crypto.decryptAES(cipherTagStr, keyB64, ivStr, { mode: 'gcm' });
+              if (plain && plain.startsWith('http')) return plain;
+            }
+          } catch (e) {}
+          return null;
+        }
 
-            var tvQuery = type === 'movie' ? '' : ('&season=' + season + '&episode=' + episode);
-            var mirrors = [
-              'https://streamdata.vaplayer.ru/api.php',
-              'https://vaplayer.ru/api.php'
-            ];
+        var resolvedTmdb = tmdbId || await cinemetaPromise;
 
-            for (var m = 0; m < mirrors.length; m++) {
-              var mirrorBase = mirrors[m];
-              for (var k = 0; k < idsToTry.length; k++) {
-                var apiUrl = mirrorBase + '?' + idsToTry[k] + '&type=' + (type === 'movie' ? 'movie' : 'tv') + tvQuery;
-                var json = await fetchJson(apiUrl, {
-                  'User-Agent': DEFAULT_HEADERS['User-Agent'],
-                  'Referer': 'https://brightpathsignals.com/',
-                  'Origin': 'https://brightpathsignals.com'
-                });
+        // 1. VidZee Multi-Server HLS Streams (High-Speed .m3u8 from Vercetti & NGCloud CDNs)
+        var vidzeePromise = (async function() {
+          try {
+            if (!resolvedTmdb) return;
+            var path = type === 'movie' ? ('movie/' + resolvedTmdb) : ('tv/' + resolvedTmdb + '/' + season + '/' + episode);
+            var zServers = type === 'movie' ? ['peak', 'dcloud', 'tik'] : ['dcloud', 'tik', 'v6:English'];
+            for (var s = 0; s < zServers.length; s++) {
+              var sId = zServers[s];
+              var zUrl = 'https://core.vidzee.wtf/streams/' + path + '?s=' + encodeURIComponent(sId);
+              var json = await fetchJson(zUrl, {
+                'User-Agent': DEFAULT_HEADERS['User-Agent'],
+                'Referer': 'https://player.vidzee.wtf/',
+                'Origin': 'https://player.vidzee.wtf'
+              });
+              if (json && json.url && !seenUrls.has(json.url)) {
+                seenUrls.add(json.url);
+                var isHLS = !json.url.includes('.mp4') && !json.url.includes('.mkv');
+                var sLabel = sId.replace('v6:', '');
+                streams.push(new Nt({
+                  url: json.url,
+                  source: 'VidZee ' + sLabel,
+                  name: '⚡ VidZee ' + sLabel + ' [1080p Master HLS]',
+                  quality: 1080,
+                  type: isHLS ? 'hls' : 'mp4',
+                  isM3U8: isHLS,
+                  protocol: isHLS ? 'hls' : 'direct',
+                  headers: {
+                    'User-Agent': DEFAULT_HEADERS['User-Agent'],
+                    'Referer': 'https://player.vidzee.wtf/',
+                    'Origin': 'https://player.vidzee.wtf'
+                  }
+                }));
+              }
+            }
+          } catch (e) {}
+        })();
 
-                if (json && (json.status_code == 200 || json.status_code === '200' || (json.data && json.data.stream_urls))) {
-                  var list = json.data ? json.data.stream_urls : null;
-                  var urlArray = Array.isArray(list) ? list : (typeof list === 'object' && list ? Object.values(list) : []);
-                  if (urlArray.length > 0) {
-                    for (var i = 0; i < urlArray.length; i++) {
-                      var streamUrl = urlArray[i];
-                      if (streamUrl && !seenUrls.has(streamUrl) && (streamUrl.includes('.m3u8') || streamUrl.includes('.mp4'))) {
-                        seenUrls.add(streamUrl);
-                        var isHLS = !streamUrl.includes('.mp4') && !streamUrl.includes('.mkv');
-                        var q = parseQuality(streamUrl);
-                        streams.push(new Nt({
-                          url: streamUrl,
-                          source: 'VidApi Server ' + (i + 1),
-                          name: '⚡ VidApi Server ' + (i + 1) + ' [' + q + 'p ' + (isHLS ? 'HLS' : 'MP4') + ']',
-                          quality: q,
-                          type: isHLS ? 'hls' : 'mp4',
-                          isM3U8: isHLS,
-                          protocol: isHLS ? 'hls' : 'direct',
-                          headers: {
-                            // Keep the CDN request free of the API site's
-                            // Referer/Origin. Those headers make its HLS
-                            // segments return 403 even when the playlist is 200.
-                            'User-Agent': DEFAULT_HEADERS['User-Agent']
-                          }
-                        }));
+        // 2. VidRock Multi-CDN HLS Streams (Decrypted AES-256-GCM from Vercetti, NGCloud, HSCOW)
+        var vidrockPromise = (async function() {
+          try {
+            if (!resolvedTmdb) return;
+            var path = type === 'movie' ? ('movie/' + resolvedTmdb) : ('tv/' + resolvedTmdb + '/' + season + '/' + episode);
+            var vrUrl = 'https://vidrock.net/api/' + path;
+            var json = await fetchJson(vrUrl, {
+              'User-Agent': DEFAULT_HEADERS['User-Agent'],
+              'Referer': 'https://vidrock.net/' + path,
+              'Origin': 'https://vidrock.net'
+            });
+            if (json && typeof json === 'object') {
+              var sKeys = ['Nova', 'Atlas', 'Astra', 'Lyra', 'Elara'];
+              for (var i = 0; i < sKeys.length; i++) {
+                var sName = sKeys[i];
+                var sObj = json[sName];
+                if (sObj && sObj.url) {
+                  var plainUrl = await decryptVidrockUrl(sObj.url);
+                  if (plainUrl && !seenUrls.has(plainUrl) && plainUrl.includes('.m3u8')) {
+                    seenUrls.add(plainUrl);
+                    streams.push(new Nt({
+                      url: plainUrl,
+                      source: 'VidRock ' + sName,
+                      name: '⚡ VidRock ' + sName + ' [1080p Master HLS]',
+                      quality: 1080,
+                      type: 'hls',
+                      isM3U8: true,
+                      protocol: 'hls',
+                      headers: {
+                        'User-Agent': DEFAULT_HEADERS['User-Agent'],
+                        'Referer': 'https://vidrock.net/',
+                        'Origin': 'https://vidrock.net'
                       }
-                    }
-                    return; // Successfully harvested VidApi mirror
+                    }));
                   }
                 }
               }
@@ -751,65 +794,90 @@ var PluginModule = (() => {
           } catch (e) {}
         })();
 
-        // 2. VixSrc Multi-Audio Direct Master HLS Streams
+        // 3. VidSpark (Vidora Cloudflare Workers CDN)
+        var vidsparkPromise = (async function() {
+          try {
+            if (!resolvedTmdb) return;
+            var path = type === 'movie' ? ('movie/' + resolvedTmdb) : ('tv/' + resolvedTmdb + '/' + season + '/' + episode);
+            var spUrl = 'https://vidspark.to/api/vidora/v1/' + path;
+            var json = await fetchJson(spUrl, {
+              'User-Agent': DEFAULT_HEADERS['User-Agent'],
+              'Referer': 'https://vidspark.to/' + path,
+              'x-player-key': '3a67e8866ae1d2bb9e81fe7f73315a56eb3bdf5e3e755c7554c8be6910aa6b13'
+            });
+            if (json && json.sources && Array.isArray(json.sources)) {
+              for (var i = 0; i < json.sources.length; i++) {
+                var s = json.sources[i];
+                if (s && s.url && !seenUrls.has(s.url)) {
+                  seenUrls.add(s.url);
+                  streams.push(new Nt({
+                    url: s.url,
+                    source: 'VidSpark Cloudflare',
+                    name: '⚡ VidSpark Cloudflare [1080p Master HLS]',
+                    quality: 1080,
+                    type: 'hls',
+                    isM3U8: true,
+                    protocol: 'hls',
+                    headers: {
+                      'User-Agent': DEFAULT_HEADERS['User-Agent'],
+                      'Referer': 'https://vidspark.to/'
+                    }
+                  }));
+                }
+              }
+            }
+          } catch (e) {}
+        })();
+
+        // 4. VixSrc Multi-Audio Direct Master HLS Streams
         var vixsrcPromise = (async function() {
           try {
-            var resolvedTmdb = tmdbId || await cinemetaPromise;
             var idsToTry = [];
             if (resolvedTmdb) idsToTry.push(resolvedTmdb);
             if (imdbId && imdbId !== resolvedTmdb) idsToTry.push(imdbId);
             if (idsToTry.length === 0) return;
 
-            var domains = [
-              'https://vixsrc.to',
-              'https://vixcloud.co',
-              'https://vixsrc.stream'
-            ];
+            var domain = 'https://vixsrc.to';
+            for (var m = 0; m < idsToTry.length; m++) {
+              var idToUse = idsToTry[m];
+              var tvPath = type === 'movie' ? ('/api/movie/' + idToUse) : ('/api/tv/' + idToUse + '/' + season + '/' + episode);
+              var json = await fetchJson(domain + tvPath, {
+                'User-Agent': DEFAULT_HEADERS['User-Agent'],
+                'Referer': domain,
+                'Origin': domain
+              });
 
-            for (var d = 0; d < domains.length; d++) {
-              var domain = domains[d];
-              for (var m = 0; m < idsToTry.length; m++) {
-                var idToUse = idsToTry[m];
-                var tvPath = type === 'movie' ? ('/api/movie/' + idToUse) : ('/api/tv/' + idToUse + '/' + season + '/' + episode);
-                var json = await fetchJson(domain + tvPath, {
+              if (json && json.src) {
+                var embedUrl = json.src.startsWith('http') ? json.src : (domain + json.src);
+                var embedHtml = await fetchText(embedUrl, {
                   'User-Agent': DEFAULT_HEADERS['User-Agent'],
-                  'Referer': domain,
-                  'Origin': domain
+                  'Referer': domain
                 });
 
-                if (json && json.src) {
-                  var embedUrl = json.src.startsWith('http') ? json.src : (domain + json.src);
-                  var embedHtml = await fetchText(embedUrl, {
-                    'User-Agent': DEFAULT_HEADERS['User-Agent'],
-                    'Referer': domain
-                  });
+                var tokenMatch = embedHtml.match(/token["']\s*:\s*["']([^"']+)/) || embedHtml.match(/token\s*=\s*["']([^"']+)/);
+                var expiresMatch = embedHtml.match(/expires["']\s*:\s*["']([^"']+)/) || embedHtml.match(/expires\s*=\s*["']([^"']+)/);
+                var playlistMatch = embedHtml.match(/url\s*:\s*["']([^"']+)/) || embedHtml.match(/source\s*:\s*["']([^"']+)/);
 
-                  var tokenMatch = embedHtml.match(/token["']\s*:\s*["']([^"']+)/) || embedHtml.match(/token\s*=\s*["']([^"']+)/);
-                  var expiresMatch = embedHtml.match(/expires["']\s*:\s*["']([^"']+)/) || embedHtml.match(/expires\s*=\s*["']([^"']+)/);
-                  var playlistMatch = embedHtml.match(/url\s*:\s*["']([^"']+)/) || embedHtml.match(/source\s*:\s*["']([^"']+)/);
-
-                  if (playlistMatch && tokenMatch && expiresMatch) {
-                    var playlistUrl = playlistMatch[1];
-                    var sep = playlistUrl.includes('?') ? '&' : '?';
-                    var masterUrl = playlistUrl + sep + 'token=' + tokenMatch[1] + '&expires=' + expiresMatch[1] + '&h=1';
-                    if (!seenUrls.has(masterUrl)) {
-                      seenUrls.add(masterUrl);
-                      var hostLabel = domain.replace('https://', '');
-                      streams.push(new Nt({
-                        url: masterUrl,
-                        source: 'VixSrc Multi-Audio (' + hostLabel + ')',
-                        name: '⚡ VixSrc Multi-Audio [1080p Master HLS]',
-                        quality: 1080,
-                        type: 'hls',
-                        isM3U8: true,
-                        headers: {
-                          'User-Agent': DEFAULT_HEADERS['User-Agent'],
-                          'Referer': embedUrl,
-                          'Origin': domain
-                        }
-                      }));
-                      return; // Found master playlist
-                    }
+                if (playlistMatch && tokenMatch && expiresMatch) {
+                  var playlistUrl = playlistMatch[1];
+                  var sep = playlistUrl.includes('?') ? '&' : '?';
+                  var masterUrl = playlistUrl + sep + 'token=' + tokenMatch[1] + '&expires=' + expiresMatch[1] + '&h=1';
+                  if (!seenUrls.has(masterUrl)) {
+                    seenUrls.add(masterUrl);
+                    streams.push(new Nt({
+                      url: masterUrl,
+                      source: 'VixSrc Multi-Audio',
+                      name: '⚡ VixSrc Multi-Audio [1080p Master HLS]',
+                      quality: 1080,
+                      type: 'hls',
+                      isM3U8: true,
+                      headers: {
+                        'User-Agent': DEFAULT_HEADERS['User-Agent'],
+                        'Referer': embedUrl,
+                        'Origin': domain
+                      }
+                    }));
+                    return;
                   }
                 }
               }
@@ -817,7 +885,46 @@ var PluginModule = (() => {
           } catch (e) {}
         })();
 
-        // 3. Torrentio Multi-Tracker Streams (P2P Torrent Fallback)
+        // 5. VidApi Legacy Fallback
+        var vidapiPromise = (async function() {
+          try {
+            var idsToTry = [];
+            if (resolvedTmdb) idsToTry.push(resolvedTmdb);
+            if (imdbId) idsToTry.push('imdb=' + imdbId);
+            if (idsToTry.length === 0) return;
+            var tvQuery = type === 'movie' ? '' : ('&season=' + season + '&episode=' + episode);
+            var apiUrl = 'https://streamdata.vaplayer.ru/api.php?' + idsToTry[0] + '&type=' + (type === 'movie' ? 'movie' : 'tv') + tvQuery;
+            var json = await fetchJson(apiUrl, {
+              'User-Agent': DEFAULT_HEADERS['User-Agent'],
+              'Referer': 'https://brightpathsignals.com/',
+              'Origin': 'https://brightpathsignals.com'
+            });
+            if (json && (json.status_code == 200 || json.status_code === '200') && json.data && json.data.stream_urls) {
+              var list = json.data.stream_urls;
+              var urlArray = Array.isArray(list) ? list : Object.values(list);
+              for (var i = 0; i < urlArray.length; i++) {
+                var streamUrl = urlArray[i];
+                if (streamUrl && !seenUrls.has(streamUrl) && (streamUrl.includes('.m3u8') || streamUrl.includes('.mp4'))) {
+                  seenUrls.add(streamUrl);
+                  var isHLS = !streamUrl.includes('.mp4') && !streamUrl.includes('.mkv');
+                  var q = parseQuality(streamUrl);
+                  streams.push(new Nt({
+                    url: streamUrl,
+                    source: 'VidApi Server ' + (i + 1),
+                    name: '⚡ VidApi Server ' + (i + 1) + ' [' + q + 'p ' + (isHLS ? 'HLS' : 'MP4') + ']',
+                    quality: q,
+                    type: isHLS ? 'hls' : 'mp4',
+                    isM3U8: isHLS,
+                    protocol: isHLS ? 'hls' : 'direct',
+                    headers: { 'User-Agent': DEFAULT_HEADERS['User-Agent'] }
+                  }));
+                }
+              }
+            }
+          } catch (e) {}
+        })();
+
+        // 6. Torrentio Multi-Tracker Streams (P2P Torrent Fallback - Strictly Demoted)
         var torrentioPromise = (async function() {
           try {
             var tType = type === 'movie' ? 'movie' : 'series';
@@ -833,14 +940,12 @@ var PluginModule = (() => {
             if (!resolvedImdb) return;
 
             var tId = resolvedImdb + (type === 'series' ? (':' + season + ':' + episode) : '');
-            // Instruct Torrentio to exclude 4k / 2160p and low-grade releases
             var tUrl = 'https://torrentio.strem.fun/qualityfilter=4k,other,scr,cam/stream/' + tType + '/' + tId + '.json';
             var tData = await fetchJson(tUrl, {
               'User-Agent': DEFAULT_HEADERS['User-Agent']
             });
 
             if (tData && Array.isArray(tData.streams) && tData.streams.length > 0) {
-              // Prioritize highest healthy seeder counts first
               tData.streams.sort(function(a, b) {
                 var sa = (a.title || '').match(/👤\s*(\d+)/);
                 var sb = (b.title || '').match(/👤\s*(\d+)/);
@@ -873,7 +978,6 @@ var PluginModule = (() => {
                 var titleLines = (item.title || '').split('\n');
                 var rawTitle = titleLines[0] || (item.name ? item.name.replace(/\n/g, ' ') : title);
                 var q = parseQuality(rawTitle || item.name);
-                // STRICT 1080p MAXIMUM: reject 4K / 2160p torrent candidates
                 if (q > 1080) continue;
 
                 var statsLine = titleLines.slice(1).join(' ').trim();
@@ -905,33 +1009,40 @@ var PluginModule = (() => {
 
         // Execute all extractors in parallel with timeout protection
         await Promise.all([
-          withTimeout(hcsPromise, 10000),
-          withTimeout(archivePromise, 8000),
-          withTimeout(vidapiPromise, 8000),
-          withTimeout(vixsrcPromise, 8000),
-          withTimeout(torrentioPromise, 8000)
+          withTimeout(vidzeePromise, 7000),
+          withTimeout(vidrockPromise, 7000),
+          withTimeout(vidsparkPromise, 7000),
+          withTimeout(vixsrcPromise, 7000),
+          withTimeout(vidapiPromise, 6000),
+          withTimeout(hcsPromise, 8000),
+          withTimeout(archivePromise, 6000),
+          withTimeout(torrentioPromise, 6000)
         ]);
 
-        // VixSrc is the confirmed reliable stream for this catalogue. Keep it
-        // first for Auto selection, then direct HCS links, then other mirrors
-        // (including VidApi as a fallback), then Torrentio P2P fallback.
-        // Preserve quality ordering per tier.
+        // Prioritize fast, high-performance Direct HLS sources over everything:
+        // Rank 0: VidZee and VidRock Multi-CDN HLS (Vercetti, NGCloud, HSCOW)
+        // Rank 1: VidSpark Cloudflare Workers CDN
+        // Rank 2: VixSrc Multi-Audio Master HLS
+        // Rank 3: VidApi Server
+        // Rank 4: Direct HCS / Archive
+        // Rank 99: Torrentio (absolute last-resort fallback)
         streams.sort(function(a, b) {
           function rank(stream) {
             if (/^Torrentio/i.test(stream.source || '') || stream.protocol === 'torrent' || stream.type === 'torrent') return 99;
-            if (/^VixSrc Multi-Audio/i.test(stream.source || '')) return 0;
-            if (/^Internet Archive Public Domain/i.test(stream.source || '')) return 1;
-            if (stream.isHcs || stream.type === 'mkv' || stream.type === 'mp4' || (!stream.isM3U8 && stream.protocol !== 'torrent')) return 2;
-            if (/^VidApi Server/i.test(stream.source || '')) return 3;
-            if (stream.isM3U8) return 4;
-            return 5;
+            if (/^VidZee/i.test(stream.source || '')) return 0;
+            if (/^VidRock/i.test(stream.source || '')) return 0;
+            if (/^VidSpark/i.test(stream.source || '')) return 1;
+            if (/^VixSrc/i.test(stream.source || '')) return 2;
+            if (/^VidApi/i.test(stream.source || '')) return 3;
+            if (stream.isHcs || stream.type === 'mkv' || stream.type === 'mp4' || (!stream.isM3U8 && stream.protocol !== 'torrent')) return 4;
+            if (stream.isM3U8) return 5;
+            return 6;
           }
           var aRank = rank(a);
           var bRank = rank(b);
           if (aRank !== bRank) return aRank - bRank;
           return (b.quality || 0) - (a.quality || 0);
         });
-
         cb({ success: true, data: streams });
       } catch (err) {
         cb({ success: true, data: [] });

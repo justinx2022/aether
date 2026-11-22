@@ -280,78 +280,97 @@ class PluginStorageService {
     }
   }
 
-  /// Ensures that Justin's Catalogue (pre-bundled in assets) is installed on disk
-  /// so that on cold start the catalogue is immediately present without network.
-  Future<void> _ensureBuiltinCatalogue(Directory rootDir) async {
-    try {
-      final targetDir = Directory(p.join(rootDir.path, 'dev.justin.catalogue'));
-      final targetMeta = File(p.join(targetDir.path, 'meta.json'));
-      final targetJs = File(p.join(targetDir.path, 'plugin.js'));
+  /// Ensures that Aether built-in plugins (Catalogue, YoTurkish, WLEXT) are installed on disk
+  /// so that on cold start all segments are immediately present without network.
+  Future<void> _ensureBuiltinPlugins(Directory rootDir) async {
+    const builtinList = [
+      (
+        pkg: 'dev.justin.catalogue',
+        jsonAsset: 'assets/plugins/plugin.json',
+        jsAsset: 'assets/plugins/plugin.js',
+      ),
+      (
+        pkg: 'dev.justin.yoturkish',
+        jsonAsset: 'assets/plugins/yoturkish.json',
+        jsAsset: 'assets/plugins/yoturkish.js',
+      ),
+      (
+        pkg: 'dev.justin.wlext',
+        jsonAsset: 'assets/plugins/wlext.json',
+        jsAsset: 'assets/plugins/wlext.js',
+      ),
+    ];
 
-      String jsonContent;
-      String jsContent;
+    for (final item in builtinList) {
       try {
-        jsonContent =
-            await rootBundle.loadString('assets/plugins/plugin.json');
-        jsContent = await rootBundle.loadString('assets/plugins/plugin.js');
-      } catch (_) {
-        final fJson = File('assets/plugins/plugin.json');
-        final fJs = File('assets/plugins/plugin.js');
-        if (await fJson.exists() && await fJs.exists()) {
-          jsonContent = await fJson.readAsString();
-          jsContent = await fJs.readAsString();
-        } else {
-          return;
-        }
-      }
+        final targetDir = Directory(p.join(rootDir.path, item.pkg));
+        final targetMeta = File(p.join(targetDir.path, 'meta.json'));
+        final targetJs = File(p.join(targetDir.path, 'plugin.js'));
 
-      final manifest = jsonDecode(jsonContent) as Map<String, dynamic>;
-      manifest['repositoryId'] = 'Local';
-      final jsBytes = utf8.encode(jsContent);
-      final sha = crypto.sha256.convert(jsBytes).toString();
-      manifest['installSha256'] = sha;
-
-      if (await targetMeta.exists() && await targetJs.exists()) {
+        String jsonContent;
+        String jsContent;
         try {
-          final existingMeta = jsonDecode(await targetMeta.readAsString()) as Map<String, dynamic>;
-          final existingSha = existingMeta['installSha256'] as String?;
-          final existingVer = existingMeta['version'];
-          final currentVer = manifest['version'];
-          if (existingVer is num && currentVer is num) {
-            // Never downgrade an extension if a newer version is already installed on disk
-            if (existingVer > currentVer) {
-              return;
+          jsonContent = await rootBundle.loadString(item.jsonAsset);
+          jsContent = await rootBundle.loadString(item.jsAsset);
+        } catch (_) {
+          final fJson = File(item.jsonAsset);
+          final fJs = File(item.jsAsset);
+          if (await fJson.exists() && await fJs.exists()) {
+            jsonContent = await fJson.readAsString();
+            jsContent = await fJs.readAsString();
+          } else {
+            continue;
+          }
+        }
+
+        final manifest = jsonDecode(jsonContent) as Map<String, dynamic>;
+        manifest['repositoryId'] = 'aether.core.repo';
+        final jsBytes = utf8.encode(jsContent);
+        final sha = crypto.sha256.convert(jsBytes).toString();
+        manifest['installSha256'] = sha;
+
+        if (await targetMeta.exists() && await targetJs.exists()) {
+          try {
+            final existingMeta =
+                jsonDecode(await targetMeta.readAsString()) as Map<String, dynamic>;
+            final existingSha = existingMeta['installSha256'] as String?;
+            final existingVer = existingMeta['version'];
+            final currentVer = manifest['version'];
+            if (existingVer is num && currentVer is num) {
+              if (existingVer > currentVer) {
+                continue;
+              }
+              if (existingVer == currentVer && existingSha == sha) {
+                continue;
+              }
+            } else if (existingSha == sha) {
+              continue;
             }
-            if (existingVer == currentVer && existingSha == sha) {
-              return;
+          } catch (_) {}
+        }
+
+        await targetDir.create(recursive: true);
+        await File(p.join(targetDir.path, 'plugin.json')).writeAsString(jsonContent);
+        await targetJs.writeAsString(jsContent);
+        await targetMeta.writeAsString(jsonEncode(manifest));
+
+        // Remove stale QuickJS bytecode so the fresh script compiles cleanly
+        try {
+          final children = targetDir.listSync();
+          for (final child in children) {
+            if (child.path.endsWith('.qbc')) {
+              child.deleteSync();
             }
-          } else if (existingSha == sha) {
-            return;
           }
         } catch (_) {}
-      }
 
-      await targetDir.create(recursive: true);
-      await File(p.join(targetDir.path, 'plugin.json')).writeAsString(jsonContent);
-      await targetJs.writeAsString(jsContent);
-      await targetMeta.writeAsString(jsonEncode(manifest));
-
-      // Remove stale QuickJS bytecode so the fresh script compiles cleanly
-      try {
-        final children = targetDir.listSync();
-        for (final child in children) {
-          if (child.path.endsWith('.qbc')) {
-            child.deleteSync();
-          }
+        if (kDebugMode) {
+          debugPrint("PluginStorageService: Pre-installed/updated ${item.pkg} from assets.");
         }
-      } catch (_) {}
-
-      if (kDebugMode) {
-        debugPrint("PluginStorageService: Pre-installed/updated Justin's Catalogue from assets.");
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint("PluginStorageService: Could not pre-install builtin catalogue: $e");
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint("PluginStorageService: Could not pre-install ${item.pkg}: $e");
+        }
       }
     }
   }
@@ -365,8 +384,8 @@ class PluginStorageService {
       await rootDir.create(recursive: true);
     }
 
-    // Auto-install bundled Justin's Catalogue on cold start
-    await _ensureBuiltinCatalogue(rootDir);
+    // Auto-install bundled Aether plugins on cold start
+    await _ensureBuiltinPlugins(rootDir);
 
     // Async list avoids blocking the UI thread on slow scoped storage on
     // Android. Audit H25.
@@ -407,14 +426,6 @@ class PluginStorageService {
         }
       }
     }
-    plugins.removeWhere((p) {
-      final pkg = p.packageName.toLowerCase();
-      final name = p.name.toLowerCase();
-      return pkg.contains('yoturkish') ||
-          pkg.contains('wlext') ||
-          name.contains('yoturkish') ||
-          name.contains('wlext');
-    });
     return plugins;
   }
 

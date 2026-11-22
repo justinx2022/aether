@@ -177,14 +177,8 @@ class ExtensionManager extends _$ExtensionManager {
                   )
                 : activePackageName);
 
-      // Filter out hibernated packages (YoTurkish, WLEXT)
-      const hibernatedPackages = {'dev.justin.yoturkish', 'dev.justin.wlext'};
-      final nonHibernated = installed
-          .where((p) => !hibernatedPackages.contains(p.packageName))
-          .toList();
-
       // Sort plugins: Active first
-      final sortedPlugins = List<ExtensionPlugin>.from(nonHibernated);
+      final sortedPlugins = List<ExtensionPlugin>.from(installed);
       if (activeParentPackageName != null) {
         sortedPlugins.sort((a, b) {
           if (a.packageName == activeParentPackageName) return -1;

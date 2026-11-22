@@ -171,30 +171,25 @@ class ExtensionsController extends _$ExtensionsController {
 
       final repos = <ExtensionRepository>[];
       final available = <String, List<ExtensionPlugin>>{};
-      const hibernatedPackages = {'dev.justin.yoturkish', 'dev.justin.wlext'};
 
       // Rebuilt in the persisted order, which Future.wait preserves, so the
       // list the user sees does not reshuffle itself by network latency.
       for (final entry in fetched) {
         if (entry == null) continue;
         repos.add(entry.repo);
-        // Hibernate YoTurkish and WLEXT per user directive
-        available[entry.repo.url] = entry.plugins
-            .where((p) => !hibernatedPackages.contains(p.packageName))
-            .toList();
+        // YoTurkish and WLEXT are independent segments under the Aether repository
+        available[entry.repo.url] = entry.plugins;
       }
 
-      final activeInstalled = plugins
-          .where((p) => !hibernatedPackages.contains(p.packageName))
-          .toList();
+      final activeInstalled = plugins;
 
-      // If no plugins installed yet, auto-install Justin's Catalogue
-      final justinPlugin = available.values
+      // If no plugins installed yet, auto-install Aether Core Catalogue
+      final defaultCataloguePlugin = available.values
           .expand((list) => list)
           .where((p) => p.packageName == 'dev.justin.catalogue')
           .firstOrNull;
-      if (activeInstalled.isEmpty && justinPlugin != null) {
-        unawaited(installPlugin(justinPlugin));
+      if (activeInstalled.isEmpty && defaultCataloguePlugin != null) {
+        unawaited(installPlugin(defaultCataloguePlugin));
       }
 
       // 3. Set Final State Once
@@ -262,17 +257,8 @@ class ExtensionsController extends _$ExtensionsController {
         }
       }
 
-      final cleanInstalled = plugins.where((p) {
-        final pkg = p.packageName.toLowerCase();
-        final name = p.name.toLowerCase();
-        return !pkg.contains('yoturkish') &&
-            !pkg.contains('wlext') &&
-            !name.contains('yoturkish') &&
-            !name.contains('wlext');
-      }).toList();
-
       state = ExtensionsSuccess(
-        installedPlugins: cleanInstalled,
+        installedPlugins: plugins,
         repositories: state.repositories,
         availablePlugins: state.availablePlugins,
         availableUpdates: state.availableUpdates,

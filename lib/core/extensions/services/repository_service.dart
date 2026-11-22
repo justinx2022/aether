@@ -1,5 +1,7 @@
+import 'package:archive/archive.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart'; // kDebugMode, visibleForTesting
+import 'package:flutter/services.dart' show rootBundle;
 import 'dart:io';
 import 'dart:convert';
 import '../models/extension_repository.dart';
@@ -142,6 +144,33 @@ class RepositoryService {
 
   /// Fetch and parse a Repository from a URL
   Future<ExtensionRepository?> fetchRepository(String url) async {
+    // Intercept built-in Aether repository / former sstream repo for offline & local-first reliability
+    if (url == 'aether.core.repo' ||
+        url.contains('sstream_plugintest') ||
+        url.startsWith('asset://') ||
+        url.contains('assets/plugins/repo.json')) {
+      try {
+        String jsonContent;
+        try {
+          jsonContent = await rootBundle.loadString('assets/plugins/repo.json');
+        } catch (_) {
+          final f = File('assets/plugins/repo.json');
+          if (await f.exists()) {
+            jsonContent = await f.readAsString();
+          } else {
+            rethrow;
+          }
+        }
+        final Map<String, dynamic> data =
+            jsonDecode(jsonContent) as Map<String, dynamic>;
+        return ExtensionRepository.fromJson(data, url);
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('Failed to load builtin Aether repository: $e');
+        }
+      }
+    }
+
     try {
       // Resolve Shortcodes / Protocols
       final resolvedUrl = await parseRepoUrl(url);
@@ -160,18 +189,20 @@ class RepositoryService {
             : response.data as Map<String, dynamic>;
 
         if (data != null) {
-          // Validation: A valid repository must have a name, an ID, and either pluginLists or repos
+          // Validation: A valid repository must have a name, an ID, and either pluginLists, repos, or direct plugins
           final hasName = data.containsKey('name');
           final hasId =
               data.containsKey('id') || data.containsKey('packageName');
           // Extract lists safely to check content
           final plugins = (data['pluginLists'] as List?) ?? <dynamic>[];
           final repos = (data['repos'] as List?) ?? <dynamic>[];
+          final directPlugins = (data['plugins'] as List?) ?? <dynamic>[];
 
           final hasPlugins = plugins.isNotEmpty;
           final hasRepos = repos.isNotEmpty;
+          final hasDirectPlugins = directPlugins.isNotEmpty;
 
-          if (!hasName || !hasId || (!hasPlugins && !hasRepos)) {
+          if (!hasName || !hasId || (!hasPlugins && !hasRepos && !hasDirectPlugins)) {
             throw Exception(
               'Invalid repository format: Missing name, id/packageName, or plugin/repos',
             );
@@ -233,20 +264,58 @@ class RepositoryService {
       }
     }
 
-    allPlugins.removeWhere((p) {
-      final pkg = p.packageName.toLowerCase();
-      final name = p.name.toLowerCase();
-      return pkg.contains('yoturkish') ||
-          pkg.contains('wlext') ||
-          name.contains('yoturkish') ||
-          name.contains('wlext');
-    });
-
     return allPlugins;
   }
 
   /// Download a plugin file to a temporary location
   Future<File?> downloadPlugin(String url) async {
+    // Handle asset:// scheme for bundled plugins (catalogue, yoturkish, wlext)
+    if (url.startsWith('asset://')) {
+      try {
+        final path = url.replaceFirst('asset://', '');
+        String jsonAsset;
+        String jsAsset;
+        if (path.contains('yoturkish')) {
+          jsonAsset = 'assets/plugins/yoturkish.json';
+          jsAsset = 'assets/plugins/yoturkish.js';
+        } else if (path.contains('wlext')) {
+          jsonAsset = 'assets/plugins/wlext.json';
+          jsAsset = 'assets/plugins/wlext.js';
+        } else {
+          jsonAsset = 'assets/plugins/plugin.json';
+          jsAsset = 'assets/plugins/plugin.js';
+        }
+
+        String jsonContent;
+        String jsContent;
+        try {
+          jsonContent = await rootBundle.loadString(jsonAsset);
+          jsContent = await rootBundle.loadString(jsAsset);
+        } catch (_) {
+          jsonContent = await File(jsonAsset).readAsString();
+          jsContent = await File(jsAsset).readAsString();
+        }
+
+        final archive = Archive();
+        final jsonBytes = utf8.encode(jsonContent);
+        final jsBytes = utf8.encode(jsContent);
+        archive.addFile(ArchiveFile('plugin.json', jsonBytes.length, jsonBytes));
+        archive.addFile(ArchiveFile('plugin.js', jsBytes.length, jsBytes));
+        final zipBytes = ZipEncoder().encode(archive);
+        final tempDir = Directory.systemTemp;
+        final tempFile = File(
+          '${tempDir.path}/temp_${DateTime.now().millisecondsSinceEpoch}.sky',
+        );
+        await tempFile.writeAsBytes(zipBytes);
+        return tempFile;
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('Failed to package asset plugin $url: $e');
+        }
+      }
+      return null;
+    }
+
     try {
       final normalizedUrl = _normalizeUrl(url);
       final tempDir = Directory.systemTemp;

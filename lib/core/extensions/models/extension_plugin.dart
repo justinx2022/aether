@@ -251,10 +251,9 @@ class ExtensionPlugin {
     }
 
     final rawName = json['name'] as String? ?? 'Unknown Plugin';
-    final parsedName = (rawName.toUpperCase().contains("JUSTIN'S CATALOGUE") ||
-            packageName == 'dev.justin.catalogue')
-        ? "Justin's Catalogue"
-        : rawName;
+    final parsedName = rawName
+        .replaceAll("Justin's Catalogue", "Aether Core Catalogue")
+        .replaceAll("Justin's", "Aether");
 
     return ExtensionPlugin(
       packageName: packageName,

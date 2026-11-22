@@ -40,12 +40,12 @@ class TorrentService {
   /// The cache the server is configured with, in megabytes, and how much of it
   /// is held ahead of the read point.
   ///
-  /// Seeded with aggressive defaults for instant start without debrid:
-  /// - 128 MB cache (was 512) = faster allocation, less RAM
-  /// - 60% read-ahead (was 85%) = serves first byte immediately
+  /// Aggressive defaults for torrent-only streaming without debrid:
+  /// - 256 MB cache = bigger runway before the player starves
+  /// - 90% read-ahead = almost all cache is forward-looking
   /// [applyBufferSettings] overrides with user preferences when player starts.
-  int _cacheMb = 128;
-  int _readAheadPercent = 80; // 80% forward read-ahead, 20% backward rewind margin
+  int _cacheMb = 256;
+  int _readAheadPercent = 90; // 90% forward read-ahead, 10% backward rewind margin
 
   /// Points the server's cache at the size the viewer chose for the player.
   ///
@@ -117,9 +117,9 @@ class TorrentService {
         "sets": {
           "CacheSize": workingSetCacheBytes,
           "ReaderReadAHead": _readAheadPercent,
-          "PreloadCache": 1,                  // 1% preload ensures quick container probing
-          "ConnectionsLimit": 120,            // High connection limit = fast parallel swarms
-          "TorrentDisconnectTimeout": 30,     // 30s = stable peer handshake without dropping
+          "PreloadCache": 2,                  // 2% preload for quick container probing with more runway
+          "ConnectionsLimit": 200,            // Aggressive connection limit = more peers faster
+          "TorrentDisconnectTimeout": 45,     // 45s = patient peer handshake for slow swarms
           "RetrackersMode": 1,
           "UseDisk": true,                    // Disk persistence enabled
           "TorrentsSavePath": savePath,       // Persistent cache directory
@@ -277,6 +277,18 @@ class TorrentService {
     'udp://opentracker.i2p.rocks:6969/announce',
     'udp://tracker.internetwarriors.net:1337/announce',
     'udp://p4p.arenabg.com:1337/announce',
+    // Tier 2: extra swarm discovery for rare content
+    'udp://tracker.leechers-paradise.org:6969/announce',
+    'udp://tracker.pirateparty.gr:6969/announce',
+    'udp://9.rarbg.to:2710/announce',
+    'udp://tracker.cyberia.is:6969/announce',
+    'udp://exodus.desync.com:6969/announce',
+    'udp://tracker.tiny-vps.com:6969/announce',
+    'udp://retracker.lanta-net.ru:2710/announce',
+    'udp://tracker.moeking.me:6969/announce',
+    'http://tracker.bt4g.com:2095/announce',
+    'udp://tracker.birkenwald.de:6969/announce',
+    'udp://tracker.altrosky.nl:6969/announce',
   ];
 
   Future<String> _prepareMagnetLink(String link) async {

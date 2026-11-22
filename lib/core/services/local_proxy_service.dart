@@ -66,6 +66,8 @@ class LocalProxyService {
 
   HttpServer? _server;
   int _serverPort = 0;
+  String? _lastProxiedOrigin;
+  Map<String, String>? _lastStickyHeaders;
   final Map<String, String> _playlists = {};
   final Map<String, (String keyHex, String? kidHex)> _cencSessions = {};
 
@@ -561,6 +563,42 @@ class LocalProxyService {
         return;
       }
 
+      // RELATIVE ASSET FALLBACK (e.g. /storage/enc.key or unrewritten relative paths from upstream playlists)
+      if (path != '/favicon.ico') {
+        String? origin;
+        final referer = request.headers.value('referer');
+        if (referer != null) {
+          try {
+            final refUri = Uri.parse(referer);
+            final nestedUrl = refUri.queryParameters['url'];
+            if (nestedUrl != null) {
+              final parsedNested = Uri.parse(nestedUrl);
+              origin =
+                  '${parsedNested.scheme}://${parsedNested.host}${parsedNested.hasPort ? ':${parsedNested.port}' : ''}';
+            }
+          } catch (_) {}
+        }
+        origin ??= _lastProxiedOrigin;
+        if (origin != null) {
+          final resolvedAssetUrl =
+              Uri.parse(origin).resolve(request.uri.toString()).toString();
+          if (_isProxyableUrl(resolvedAssetUrl)) {
+            if (kDebugMode) {
+              debugPrint(
+                '[PROXY] Relaying relative asset request: $path -> $resolvedAssetUrl',
+              );
+            }
+            await _dispatchProxyFetch(
+              request,
+              resolvedAssetUrl,
+              stickyHeaders: _lastStickyHeaders ?? const {},
+              options: null,
+            );
+            return;
+          }
+        }
+      }
+
       request.response.statusCode = HttpStatus.notFound;
       unawaited(request.response.close());
     } catch (e) {
@@ -734,8 +772,36 @@ class LocalProxyService {
       }
     }
 
-    // Check if this is an M3U8 request to handle Range headers and rewriting
-    final isRequestM3u8 = targetUrl.toLowerCase().contains(".m3u8");
+    final parsedTarget = Uri.tryParse(targetUrl);
+    if (parsedTarget != null && parsedTarget.hasScheme) {
+      _lastProxiedOrigin =
+          '${parsedTarget.scheme}://${parsedTarget.host}${parsedTarget.hasPort ? ':${parsedTarget.port}' : ''}';
+      if (stickyHeaders.isNotEmpty) {
+        _lastStickyHeaders = stickyHeaders;
+      }
+    }
+
+    await _dispatchProxyFetch(
+      request,
+      targetUrl,
+      stickyHeaders: stickyHeaders,
+      options: options,
+      watch: watch,
+      label: label,
+    );
+  }
+
+  Future<void> _dispatchProxyFetch(
+    HttpRequest request,
+    String targetUrl, {
+    required Map<String, String> stickyHeaders,
+    ProxyOptions? options,
+    Stopwatch? watch,
+    String? label,
+  }) async {
+    watch ??= (Stopwatch()..start());
+    label ??= _eventLabel(targetUrl);
+    final isRequestM3u8 = targetUrl.toLowerCase().contains('.m3u8');
 
     // Fast-path: Check if this segment is cached or in-flight by the speed booster
     if (!isRequestM3u8) {
@@ -1342,11 +1408,18 @@ class LocalProxyService {
         }
 
         if (trimmed.contains('URI="')) {
+          final isSub = trimmed.contains('TYPE=SUBTITLES');
           final rew = trimmed.replaceAllMapped(RegExp(r'URI="([^"]+)"'), (
             match,
           ) {
             final uri = match.group(1)!;
-            final r = _rewriteUrl(uri, baseUrl, stickyHeaders, options);
+            final r = _rewriteUrl(
+              uri,
+              baseUrl,
+              stickyHeaders,
+              options,
+              isSubtitle: isSub,
+            );
             return 'URI="$r"';
           });
           outputLines.add(rew);
@@ -1473,6 +1546,7 @@ class LocalProxyService {
     Map<String, String> stickyHeaders,
     ProxyOptions? options, {
     bool isSegment = false,
+    bool isSubtitle = false,
   }) {
     try {
       final resolved = _resolveSegmentUri(uri, baseUrl, options);
@@ -1482,17 +1556,11 @@ class LocalProxyService {
         options: options,
       );
       // FFmpeg's HLS demuxer calls av_match_ext(url, allowed_extensions) on
-      // segment URLs. It uses strrchr(url, '.') to extract the extension, so
-      // the LAST dot in the full proxy URL string determines what extension
-      // FFmpeg sees. Without this suffix the last dot lands inside the
-      // percent-encoded CDN path (e.g. ...5795_000.js%3Fin%3D...&h=BASE64)
-      // giving an extension like "js%3F..." which matches nothing.
-      // Appending &_ext=.ts makes strrchr find ".ts" — which IS in FFmpeg's
-      // default allowed_extensions whitelist. Audio rendition segments skip
-      // this check (separate child AVFormatContext path), explaining why audio
-      // worked but video was silently blocked.
-      // The proxy ignores _ext; it only reads url/h/o query params.
-      return isSegment ? '$proxyUrl&_ext=.ts' : proxyUrl;
+      // segment and subtitle playlist URLs. Appending &_ext=.ts or &_ext=.m3u8
+      // ensures FFmpeg correctly matches allowed extensions.
+      if (isSegment) return '$proxyUrl&_ext=.ts';
+      if (isSubtitle) return '$proxyUrl&_ext=.m3u8';
+      return proxyUrl;
     } catch (e) {
       return uri;
     }
