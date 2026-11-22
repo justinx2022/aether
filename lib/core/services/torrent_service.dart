@@ -402,10 +402,6 @@ class TorrentService {
     return _findLargestFile(fileStats);
   }
 
-    // Fallback to largest file if no video extension matches (e.g. strict naming)
-    return _findLargestFile(fileStats);
-  }
-
   Map<String, dynamic> _findLargestFile(List<dynamic> fileStats) {
     Map<dynamic, dynamic>? largestFile;
     int maxLen = -1;
