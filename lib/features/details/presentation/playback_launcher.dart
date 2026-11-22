@@ -22,7 +22,6 @@ import '../../../core/services/stream_prewarmer.dart';
 import 'package:aether/l10n/generated/app_localizations.dart';
 
 import '../../../core/services/notification_service.dart';
-import '../../library/presentation/history_provider.dart';
 
 part 'playback_launcher.g.dart';
 
