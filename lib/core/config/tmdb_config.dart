@@ -16,22 +16,21 @@ class TmdbConfig {
   /// Only the fallback for when the user has not configured a key.
   static const String buildTimeApiKey = String.fromEnvironment('TMDB_API_KEY');
 
-  /// Embedded zero-configuration background key so the user never has to set up anything.
-  static const String _defaultInternalKey = '4e44d9029b1270a757cddc766a1bcb63';
-
   /// User-supplied key from Settings, mirrored here from storage at boot by [setUserApiKey].
   static String _userApiKey = '';
 
-  /// The effective TMDB key: user key first, then build-time key, then
-  /// the embedded background key. It is never empty and needs zero setup.
+  /// The effective TMDB key: user key first, then build-time key.
+  ///
+  /// There is deliberately no embedded fallback key: one committed to a
+  /// public repository is a published key — it lives in the history, in
+  /// every fork and every clone, and only rotation is a remedy. Without a
+  /// key the services degrade to empty results and the Settings screen
+  /// (Accounts → TMDB) is where the user's own key is entered.
   static String get apiKey {
     if (_userApiKey.isNotEmpty) {
       return _userApiKey;
-    } else if (buildTimeApiKey.isNotEmpty) {
-      return buildTimeApiKey;
-    } else {
-      return _defaultInternalKey;
     }
+    return buildTimeApiKey;
   }
 
   /// True when the key came from the user rather than background defaults.

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -65,6 +66,36 @@ class ProfileController extends Notifier<ProfileState> {
         isLoading: false,
       );
     }
+
+    // Migrate legacy plaintext PINs at rest. The raw pin sits right here in
+    // storage, so it can be hashed immediately — no user prompt needed, and
+    // the plaintext never leaves this call. Previously the plaintext was kept
+    // until the profile's next successful PIN entry, which could be never.
+    var migrated = false;
+    loaded = loaded.map((p) {
+      if (p.pin != null && p.pin!.isNotEmpty && p.pinHash == null) {
+        final salt = UserProfile.generateSalt();
+        final hash = UserProfile.hashPinPbkdf2(p.pin!, salt);
+        migrated = true;
+        // copyWith can't clear `pin` (null means "keep"), so build directly.
+        return UserProfile(
+          id: p.id,
+          name: p.name,
+          avatarId: p.avatarId,
+          pin: null,
+          pinHash: hash,
+          pinSalt: salt,
+          isKids: p.isKids,
+          isPrimary: p.isPrimary,
+          preferredGenres: p.preferredGenres,
+          feedMode: p.feedMode,
+          maturityRating: p.maturityRating,
+          createdAt: p.createdAt,
+        );
+      }
+      return p;
+    }).toList();
+    if (migrated) unawaited(_saveProfiles(loaded));
 
     final activeId = _storage.getString(_kActiveProfileIdKey) ?? loaded.first.id;
     final active = loaded.firstWhere(
