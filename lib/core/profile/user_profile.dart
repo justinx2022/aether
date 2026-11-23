@@ -181,9 +181,9 @@ class ProfileAvatarInfo {
     required this.icon,
     this.emblem,
     this.imageUrl,
-    this.backgroundColor = Color(0xFF1E293B),
+    this.backgroundColor = const Color(0xFF1E293B),
     required this.gradientColors,
-    this.glowColor = Color(0xFF6366F1),
+    this.glowColor = const Color(0xFF6366F1),
     this.isNatural = false,
   });
 }
