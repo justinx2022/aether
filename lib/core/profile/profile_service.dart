@@ -96,6 +96,7 @@ class ProfileController extends Notifier<ProfileState> {
     bool isKids = false,
     List<String> preferredGenres = const [],
     String feedMode = 'all',
+    String maturityRating = '18+',
   }) async {
     String? pinHash;
     String? pinSalt;
@@ -113,6 +114,9 @@ class ProfileController extends Notifier<ProfileState> {
       isKids: isKids,
       preferredGenres: preferredGenres,
       feedMode: feedMode,
+      // Kids profiles default to the 13+ ceiling rather than unrestricted,
+      // even when the caller forgets to pass a rating.
+      maturityRating: isKids && maturityRating == '18+' ? '13+' : maturityRating,
       createdAt: DateTime.now(),
     );
 

@@ -23,6 +23,7 @@ import '../../explore/presentation/view_all_screen.dart';
 import '../../../shared/widgets/desktop_scroll_wrapper.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/no_scrollbar_behavior.dart';
+import '../../../shared/widgets/offline_banner.dart';
 import '../../extensions/providers/extensions_controller.dart';
 import '../../../core/extensions/models/extension_plugin.dart';
 import '../../../core/domain/entity/multimedia_item.dart';
@@ -349,6 +350,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           child: CustomScrollView(
             controller: _scrollController,
             slivers: [
+              const SliverToBoxAdapter(child: OfflineBanner()),
               if (data.containsKey('Trending'))
                 SliverToBoxAdapter(
                   child: RepaintBoundary(

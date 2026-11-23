@@ -1,9 +1,12 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/entity/multimedia_item.dart';
 import '../storage/history_repository.dart';
+import '../storage/storage_service.dart';
 import '../services/tmdb_service.dart';
 import '../../features/explore/data/explore_tmdb_provider.dart';
 import '../../features/explore/data/explore_filter_provider.dart';
@@ -123,17 +126,76 @@ class AdiExposureStore {
   // session shown IDs to guarantee 0 intra-page duplicates
   final Set<String> _currentSessionShown = {};
 
+  // Persistence hooks, wired by [aetherDiscoveryIntelligenceProvider] at
+  // boot. Without them the fatigue counters reset every restart and a title
+  // shown ten times across ten sessions never gets downranked.
+  String? Function()? _load;
+  Future<void> Function(String)? _save;
+  Timer? _saveDebounce;
+  /// Hive key the store persists under.
+  static const String storageKey = 'adi_exposure_store';
+
+  /// Wires the store to local storage and restores any previous counts.
+  void attachStorage({
+    required String? Function() load,
+    required Future<void> Function(String) save,
+  }) {
+    _load = load;
+    _save = save;
+    _restore();
+  }
+
+  void _restore() {
+    try {
+      final raw = _load?.call();
+      if (raw == null || raw.isEmpty) return;
+      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      _readCounts(decoded['impressions'], _impressions);
+      _readCounts(decoded['clicks'], _clicks);
+    } catch (_) {
+      // Corrupt or unreadable state: start from zero rather than crash.
+    }
+  }
+
+  void _readCounts(dynamic raw, Map<String, Map<String, int>> target) {
+    if (raw is! Map) return;
+    target.clear();
+    raw.forEach((profileId, perItem) {
+      if (perItem is! Map) return;
+      target[profileId.toString()] = perItem.map(
+        (k, v) => MapEntry(k.toString(), (v as num).toInt()),
+      );
+    });
+  }
+
+  /// Debounced write-through: recommendation scoring records many
+  /// impressions per shelf render, so saves are coalesced.
+  void _persist() {
+    final save = _save;
+    if (save == null) return;
+    _saveDebounce?.cancel();
+    _saveDebounce = Timer(const Duration(seconds: 5), () {
+      final json = jsonEncode({
+        'impressions': _impressions,
+        'clicks': _clicks,
+      });
+      unawaited(save(json).catchError((_) {}));
+    });
+  }
+
   void recordImpression(String profileId, String contentId) {
     _impressions.putIfAbsent(profileId, () => {});
     _impressions[profileId]![contentId] =
         (_impressions[profileId]![contentId] ?? 0) + 1;
     _currentSessionShown.add(contentId);
+    _persist();
   }
 
   void recordClick(String profileId, String contentId) {
     _clicks.putIfAbsent(profileId, () => {});
     _clicks[profileId]![contentId] =
         (_clicks[profileId]![contentId] ?? 0) + 1;
+    _persist();
   }
 
   /// Downrank factor: reduces score if shown repeatedly without click (ad-fatigue rule)
@@ -247,6 +309,13 @@ class AdiGenreMap {
 final aetherDiscoveryIntelligenceProvider = Provider<AdiService>((ref) {
   final tmdb = ref.watch(tmdbServiceProvider);
   final historyRepo = ref.watch(historyRepositoryProvider);
+  final storage = ref.watch(storageServiceProvider);
+  // Fatigue counters survive restarts: a title shown repeatedly without a
+  // click keeps decaying across sessions, not just within one.
+  AdiExposureStore.instance.attachStorage(
+    load: () => storage.getString(AdiExposureStore.storageKey),
+    save: (json) => storage.setString(AdiExposureStore.storageKey, json),
+  );
   return AdiService(tmdb, historyRepo);
 });
 

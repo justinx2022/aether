@@ -130,6 +130,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
     bool isKids = false;
     final List<String> selectedGenres = [];
     String feedMode = 'all';
+    String maturityRating = '18+';
 
     final availableGenres = [
       'Action',
@@ -357,6 +358,32 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                         if (val != null) setModalState(() => feedMode = val);
                       },
                     ),
+                    const SizedBox(height: 10),
+                    DropdownButtonFormField<String>(
+                      initialValue: maturityRating,
+                      dropdownColor: const Color(0xFF0F121C),
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: InputDecoration(
+                        labelText: 'Maturity Rating (Max)',
+                        labelStyle: const TextStyle(color: Colors.white60),
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.05),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'All', child: Text('All Ages')),
+                        DropdownMenuItem(value: '7+', child: Text('7+ (Older Kids)')),
+                        DropdownMenuItem(value: '13+', child: Text('13+ (Teen)')),
+                        DropdownMenuItem(value: '16+', child: Text('16+ (Mature)')),
+                        DropdownMenuItem(value: '18+', child: Text('18+ (Adults Only)')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) setModalState(() => maturityRating = val);
+                      },
+                    ),
                     const SizedBox(height: 8),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
@@ -389,6 +416,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                     isKids: isKids,
                     preferredGenres: selectedGenres,
                     feedMode: feedMode,
+                    maturityRating: maturityRating,
                   );
                   Navigator.pop(ctx);
                 },
@@ -412,6 +440,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
     String searchQuery = '';
     final List<String> selectedGenres = List.from(profile.preferredGenres);
     String feedMode = profile.feedMode;
+    String maturityRating = profile.maturityRating;
     bool isKids = profile.isKids;
 
     final availableGenres = [
@@ -637,6 +666,32 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                         if (val != null) setModalState(() => feedMode = val);
                       },
                     ),
+                    const SizedBox(height: 10),
+                    DropdownButtonFormField<String>(
+                      initialValue: maturityRating,
+                      dropdownColor: const Color(0xFF0F121C),
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: InputDecoration(
+                        labelText: 'Maturity Rating (Max)',
+                        labelStyle: const TextStyle(color: Colors.white60),
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.05),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'All', child: Text('All Ages')),
+                        DropdownMenuItem(value: '7+', child: Text('7+ (Older Kids)')),
+                        DropdownMenuItem(value: '13+', child: Text('13+ (Teen)')),
+                        DropdownMenuItem(value: '16+', child: Text('16+ (Mature)')),
+                        DropdownMenuItem(value: '18+', child: Text('18+ (Adults Only)')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) setModalState(() => maturityRating = val);
+                      },
+                    ),
                     const SizedBox(height: 8),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
@@ -669,6 +724,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                       isKids: isKids,
                       preferredGenres: selectedGenres,
                       feedMode: feedMode,
+                      maturityRating: maturityRating,
                     ),
                   );
                   Navigator.pop(ctx);

@@ -18,6 +18,8 @@ import '../../../core/services/download_service.dart';
 import '../../../shared/widgets/loading_dialog.dart';
 import '../../../core/utils/app_utils.dart';
 import '../../../core/services/stream_prewarmer.dart';
+import '../../../core/profile/profile_service.dart';
+import '../../../shared/widgets/maturity_rating.dart';
 
 import 'package:aether/l10n/generated/app_localizations.dart';
 
@@ -42,6 +44,11 @@ class PlaybackLauncher {
     MultimediaItem? detailedItem,
     Episode? episode,
   }) async {
+    // Maturity gate first: refuse before any resolution work so a blocked
+    // title costs no network round trips.
+    final itemToGate = detailedItem ?? baseItem;
+    if (!await _gateMaturity(context, itemToGate)) return;
+
     final settings = await _ref.read(playerSettingsProvider.future);
     if (!context.mounted) return;
 
@@ -111,6 +118,11 @@ class PlaybackLauncher {
         await _ref.read(playerSettingsProvider.future);
     if (!context.mounted) return;
 
+    // Same maturity gate as [play]: source sheets resolved their own streams,
+    // so this is the last funnel a blocked title passes through.
+    if (!await _gateMaturity(context, item)) return;
+    if (!context.mounted) return;
+
     final playerId = settings.preferredPlayer;
     if (playerId == null) {
       await _openInternal(
@@ -134,6 +146,117 @@ class PlaybackLauncher {
       episode: episode,
       preloadedStreams: streams,
     );
+  }
+
+  /// Maturity gate: refuses playback of a title whose certification sits
+  /// above the active profile's allowed rating.
+  ///
+  /// Returns true when playback may proceed. A blocked profile with a PIN
+  /// can still unlock the title — the PIN is the same one that guards the
+  /// profile itself.
+  Future<bool> _gateMaturity(BuildContext context, MultimediaItem item) async {
+    final profile = _ref.read(profileControllerProvider).activeProfile;
+    final allowed = profile?.maturityRating ?? '18+';
+    final cert = item.contentRating;
+    if (!exceedsMaturityRating(cert, allowed)) return true;
+    if (!context.mounted) return false;
+
+    final tier = maturityTier(cert);
+    final pinController = TextEditingController();
+    var unlocked = false;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF0F121C),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+          side: const BorderSide(color: Color(0xFF1E2638), width: 1),
+        ),
+        title: Row(
+          children: [
+            const Icon(Icons.lock_rounded, color: Color(0xFFF59E0B), size: 20),
+            const SizedBox(width: 10),
+            Text(
+              'Rated $tier',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${maturityDescription(cert)}\n\n"${item.title}" is above this profile\'s $allowed limit.',
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            if (profile?.hasPin == true) ...[
+              const SizedBox(height: 16),
+              TextField(
+                controller: pinController,
+                obscureText: true,
+                keyboardType: TextInputType.number,
+                maxLength: 4,
+                autofocus: true,
+                style: const TextStyle(
+                  color: Colors.white,
+                  letterSpacing: 8,
+                  fontSize: 20,
+                ),
+                decoration: InputDecoration(
+                  counterText: '',
+                  hintText: 'Enter profile PIN to unlock',
+                  hintStyle: const TextStyle(
+                    color: Colors.white30,
+                    letterSpacing: 0,
+                    fontSize: 13,
+                  ),
+                  filled: true,
+                  fillColor: Colors.white.withValues(alpha: 0.05),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white60)),
+          ),
+          if (profile?.hasPin == true)
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6366F1),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: () {
+                if (profile!.verifyPin(pinController.text.trim())) {
+                  unlocked = true;
+                  Navigator.pop(ctx);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Incorrect PIN. Try again.')),
+                  );
+                }
+              },
+              child: const Text('Unlock', style: TextStyle(color: Colors.white)),
+            ),
+        ],
+      ),
+    );
+    return unlocked;
   }
 
   /// Hands [videoUrl] to the built-in player.

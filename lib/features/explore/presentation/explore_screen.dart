@@ -6,6 +6,7 @@ import '../../../core/models/tmdb_genre.dart';
 import '../../../shared/widgets/cards_wrapper.dart';
 import '../../../shared/widgets/no_scrollbar_behavior.dart';
 import '../../../shared/widgets/multimedia_card.dart';
+import '../../../shared/widgets/offline_banner.dart';
 import '../data/explore_tmdb_provider.dart';
 import '../data/explore_mode_provider.dart';
 import '../data/explore_discovery_provider.dart';
@@ -433,6 +434,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
           SliverToBoxAdapter(
             child: SizedBox(height: topPadding),
           ),
+          const SliverToBoxAdapter(child: OfflineBanner()),
           SliverToBoxAdapter(
             child: _buildDiscoveryControlDeck(context, filters),
           ),

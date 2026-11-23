@@ -61,6 +61,7 @@ import '../widgets/player_stream_widgets.dart';
 import 'mediakit_more_sheet.dart';
 import 'mediakit_subtitle_sheet.dart';
 import 'mpv_subtitle_playback.dart';
+import '../../../../shared/widgets/maturity_rating.dart';
 
 /// High-Performance Desktop Player Engine powered by `media_kit` (libmpv).
 ///
@@ -3356,6 +3357,11 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                         );
                       },
                     ),
+
+                  // Netflix-style age badge on start, then fades. Informational
+                  // only — enforcement lives in the playback launcher.
+                  if (!_isLoading && _error.isEmpty && !_isPipMode)
+                    MaturityBadgeOverlay(certification: _item.contentRating),
 
                   // Floating Unlock Button when Screen is Locked
                   if (_isScreenLocked && _showUnlockButton)

@@ -65,6 +65,7 @@ import 'side_car_fetch.dart';
 import 'side_car_subtitle_view.dart';
 import 'torrent_file_sheet.dart';
 import 'vlc_player_controls.dart';
+import '../../../../shared/widgets/maturity_rating.dart';
 
 /// Playback on the VLC engine.
 ///
@@ -3985,6 +3986,14 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
             // the fit never reaches them - and in PiP as well, as libVLC's
             // were. Lifted over the controls while those are up.
             if (_stage == _Stage.playing) _sideCarSubtitles(isTv: isTv),
+            // Netflix-style age badge: shows the maturity rating when the
+            // picture first appears, then fades. Informational only — the
+            // blocking gate lives in the playback launcher.
+            if (_stage == _Stage.playing &&
+                _sawFrames &&
+                !_inPip &&
+                _ended == null)
+              MaturityBadgeOverlay(certification: widget.item.contentRating),
             // Everything before a picture: getting links, checking them,
             // opening one - `setMedia` hands libVLC a URL and returns, so the
             // playing stage begins with the video widget an empty surface -

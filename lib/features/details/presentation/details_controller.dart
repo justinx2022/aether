@@ -23,6 +23,7 @@ import '../../../core/services/download_service.dart';
 import '../data/metadata_resolution_service.dart';
 import 'downloaded_file_provider.dart';
 import '../../tracking/data/simkl_service.dart';
+import '../../explore/data/explore_tmdb_provider.dart';
 import '../../../core/services/stream_prewarmer.dart';
 
 part 'details_controller.g.dart';
@@ -561,9 +562,41 @@ class DetailsController extends _$DetailsController {
 
       if (!ref.mounted) return;
 
+      // Maturity certification: the details screen displays it and the
+      // playback launcher gates on it. TMDB carries it under
+      // `release_dates` (movies) and `content_ratings` (TV) — both detail
+      // endpoints already append those, so this is one call either way.
+      // Only fetched when the provider gave no rating of its own.
+      String? contentRating = finalItem.contentRating;
+      if (contentRating == null || contentRating.isEmpty) {
+        contentRating = withProvider.contentRating;
+      }
+      if ((contentRating == null || contentRating.isEmpty) &&
+          finalItem.tmdbId != null) {
+        try {
+          final tmdb = ref.read(tmdbServiceProvider);
+          final isSeries =
+              finalItem.contentType == MultimediaContentType.series;
+          final details = isSeries
+              ? await tmdb.getTvDetails(finalItem.tmdbId!)
+              : await tmdb.getMovieDetails(finalItem.tmdbId!);
+          if (details != null) {
+            contentRating = _extractCertification(details, isSeries: isSeries);
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint(
+              'DetailsController: certification fetch failed (non-fatal): $e',
+            );
+          }
+        }
+      }
+
       if (finalItem.tmdbId != withProvider.tmdbId ||
           finalItem.imdbId != withProvider.imdbId ||
-          finalItem.syncData != withProvider.syncData) {
+          finalItem.syncData != withProvider.syncData ||
+          (contentRating != null &&
+              contentRating != withProvider.contentRating)) {
         // preserve the episodes from the current state just in case
         final currentDetails = state.details.asData?.value;
         if (currentDetails != null) {
@@ -571,6 +604,7 @@ class DetailsController extends _$DetailsController {
             tmdbId: finalItem.tmdbId,
             imdbId: finalItem.imdbId,
             syncData: finalItem.syncData,
+            contentRating: contentRating ?? currentDetails.contentRating,
           );
           state = state.copyWith(
             details: AsyncData(updatedItem),
@@ -584,6 +618,59 @@ class DetailsController extends _$DetailsController {
           'DetailsController: Background metadata resolution failed: $e',
         );
       }
+    }
+  }
+
+  /// Pulls a US certification out of a TMDB details payload.
+  ///
+  /// Movies carry it under `release_dates.results[].release_dates[].certification`,
+  /// TV under `content_ratings.results[].rating`. Falls back to the first
+  /// non-empty certification of any country when no US entry exists, so
+  /// regional titles still show something rather than nothing.
+  String? _extractCertification(
+    Map<String, dynamic> details, {
+    required bool isSeries,
+  }) {
+    try {
+      if (isSeries) {
+        final results =
+            ((details['content_ratings'] as Map<String, dynamic>?)?['results']
+                    as List?) ??
+                const [];
+        for (final entry in results) {
+          if (entry is Map && entry['iso_3166_1'] == 'US') {
+            final rating = entry['rating']?.toString();
+            if (rating != null && rating.isNotEmpty) return rating;
+          }
+        }
+        for (final entry in results) {
+          if (entry is Map) {
+            final rating = entry['rating']?.toString();
+            if (rating != null && rating.isNotEmpty) return rating;
+          }
+        }
+        return null;
+      }
+
+      final results =
+          ((details['release_dates'] as Map<String, dynamic>?)?['results']
+                  as List?) ??
+              const [];
+      String? anyCountry;
+      for (final entry in results) {
+        if (entry is! Map) continue;
+        final dates = (entry['release_dates'] as List?) ?? const [];
+        for (final rd in dates) {
+          if (rd is! Map) continue;
+          final cert = rd['certification']?.toString();
+          if (cert == null || cert.isEmpty) continue;
+          if (entry['iso_3166_1'] == 'US') return cert;
+          anyCountry ??= cert;
+        }
+      }
+      return anyCountry;
+    } catch (_) {
+      return null;
     }
   }
 

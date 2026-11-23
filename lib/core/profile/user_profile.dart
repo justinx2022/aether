@@ -16,6 +16,13 @@ class UserProfile {
   final bool isPrimary;
   final List<String> preferredGenres;
   final String feedMode; // 'all', 'movies', 'series', 'anime'
+
+  /// The highest maturity rating this profile may watch.
+  ///
+  /// One of 'All', '7+', '13+', '16+', '18+'. Playback of a title whose
+  /// certification sits above this is refused in the playback launcher, and
+  /// the player shows a Netflix-style age badge on start.
+  final String maturityRating;
   final DateTime createdAt;
 
   const UserProfile({
@@ -29,6 +36,7 @@ class UserProfile {
     this.isPrimary = false,
     this.preferredGenres = const [],
     this.feedMode = 'all',
+    this.maturityRating = '18+',
     required this.createdAt,
   });
 
@@ -97,6 +105,7 @@ class UserProfile {
     bool? isPrimary,
     List<String>? preferredGenres,
     String? feedMode,
+    String? maturityRating,
     DateTime? createdAt,
   }) {
     return UserProfile(
@@ -110,6 +119,7 @@ class UserProfile {
       isPrimary: isPrimary ?? this.isPrimary,
       preferredGenres: preferredGenres ?? this.preferredGenres,
       feedMode: feedMode ?? this.feedMode,
+      maturityRating: maturityRating ?? this.maturityRating,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -126,6 +136,7 @@ class UserProfile {
       'isPrimary': isPrimary,
       'preferredGenres': preferredGenres,
       'feedMode': feedMode,
+      'maturityRating': maturityRating,
       'createdAt': createdAt.toIso8601String(),
     };
   }
@@ -147,6 +158,7 @@ class UserProfile {
       isPrimary: map['isPrimary'] as bool? ?? false,
       preferredGenres: genres,
       feedMode: map['feedMode'] as String? ?? 'all',
+      maturityRating: map['maturityRating'] as String? ?? '18+',
       createdAt: map['createdAt'] != null
           ? DateTime.tryParse(map['createdAt'] as String) ?? DateTime.now()
           : DateTime.now(),
