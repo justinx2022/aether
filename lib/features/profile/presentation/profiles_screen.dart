@@ -794,14 +794,28 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                       _AddProfileCard(onTap: _showAddProfileDialog),
                   ],
                 ),
-                const SizedBox(height: 64),
-                Text(
-                  'Hold to manage profile',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.35),
-                    fontSize: 13,
-                    letterSpacing: 0.3,
+                const SizedBox(height: 48),
+                OutlinedButton.icon(
+                  icon: Icon(
+                    _isManaging ? Icons.check_rounded : Icons.edit_rounded,
+                    size: 18,
                   ),
+                  label: Text(_isManaging ? 'Done' : 'Manage Profiles'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white.withValues(alpha: 0.85),
+                    side: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.4),
+                      width: 1,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  onPressed: () => setState(() => _isManaging = !_isManaging),
                 ),
               ],
             ),
@@ -854,23 +868,24 @@ class _ProfileCardState extends State<_ProfileCard> {
                 children: [
                   CharacterAvatarWidget(
                     avatarId: widget.profile.avatarId,
-                    size: 96,
+                    size: 130,
+                    square: true,
                     isSelected: _isHovered,
                     showGlow: true,
                     isPrimary: widget.isPrimary,
                   ),
                   if (widget.isManaging)
                     Container(
-                      width: 96,
-                      height: 96,
-                      decoration: const BoxDecoration(
+                      width: 130,
+                      height: 130,
+                      decoration: BoxDecoration(
                         color: Colors.black54,
-                        shape: BoxShape.circle,
+                        borderRadius: BorderRadius.circular(130 * 0.08),
                       ),
                       child: const Icon(
                         Icons.edit_rounded,
                         color: Colors.white,
-                        size: 32,
+                        size: 36,
                       ),
                     ),
                   if (widget.profile.hasPin)
@@ -893,12 +908,12 @@ class _ProfileCardState extends State<_ProfileCard> {
                     ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               Text(
                 widget.profile.name,
                 style: TextStyle(
-                  color: _isHovered ? Colors.white : Colors.white.withValues(alpha: 0.9),
-                  fontSize: 16,
+                  color: _isHovered ? Colors.white : Colors.white.withValues(alpha: 0.65),
+                  fontSize: 17,
                   fontWeight: FontWeight.w500,
                   letterSpacing: -0.2,
                 ),
@@ -963,31 +978,31 @@ class _AddProfileCardState extends State<_AddProfileCard> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 96,
-                height: 96,
+                width: 130,
+                height: 130,
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
+                  borderRadius: BorderRadius.circular(130 * 0.08),
                   color: _isHovered
                       ? Colors.white.withValues(alpha: 0.12)
                       : const Color(0xFF22282A).withValues(alpha: 0.8),
                   border: Border.all(
-                    color: _isHovered ? Colors.white70 : Colors.white.withValues(alpha: 0.15),
-                    width: 1.5,
+                    color: _isHovered ? Colors.white : Colors.white.withValues(alpha: 0.15),
+                    width: 2,
                   ),
                 ),
                 child: Icon(
                   Icons.add_rounded,
                   color: _isHovered ? Colors.white : Colors.white60,
-                  size: 40,
+                  size: 48,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               Text(
                 'Add Profile',
                 style: TextStyle(
-                  color: _isHovered ? Colors.white : Colors.white60,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w400,
+                  color: _isHovered ? Colors.white : Colors.white.withValues(alpha: 0.65),
+                  fontSize: 17,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],

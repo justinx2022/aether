@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../domain/entity/subtitle_model.dart';
 
@@ -25,7 +26,22 @@ class OpenSubtitlesProvider extends SubtitleProvider {
   static const String buildTimeApiKey = String.fromEnvironment(
     'OPENSUBTITLES_API_KEY',
   );
-  static const String _userAgent = "Aether v2.2.1";
+  /// User-Agent sent to subtitle APIs.
+  ///
+  /// The version is injected from package_info_plus at boot
+  /// ([loadAppVersion]) so it can never drift from the pubspec again — it
+  /// previously hard-coded "v2.2.1" while the app shipped a different
+  /// version, which mislabels every request in OpenSubtitles' logs.
+  static String _appVersion = '2.2.0';
+  static Future<void> loadAppVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (info.version.isNotEmpty) _appVersion = info.version;
+    } catch (_) {
+      // Keep the pubspec fallback; a missing plugin must not break subtitles.
+    }
+  }
+  static String get _userAgent => 'Aether v$_appVersion';
 
   // Auth state
   final String? _username;

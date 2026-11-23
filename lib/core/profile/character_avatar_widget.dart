@@ -11,6 +11,12 @@ class CharacterAvatarWidget extends StatelessWidget {
   final bool isSelected;
   final bool showGlow;
   final bool isPrimary;
+
+  /// Renders as a Netflix-style rounded square instead of a circle.
+  ///
+  /// The selection ring, image clip and glow all follow this shape, so a
+  /// profile tile can be square while picker chips stay circular.
+  final bool square;
   final VoidCallback? onTap;
 
   const CharacterAvatarWidget({
@@ -20,6 +26,7 @@ class CharacterAvatarWidget extends StatelessWidget {
     this.isSelected = false,
     this.showGlow = true,
     this.isPrimary = false,
+    this.square = false,
     this.onTap,
   });
 
@@ -28,11 +35,18 @@ class CharacterAvatarWidget extends StatelessWidget {
     final avatar = ProfileAvatars.get(avatarId);
     final hasImage = avatar.imageUrl != null && avatar.imageUrl!.isNotEmpty;
 
+    // Shape-aware geometry: circles stay circles, squares get a gentle
+    // Netflix-style corner radius. A ClipRRect whose radius is half the size
+    // clips identically to a ClipOval, so one clip serves both.
+    final shape = square ? BoxShape.rectangle : BoxShape.circle;
+    final clipRadius = BorderRadius.circular(square ? size * 0.08 : size / 2);
+
     final innerAvatar = Container(
       width: isSelected ? (size - 10).clamp(16.0, size) : size,
       height: isSelected ? (size - 10).clamp(16.0, size) : size,
       decoration: BoxDecoration(
-        shape: BoxShape.circle,
+        shape: shape,
+        borderRadius: square ? clipRadius : null,
         color: avatar.backgroundColor,
         gradient: LinearGradient(
           colors: avatar.gradientColors,
@@ -40,7 +54,8 @@ class CharacterAvatarWidget extends StatelessWidget {
           end: Alignment.bottomRight,
         ),
       ),
-      child: ClipOval(
+      child: ClipRRect(
+        borderRadius: clipRadius,
         child: hasImage
             ? Image.network(
                 avatar.imageUrl!,
@@ -64,7 +79,8 @@ class CharacterAvatarWidget extends StatelessWidget {
             width: size,
             height: size,
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
+              shape: shape,
+              borderRadius: square ? clipRadius : null,
               border: Border.all(
                 color: Colors.white,
                 width: (size * 0.035).clamp(2.0, 3.5),
@@ -86,7 +102,8 @@ class CharacterAvatarWidget extends StatelessWidget {
             width: size,
             height: size,
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
+              shape: shape,
+              borderRadius: square ? clipRadius : null,
               boxShadow: showGlow
                   ? [
                       BoxShadow(

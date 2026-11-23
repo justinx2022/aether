@@ -96,6 +96,14 @@ class ExploreDiscoveryNotifier extends Notifier<ExploreDiscoveryState> {
       final existingKeys = state.items.map((i) => _itemKey(i)).toSet();
       final fresh = newItems.where((i) => !existingKeys.contains(_itemKey(i))).toList();
 
+      // An empty (or fully duplicate) page means the feed is exhausted.
+      // Keeping hasMore true here made the grid fetch forever with nothing
+      // new to show.
+      if (fresh.isEmpty) {
+        state = state.copyWith(isLoadingMore: false, hasMore: false);
+        return;
+      }
+
       final advancedPage = pages[1].isNotEmpty ? (nextPage + 1) : nextPage;
       state = state.copyWith(
         items: [...state.items, ...fresh],

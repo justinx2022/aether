@@ -101,3 +101,5 @@ node_modules/
 reports/*
 research_notes/*
 docs/superpowers/*
+# Personal AI-assistant workspace config
+.serena/

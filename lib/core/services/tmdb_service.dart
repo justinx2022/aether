@@ -129,6 +129,42 @@ class TmdbService {
     return 25;
   }
 
+  /// Translates a canonical genre id between TMDB's movie and TV vocabularies.
+  ///
+  /// TMDB's discover endpoints use disjoint genre id spaces: `28` is Action
+  /// for movies but unknown to `/discover/tv`, while `10759` (Action &
+  /// Adventure) only exists on TV. Passing one domain's id to the other
+  /// endpoint silently returns zero results, which emptied half of the
+  /// Explore grid whenever a genre was selected.
+  static const Map<int, int> _movieGenreToTv = {
+    28: 10759, // Action -> Action & Adventure
+    878: 10765, // Sci-Fi -> Sci-Fi & Fantasy
+    14: 10765, // Fantasy -> Sci-Fi & Fantasy
+    53: 9648, // Thriller -> Mystery
+    27: 9648, // Horror -> Mystery (TV has no Horror genre)
+    36: 18, // History -> Drama
+    10402: 10768, // Music -> closest TV counterpart
+    10770: 10764, // TV Movie -> Reality
+  };
+  static const Map<int, int> _tvGenreToMovie = {
+    10759: 28, // Action & Adventure -> Action
+    10765: 878, // Sci-Fi & Fantasy -> Sci-Fi
+    10764: 10770, // Reality -> TV Movie
+    10763: 99, // News -> Documentary
+    10766: 18, // Soap -> Drama
+    10767: 99, // Talk -> Documentary
+    10768: 10752, // War & Politics -> War
+    10762: 10751, // Kids -> Family
+  };
+
+  /// Returns the genre id [id] mapped into the vocabulary of [isMovie],
+  /// or null when the genre has no meaningful counterpart and the query
+  /// should omit the genre filter instead of asking for zero results.
+  static int? translateGenreId(int id, {required bool isMovie}) {
+    final map = isMovie ? _tvGenreToMovie : _movieGenreToTv;
+    return map[id] ?? id;
+  }
+
   /// Shared pattern: use discover endpoint when filters are active, otherwise
   /// fall back to the simpler direct endpoint.
   Future<List<MultimediaItem>> _fetchWithFilterFallback({
@@ -642,8 +678,13 @@ class TmdbService {
       ...?additionalParams,
     };
 
-    // Add nullable filters
-    if (genreId != null) query['with_genres'] = genreId;
+    // Add nullable filters. Genre ids live in disjoint movie/TV vocabularies
+    // on TMDB, so translate into the domain actually being queried — an
+    // untranslated id silently yields zero results and empties the grid.
+    final translatedGenre = genreId != null
+        ? TmdbService.translateGenreId(genreId, isMovie: isMovie)
+        : null;
+    if (translatedGenre != null) query['with_genres'] = translatedGenre;
     if (year != null) {
       query[isMovie ? 'primary_release_year' : 'first_air_date_year'] = year;
     }

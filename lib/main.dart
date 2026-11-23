@@ -36,6 +36,7 @@ import 'core/widgets/app_error_boundary.dart';
 import 'core/services/download_service.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/lan_sync_service.dart';
+import 'features/player/data/subtitle_providers.dart';
 
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:aether/l10n/generated/app_localizations.dart';
@@ -114,6 +115,11 @@ void main() async {
   // rule cannot see through.
   // ignore: riverpod_lint/missing_provider_scope
   AppUtils.setRestartFunction(() => runApp(const AppRoot()));
+
+  // Version stamp for API User-Agents (subtitle providers); fire-and-forget
+  // because requests before it resolves use the pubspec fallback version.
+  unawaited(OpenSubtitlesProvider.loadAppVersion());
+
   // ignore: riverpod_lint/missing_provider_scope
   runApp(const AppRoot());
 }

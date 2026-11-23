@@ -6,6 +6,7 @@ import '../domain/entity/multimedia_item.dart';
 import '../storage/history_repository.dart';
 import '../services/tmdb_service.dart';
 import '../../features/explore/data/explore_tmdb_provider.dart';
+import '../../features/explore/data/explore_filter_provider.dart';
 import 'recommendations_service.dart';
 
 /// User taste profile derived dynamically from viewing history and completion rate.
@@ -249,19 +250,25 @@ final aetherDiscoveryIntelligenceProvider = Provider<AdiService>((ref) {
   return AdiService(tmdb, historyRepo);
 });
 
-/// 1. Aether For You: Personalized intelligence shelf
+/// 1. Aether For You: Personalized intelligence shelf.
+///
+/// Watches the Explore genre filter so a genre picked in Explore narrows the
+/// shelf too — previously the shelves ignored the filter entirely.
 final aetherForYouProvider = FutureProvider.autoDispose<List<MultimediaItem>>((ref) {
-  return ref.watch(aetherDiscoveryIntelligenceProvider).getAetherForYou();
+  final genreId = ref.watch(exploreFilterProvider).selectedGenre?.id;
+  return ref.watch(aetherDiscoveryIntelligenceProvider).getAetherForYou(genreId: genreId);
 });
 
 /// 2. Beyond Your Orbit: Aether's signature discovery shelf
 final beyondYourOrbitProvider = FutureProvider.autoDispose<List<MultimediaItem>>((ref) {
-  return ref.watch(aetherDiscoveryIntelligenceProvider).getBeyondYourOrbit();
+  final genreId = ref.watch(exploreFilterProvider).selectedGenre?.id;
+  return ref.watch(aetherDiscoveryIntelligenceProvider).getBeyondYourOrbit(genreId: genreId);
 });
 
 /// 3. Hidden Gems: High quality, lesser-known discoveries
 final hiddenGemsProvider = FutureProvider.autoDispose<List<MultimediaItem>>((ref) {
-  return ref.watch(aetherDiscoveryIntelligenceProvider).getHiddenGems();
+  final genreId = ref.watch(exploreFilterProvider).selectedGenre?.id;
+  return ref.watch(aetherDiscoveryIntelligenceProvider).getHiddenGems(genreId: genreId);
 });
 
 /// Core independent recommendation and discovery intelligence service.
@@ -275,15 +282,16 @@ class AdiService {
   Future<List<MultimediaItem>> getAetherForYou({
     String profileId = 'default',
     int limit = 20,
+    int? genreId,
   }) async {
     final history = _historyRepo.getWatchHistory();
     final profile = AdiTasteProfile.fromHistory(history);
 
     final candidates = <MultimediaItem>[];
     try {
-      final trending = await _tmdb.getTrending();
-      final topRated = await _tmdb.getTopRated();
-      final popularTv = await _tmdb.getPopularTV();
+      final trending = await _tmdb.getTrending(genreId: genreId);
+      final topRated = await _tmdb.getTopRated(genreId: genreId);
+      final popularTv = await _tmdb.getPopularTV(genreId: genreId);
       candidates.addAll(trending);
       candidates.addAll(topRated);
       candidates.addAll(popularTv);
@@ -330,9 +338,10 @@ class AdiService {
   Future<List<MultimediaItem>> getHiddenGems({
     String profileId = 'default',
     int limit = 20,
+    int? genreId,
   }) async {
     try {
-      final top = await _tmdb.getTopRated();
+      final top = await _tmdb.getTopRated(genreId: genreId);
       final history = _historyRepo.getWatchHistory();
       final profile = AdiTasteProfile.fromHistory(history);
 
@@ -356,6 +365,7 @@ class AdiService {
   Future<List<MultimediaItem>> getBeyondYourOrbit({
     String profileId = 'default',
     int limit = 20,
+    int? genreId,
   }) async {
     final history = _historyRepo.getWatchHistory();
     final profile = AdiTasteProfile.fromHistory(history);
@@ -366,7 +376,7 @@ class AdiService {
     final adjacentNames = AdiGenreMap.getAdjacent(userFavoriteNames);
 
     try {
-      final candidates = await _tmdb.getTrending();
+      final candidates = await _tmdb.getTrending(genreId: genreId);
       final orbitPicks = <MultimediaItem>[];
 
       for (final item in candidates) {
