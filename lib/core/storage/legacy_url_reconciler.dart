@@ -152,7 +152,7 @@ class SafeMigrationPipeline {
       for (final item in legacyLibrary) {
         final rawMap = item.toJson();
         final record = _reconciler.reconcile(rawMap);
-        final profileId = 'default_profile';
+        const profileId = 'default_profile';
         final key = 'profile:$profileId:library:${record.identity.aetherId.urn}';
 
         await _storage.setString(key, json.encode({
