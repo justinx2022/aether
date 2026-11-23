@@ -35,11 +35,12 @@ class CharacterAvatarWidget extends StatelessWidget {
     final avatar = ProfileAvatars.get(avatarId);
     final hasImage = avatar.imageUrl != null && avatar.imageUrl!.isNotEmpty;
 
-    // Shape-aware geometry: circles stay circles, squares get a gentle
-    // Netflix-style corner radius. A ClipRRect whose radius is half the size
-    // clips identically to a ClipOval, so one clip serves both.
+    // Shape-aware geometry: circles stay circles, squares get a generous
+    // rounded-corner radius so profile tiles read as soft rounded squares
+    // rather than sharp rectangles. A ClipRRect whose radius is half the
+    // size clips identically to a ClipOval, so one clip serves both.
     final shape = square ? BoxShape.rectangle : BoxShape.circle;
-    final clipRadius = BorderRadius.circular(square ? size * 0.08 : size / 2);
+    final clipRadius = BorderRadius.circular(square ? size * 0.24 : size / 2);
 
     final innerAvatar = Container(
       width: isSelected ? (size - 10).clamp(16.0, size) : size,

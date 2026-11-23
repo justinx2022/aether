@@ -12,6 +12,9 @@ import 'package:aether/features/tracking/data/sync_manager.dart';
 import 'package:aether/features/tracking/domain/sync_progress_item.dart';
 import 'package:aether/features/home/presentation/widgets/synced_progress_section.dart';
 import 'package:aether/features/library/presentation/history_provider.dart';
+import 'package:aether/features/library/presentation/library_provider.dart';
+import 'package:aether/features/library/presentation/library_state.dart';
+
 
 import '../../settings/presentation/general_settings_provider.dart';
 import '../../explore/presentation/widgets/explore_carousel.dart';
@@ -394,6 +397,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     items: history.cast<HistoryItem>(),
                   ),
                 ),
+
+              // ── My List: the user's bookmarked titles ──
+              //
+              // Netflix places its list rail directly under Continue
+              // Watching, so bookmarked titles are reachable in one
+              // scroll rather than only from the Library tab. The
+              // Library feature (bookmark toggle on details) already
+              // existed; this surfaces it on the home rail.
+              SliverToBoxAdapter(
+                child: Consumer(
+                  builder: (context, ref, _) {
+                    final libraryState = ref.watch(libraryProvider);
+                    final myListItems = libraryState is LibrarySuccess
+                        ? libraryState.items
+                        : const <MultimediaItem>[];
+                    if (myListItems.isEmpty) return const SizedBox.shrink();
+                    return MediaHorizontalList(
+                      title: 'My List',
+                      mediaList: myListItems,
+                      category: ViewAllCategory.providerContent,
+                      onTap: (item) => DetailsRoute(
+                        $extra: DetailsRouteExtra(item: item),
+                      ).push<void>(context),
+                      heroTagPrefix: 'my_list',
+                    );
+                  },
+                ),
+              ),
 
               if (watchHistoryEnabled && history.isNotEmpty) ...[
                 // Netflix-style: Render up to 5 distinct "Because you watched" recommendation shelves

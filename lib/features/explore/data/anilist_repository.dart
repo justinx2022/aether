@@ -149,7 +149,7 @@ class AnilistRepository {
           }
         }
       ''',
-      variables: {'seasonYear': 2025},
+      variables: {},
     ),
     'bestLastSeason': const AnilistSectionDefinition(
       title: 'Best of last season',
@@ -163,7 +163,7 @@ class AnilistRepository {
           }
         }
       ''',
-      variables: {'seasonYear': 2025},
+      variables: {},
     ),
     'movies': const AnilistSectionDefinition(
       title: 'Movies',
@@ -296,6 +296,11 @@ class AnilistRepository {
     if (def == null) return [];
 
     final variables = {'page': page, 'perPage': perPage, ...def.variables};
+    // Season sections roll with the calendar year — a hardcoded value went
+    // stale the moment 2025 ended.
+    if (sectionKey == 'topSeason' || sectionKey == 'bestLastSeason') {
+      variables['seasonYear'] = DateTime.now().year;
+    }
     if (genre != null) variables['genre'] = genre;
     if (year != null) variables['seasonYear'] = year;
     if (minRating != null) variables['minScore'] = (minRating * 10).toInt();

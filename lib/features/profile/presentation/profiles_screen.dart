@@ -880,7 +880,7 @@ class _ProfileCardState extends State<_ProfileCard> {
                       height: 130,
                       decoration: BoxDecoration(
                         color: Colors.black54,
-                        borderRadius: BorderRadius.circular(130 * 0.08),
+                        borderRadius: BorderRadius.circular(130 * 0.24),
                       ),
                       child: const Icon(
                         Icons.edit_rounded,
@@ -981,7 +981,7 @@ class _AddProfileCardState extends State<_AddProfileCard> {
                 width: 130,
                 height: 130,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(130 * 0.08),
+                  borderRadius: BorderRadius.circular(130 * 0.24),
                   color: _isHovered
                       ? Colors.white.withValues(alpha: 0.12)
                       : const Color(0xFF22282A).withValues(alpha: 0.8),
