@@ -2,15 +2,6 @@
 
 <div align="center">
 
-```
-     █████╗ ███████╗████████╗██╗  ██╗███████╗██████╗ 
-    ██╔══██╗██╔════╝╚══██╔══╝██║  ██║██╔════╝██╔══██╗
-    ███████║█████╗     ██║   ███████║█████╗  ██████╔╝
-    ██╔══██║██╔══╝     ██║   ██╔══██║██╔══╝  ██╔══██╗
-    ██║  ██║███████╗   ██║   ██║  ██║███████╗██║  ██║
-    ╚═╝  ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝
-```
-
 **Next-Generation Universal Media Experience. Limitless. Unmetered. Celestial.**
 
 [![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Windows%20%7C%20Linux%20%7C%20macOS-6366F1?style=for-the-badge)](#)
@@ -24,31 +15,22 @@
 
 ## 🌟 Highlights
 
-- **👤 Multi-User Profiles ("Who's Watching?")**  
-  True Netflix-style profile management. Every family member gets their own customized avatar, isolated watch history, personalized recommendations, and optional security PIN lock.
-
-- **🎬 Personalized Discovery ("Because You Watched...")**  
-  Deep recommendation algorithm inspired by top streaming services. Generates dynamic shelves on your home dashboard and "More Like This" explore carousels based on what you actually watch.
-
-- **💬 Universal Subtitle Engine**  
-  Keyless, zero-setup multi-language subtitles out of the box. Automatically discovers and synchronizes verified UTF-8 subtitle tracks for movies and TV series across dozens of languages.
-
-- **🌌 Celestial Atmosphere Engine**  
-  Immersive space-oriented ambient backdrops designed for OLED and high-refresh displays:
-  - **Nebula**: Deep cosmic gas clouds with rich violet and cyan star dust.
-  - **Black Hole**: Luminous event horizon accretion disk glow against infinite void.
-  - **Deep Starfield**: Dense stellar clusters with crystalline parallax drift.
-  - **Obsidian Void**: True OLED deep black with minimal stellar shimmer.
-
-- **⚡ Offline Buffer Saver**  
-  Watch without wasting bandwidth. If a video is fully buffered, save it directly to your device's `Downloads/Aether/` directory in one tap without re-downloading.
-
-- **🚀 Debrid-Grade Multi-Connection Engine**  
-  Multi-connection parallel segment prefetching saturates bandwidth, eliminates buffering drops, and delivers instant seek response times.
+- **👤 Multi-User Profiles** — Netflix-style "Who's Watching?": per-profile avatar, history, recommendations, and PIN lock.
+- **🎬 Personalized Discovery** — "Because You Watched…" shelves and explore carousels from a real recommendation engine.
+- **💬 Universal Subtitles** — keyless, zero-setup, multi-language, out of the box.
+- **🌌 Celestial Backdrops** — OLED-friendly ambient scenes (Nebula, Black Hole, Starfield, Obsidian Void).
+- **⚡ Offline Buffer Saver** — save a fully buffered video to `Downloads/Aether/` in one tap.
+- **🚀 Debrid-Grade Streaming** — multi-connection segment prefetch for saturated bandwidth and instant seeks.
 
 ---
 
-## 📱 Getting Started
+## 📥 Download
+
+Prebuilt releases for **Android (phones + Android TV)** and **Windows** are on the [Releases page](https://github.com/justinx2022/aether/releases). Changelog per version lives in [CHANGELOG.md](CHANGELOG.md).
+
+---
+
+## 🛠️ Getting Started
 
 ### Prerequisites
 
@@ -59,17 +41,11 @@
 ### Building from Source
 
 ```bash
-# Clone the repository
-git clone https://github.com/aether-streaming/aether.git
+git clone https://github.com/justinx2022/aether.git
 cd aether
-
-# Get dependencies
 flutter pub get
 
-# Run on your connected device or emulator
-flutter run -d windows
-# or for Android:
-flutter run -d android
+flutter run -d windows   # or: flutter run -d android
 ```
 
 ### Building Release Packages
