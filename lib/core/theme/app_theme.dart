@@ -5,6 +5,7 @@ import 'package:flutter/services.dart' show rootBundle;
 
 import '../../shared/focus/app_focus.dart';
 import 'app_world.dart';
+import 'design_tokens.dart';
 import 'theme_presets.dart';
 
 class AppTheme {
@@ -86,11 +87,27 @@ class AppTheme {
   /// [FocusVisibility], the one rule every focus indicator in the app follows.
   /// See `shared/focus/app_focus.dart`.
   static FilledButtonThemeData _filledButtonTheme(ColorScheme cs) =>
-      FilledButtonThemeData(style: ButtonStyle(side: AppFocus.buttonSide(cs)));
+      FilledButtonThemeData(
+        style: ButtonStyle(
+          side: AppFocus.buttonSide(cs),
+          shape: const WidgetStatePropertyAll(
+            RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(AppRadius.md)),
+            ),
+          ),
+        ),
+      );
 
   static ElevatedButtonThemeData _elevatedButtonTheme(ColorScheme cs) =>
       ElevatedButtonThemeData(
-        style: ButtonStyle(side: AppFocus.buttonSide(cs)),
+        style: ButtonStyle(
+          side: AppFocus.buttonSide(cs),
+          shape: const WidgetStatePropertyAll(
+            RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(AppRadius.md)),
+            ),
+          ),
+        ),
       );
 
   static TextButtonThemeData _textButtonTheme(ColorScheme cs) =>
@@ -104,6 +121,11 @@ class AppTheme {
           side: AppFocus.buttonSide(
             cs,
             unfocused: BorderSide(color: cs.outline),
+          ),
+          shape: const WidgetStatePropertyAll(
+            RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(AppRadius.md)),
+            ),
           ),
         ),
       );
@@ -357,6 +379,9 @@ class AppTheme {
       dialogTheme: DialogThemeData(
         backgroundColor: surfaces.dialog,
         surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
         titleTextStyle: TextStyle(
           fontFamily: fontFamily,
           fontSize: 20,
@@ -368,12 +393,18 @@ class AppTheme {
         backgroundColor: surfaces.sheet,
         surfaceTintColor: Colors.transparent,
         modalBackgroundColor: surfaces.sheet,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
+        ),
       ),
       cardTheme: CardThemeData(
         color: surfaces.card,
         surfaceTintColor: Colors.transparent,
         elevation: isDark ? 0 : 1,
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
       ),
 
       appBarTheme: AppBarTheme(
@@ -413,15 +444,15 @@ class AppTheme {
         filled: true,
         fillColor: surfaces.input,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(isDark ? 16 : 12),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(isDark ? 16 : 12),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(isDark ? 16 : 12),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           borderSide: BorderSide(
             color: colorScheme.primary,
             width: isDark ? 2 : 1.5,
@@ -442,7 +473,7 @@ class AppTheme {
         secondaryLabelStyle: TextStyle(color: colorScheme.primary),
         checkmarkColor: colorScheme.primary,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           side: BorderSide.none,
         ),
       ),
@@ -472,6 +503,9 @@ class AppTheme {
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: colorScheme.primary,
         foregroundColor: colorScheme.onPrimary,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
       ),
 
       splashColor: colorScheme.primary.withValues(alpha: 0.1),

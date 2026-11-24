@@ -27,11 +27,13 @@ abstract final class AppSpace {
 /// Corner radii. Strings of pills are deliberately rare: a 28 px radius reads
 /// as a panel, a 999 px radius reads as a toy, and this app wants the former.
 abstract final class AppRadius {
-  static const double xs = 6;
-  static const double sm = 10;
-  static const double md = 14;
-  static const double lg = 20;
-  static const double xl = 28;
+  // One deliberately generous geometry scale: content should read as calm,
+  // tactile surfaces rather than a patchwork of sharp Material rectangles.
+  static const double xs = 8;
+  static const double sm = 12;
+  static const double md = 18;
+  static const double lg = 24;
+  static const double xl = 32;
   static const double pill = 999;
 
   static BorderRadius get card => BorderRadius.circular(md);

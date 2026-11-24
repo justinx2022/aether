@@ -22,6 +22,25 @@ class TmdbService {
     _dio.interceptors.addAll(baseDio.interceptors);
   }
 
+  /// Person details and a combined filmography for the cast discovery view.
+  Future<Map<String, dynamic>?> getPersonDetails(int personId) async {
+    if (TmdbConfig.apiKey.isEmpty) return null;
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/person/$personId',
+        queryParameters: {
+          'api_key': TmdbConfig.apiKey,
+          'language': 'en-US',
+          'append_to_response': 'combined_credits',
+        },
+      );
+      return response.statusCode == 200 ? response.data : null;
+    } catch (e, st) {
+      talker.warning('TmdbService.getPersonDetails failed: $e', e, st);
+      return null;
+    }
+  }
+
   Future<List<TmdbGenre>> getGenres({String language = 'en-US'}) async {
     if (TmdbConfig.apiKey.isEmpty) {
       talker.warning('TmdbService.getGenres: No TMDB API key configured');

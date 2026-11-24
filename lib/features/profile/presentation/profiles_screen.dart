@@ -6,6 +6,7 @@ import '../../../core/profile/profile_service.dart';
 import '../../../core/profile/character_avatar_widget.dart';
 import '../../../core/providers/device_info_provider.dart';
 import '../../../core/theme/app_backdrop_layer.dart';
+import '../../../core/theme/design_tokens.dart';
 
 class ProfilesScreen extends ConsumerStatefulWidget {
   final bool isSwitching;
@@ -56,7 +57,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF0F121C),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           side: const BorderSide(color: Color(0xFF1E2638), width: 1),
         ),
         title: Text(
@@ -81,7 +82,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
             filled: true,
             fillColor: Colors.white.withValues(alpha: 0.05),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppRadius.md),
               borderSide: BorderSide.none,
             ),
           ),
@@ -95,7 +96,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF6366F1),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
             ),
             onPressed: () {
@@ -925,7 +926,6 @@ class _ProfileCardState extends State<_ProfileCard> {
                   CharacterAvatarWidget(
                     avatarId: widget.profile.avatarId,
                     size: 130,
-                    square: true,
                     isSelected: _isHovered,
                     showGlow: true,
                     isPrimary: widget.isPrimary,
@@ -936,7 +936,7 @@ class _ProfileCardState extends State<_ProfileCard> {
                       height: 130,
                       decoration: BoxDecoration(
                         color: Colors.black54,
-                        borderRadius: BorderRadius.circular(130 * 0.24),
+                        shape: BoxShape.circle,
                       ),
                       child: const Icon(
                         Icons.edit_rounded,
@@ -1037,7 +1037,7 @@ class _AddProfileCardState extends State<_AddProfileCard> {
                 width: 130,
                 height: 130,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(130 * 0.24),
+                  shape: BoxShape.circle,
                   color: _isHovered
                       ? Colors.white.withValues(alpha: 0.12)
                       : const Color(0xFF22282A).withValues(alpha: 0.8),

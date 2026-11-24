@@ -395,14 +395,16 @@ class TmdbSeason {
 }
 
 class TmdbCast {
+  final int? id;
   final String name;
   final String character;
   final String? profilePath;
 
-  TmdbCast({required this.name, required this.character, this.profilePath});
+  TmdbCast({this.id, required this.name, required this.character, this.profilePath});
 
   factory TmdbCast.fromJson(Map<String, dynamic> json) {
     return TmdbCast(
+      id: json['id'] as int?,
       name: json['name'] != null
           ? _unescape.convert(json['name'] as String)
           : 'Unknown',
