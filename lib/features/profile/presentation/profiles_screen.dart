@@ -6,6 +6,7 @@ import '../../../core/profile/profile_service.dart';
 import '../../../core/profile/character_avatar_widget.dart';
 import '../../../core/providers/device_info_provider.dart';
 import '../../../core/theme/app_backdrop_layer.dart';
+import '../../../core/theme/design_tokens.dart';
 
 class ProfilesScreen extends ConsumerStatefulWidget {
   final bool isSwitching;
@@ -56,7 +57,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF0F121C),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           side: const BorderSide(color: Color(0xFF1E2638), width: 1),
         ),
         title: Text(
@@ -81,7 +82,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
             filled: true,
             fillColor: Colors.white.withValues(alpha: 0.05),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppRadius.md),
               borderSide: BorderSide.none,
             ),
           ),
@@ -95,7 +96,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF6366F1),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
             ),
             onPressed: () {
@@ -160,7 +161,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
           return AlertDialog(
             backgroundColor: const Color(0xFF0D0F18),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(22),
+              borderRadius: BorderRadius.circular(AppRadius.xl),
               side: const BorderSide(color: Color(0xFF1E2638), width: 1),
             ),
             title: const Text(
@@ -190,7 +191,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                         filled: true,
                         fillColor: Colors.white.withValues(alpha: 0.05),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
                           borderSide: BorderSide.none,
                         ),
                       ),
@@ -209,7 +210,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                         filled: true,
                         fillColor: Colors.white.withValues(alpha: 0.05),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
                           borderSide: BorderSide.none,
                         ),
                       ),
@@ -344,7 +345,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                         filled: true,
                         fillColor: Colors.white.withValues(alpha: 0.05),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
                           borderSide: BorderSide.none,
                         ),
                       ),
@@ -369,7 +370,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                         filled: true,
                         fillColor: Colors.white.withValues(alpha: 0.05),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
                           borderSide: BorderSide.none,
                         ),
                       ),
@@ -406,7 +407,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF6366F1),
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.sm)),
                 ),
                 onPressed: () {
                   final name = _addNameController.text.trim().isEmpty ? 'Viewer' : _addNameController.text.trim();
@@ -471,7 +472,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
           return AlertDialog(
             backgroundColor: const Color(0xFF0D0F18),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(22),
+              borderRadius: BorderRadius.circular(AppRadius.xl),
               side: const BorderSide(color: Color(0xFF1E2638), width: 1),
             ),
             title: Text(
@@ -498,7 +499,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                         filled: true,
                         fillColor: Colors.white.withValues(alpha: 0.05),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
                           borderSide: BorderSide.none,
                         ),
                       ),
@@ -517,7 +518,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                         filled: true,
                         fillColor: Colors.white.withValues(alpha: 0.05),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
                           borderSide: BorderSide.none,
                         ),
                       ),
@@ -652,7 +653,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                         filled: true,
                         fillColor: Colors.white.withValues(alpha: 0.05),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
                           borderSide: BorderSide.none,
                         ),
                       ),
@@ -677,7 +678,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                         filled: true,
                         fillColor: Colors.white.withValues(alpha: 0.05),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
                           borderSide: BorderSide.none,
                         ),
                       ),
@@ -714,7 +715,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF6366F1),
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.sm)),
                 ),
                 onPressed: () {
                   ref.read(profileControllerProvider.notifier).updateProfile(
@@ -868,7 +869,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                       vertical: 12,
                     ),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(AppRadius.xs),
                     ),
                   ),
                   onPressed: () => setState(() => _isManaging = !_isManaging),
@@ -1275,7 +1276,7 @@ class _FirstRunSetupViewState extends ConsumerState<_FirstRunSetupView> {
                   padding: const EdgeInsets.all(28),
                   decoration: BoxDecoration(
                     color: const Color(0xFF0E1322),
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(AppRadius.xl),
                     border: Border.all(color: const Color(0xFF1E293B)),
                   ),
                   child: Column(
@@ -1302,7 +1303,7 @@ class _FirstRunSetupViewState extends ConsumerState<_FirstRunSetupView> {
                                 filled: true,
                                 fillColor: Colors.white.withValues(alpha: 0.05),
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(14),
+                                  borderRadius: BorderRadius.circular(AppRadius.md),
                                   borderSide: BorderSide.none,
                                 ),
                               ),
@@ -1366,7 +1367,7 @@ class _FirstRunSetupViewState extends ConsumerState<_FirstRunSetupView> {
                             style: FilledButton.styleFrom(
                               backgroundColor: const Color(0xFF6366F1),
                               padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
                             ),
                             onPressed: _createCustom,
                             child: const Text(
@@ -1420,7 +1421,7 @@ class _PresetTileState extends State<_PresetTile> {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: _isFocused ? const Color(0xFF1E293B) : const Color(0xFF0F172A),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
             border: Border.all(
               color: _isFocused ? const Color(0xFF818CF8) : Colors.white.withValues(alpha: 0.12),
               width: _isFocused ? 2.5 : 1.0,
@@ -1465,7 +1466,7 @@ class _PresetTileState extends State<_PresetTile> {
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 decoration: BoxDecoration(
                   color: _isFocused ? const Color(0xFF6366F1) : Colors.white.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
                 child: Text(
                   'Launch',

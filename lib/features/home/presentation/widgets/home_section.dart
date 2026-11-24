@@ -90,6 +90,7 @@ class _HomeSectionState extends ConsumerState<HomeSection> {
                             ) ??
                             '',
                         title: item.title,
+                        releaseDate: item.releaseDate,
                         heroTag: 'home_${item.url}_$index',
                         rankIndex: isRankedSection && index < 10 ? index + 1 : null,
                         onTap: () =>

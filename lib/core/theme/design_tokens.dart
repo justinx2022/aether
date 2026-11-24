@@ -24,14 +24,14 @@ abstract final class AppSpace {
   static const double rail = 28;
 }
 
-/// Corner radii. Strings of pills are deliberately rare: a 28 px radius reads
-/// as a panel, a 999 px radius reads as a toy, and this app wants the former.
+/// Corner radii. Premium and soft: a 32 px radius reads as a panel, a 999 px
+/// radius reads as a toy, and this app wants the former.
 abstract final class AppRadius {
-  static const double xs = 6;
-  static const double sm = 10;
-  static const double md = 14;
-  static const double lg = 20;
-  static const double xl = 28;
+  static const double xs = 10;
+  static const double sm = 14;
+  static const double md = 18;
+  static const double lg = 24;
+  static const double xl = 32;
   static const double pill = 999;
 
   static BorderRadius get card => BorderRadius.circular(md);

@@ -129,6 +129,7 @@ class _SearchResultSectionState extends ConsumerState<SearchResultSection> {
                             label: item.title,
                           ),
                           title: item.title,
+                          releaseDate: item.releaseDate,
                           heroTag: uniqueTag,
                           focusNode: rIndex == 0
                               ? widget.firstCardFocusNode

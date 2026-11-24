@@ -93,6 +93,10 @@ class MultimediaItem {
 
   // New parity fields
   final int? year;
+
+  /// The full release/first-air date, ISO-8601 (`2024-05-31`), when the
+  /// source provides one. [releaseDate] falls back to the bare year.
+  final String? releaseDateIso;
   final double? score;
   final int? duration;
   final ShowStatus status;
@@ -123,6 +127,7 @@ class MultimediaItem {
     this.provider,
     this.headers,
     this.year,
+    this.releaseDateIso,
     this.score,
     this.duration,
     this.status = ShowStatus.ongoing,
@@ -197,6 +202,7 @@ class MultimediaItem {
           ? Map<String, String>.from(json['headers'] as Map)
           : null,
       year: json['year'] as int?,
+      releaseDateIso: json['releaseDateIso'] as String?,
       score: (json['score'] as num?)?.toDouble(),
       duration: json['duration'] as int?,
       status: _parseShowStatus(json['status'] ?? json['showStatus']),
@@ -317,6 +323,7 @@ class MultimediaItem {
       description: json['overview'] as String?,
       contentType: MultimediaItem.parseContentType(mTypeStr),
       year: year,
+      releaseDateIso: date.isEmpty ? null : date,
       score: (json['vote_average'] as num?)?.toDouble(),
       tmdbId: json['id'] as int?,
       imdbId: json['imdbId'] as String?,
@@ -365,7 +372,7 @@ class MultimediaItem {
   String get backdropImageUrl => bannerUrl ?? posterUrl;
   String get posterImageUrl => posterUrl;
   String get thumbnailImageUrl => posterUrl;
-  String get releaseDate => year?.toString() ?? '';
+  String get releaseDate => releaseDateIso ?? year?.toString() ?? '';
   String get overview => description ?? '';
   double get voteAverage => score ?? 0.0;
   String get genresStr => tags?.join(' | ') ?? '';
@@ -382,6 +389,7 @@ class MultimediaItem {
     String? provider,
     Map<String, String>? headers,
     int? year,
+    String? releaseDateIso,
     double? score,
     int? duration,
     ShowStatus? status,
@@ -411,6 +419,7 @@ class MultimediaItem {
       provider: provider ?? this.provider,
       headers: headers ?? this.headers,
       year: year ?? this.year,
+      releaseDateIso: releaseDateIso ?? this.releaseDateIso,
       score: score ?? this.score,
       duration: duration ?? this.duration,
       status: status ?? this.status,
@@ -443,6 +452,7 @@ class MultimediaItem {
       'provider': provider,
       'headers': headers,
       'year': year,
+      'releaseDateIso': releaseDateIso,
       'score': score,
       'duration': duration,
       'status': status.name,

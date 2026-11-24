@@ -69,6 +69,7 @@ class TmdbDetails extends MultimediaItem {
          description: overview,
          contentType: MultimediaItem.parseContentType(mediaType),
          tmdbId: tmdbId ?? id,
+         releaseDateIso: releaseDate,
          score: voteAverage,
          tags: genresStr?.split(' | '),
        );
@@ -322,6 +323,7 @@ class TmdbDetails extends MultimediaItem {
     String? originCountry,
     String? originalLanguage,
     String? releaseDateFull,
+    String? releaseDateIso,
   }) {
     return TmdbDetails(
       id: id ?? this.id,
@@ -335,7 +337,8 @@ class TmdbDetails extends MultimediaItem {
       title: title ?? this.title,
       posterPath: posterUrl ?? this.posterUrl,
       backdropPath: bannerUrl ?? this.bannerUrl,
-      releaseDate: releaseDate ?? this.releaseDateFull,
+      releaseDate:
+          releaseDate ?? releaseDateIso ?? this.releaseDateIso ?? this.releaseDateFull,
       voteAverage: voteAverage ?? score ?? this.score ?? 0.0,
       overview: overview ?? description ?? this.description ?? '',
       logoUrl: logoUrl ?? this.logoUrl,
@@ -399,7 +402,15 @@ class TmdbCast {
   final String character;
   final String? profilePath;
 
-  TmdbCast({required this.name, required this.character, this.profilePath});
+  /// The TMDB person id, used to open the cast member's other credits.
+  final int? id;
+
+  TmdbCast({
+    required this.name,
+    required this.character,
+    this.profilePath,
+    this.id,
+  });
 
   factory TmdbCast.fromJson(Map<String, dynamic> json) {
     return TmdbCast(
@@ -410,6 +421,7 @@ class TmdbCast {
           ? _unescape.convert(json['character'] as String)
           : '',
       profilePath: json['profile_path'] as String?,
+      id: json['id'] as int?,
     );
   }
 

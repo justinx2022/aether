@@ -531,6 +531,7 @@ class _SearchResultsGridState extends ConsumerState<_SearchResultsGrid> {
           focusNode: index == 0 ? widget.firstItemFocusNode : null,
           imageUrl: imageUrl,
           title: title,
+          releaseDate: item.releaseDate,
           heroTag: uniqueTag,
           onTap: () {
             _navigateToItem(

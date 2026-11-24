@@ -8,10 +8,12 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:background_downloader/background_downloader.dart';
 import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/theme/design_tokens.dart';
 import 'package:aether/core/storage/history_repository.dart';
 import 'package:aether/core/storage/episode_watch_repository.dart';
 import 'package:aether/core/services/download_service.dart';
 import 'package:aether/core/utils/layout_constants.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../shared/widgets/thumbnail_error_placeholder.dart';
 import '../../../library/presentation/history_provider.dart';
@@ -229,7 +231,7 @@ class EpisodeCard extends HookConsumerWidget {
         // long-press still cover the whole card.
         focusNode: cardInkFocusNode,
         canRequestFocus: false,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           width: width,
@@ -244,7 +246,7 @@ class EpisodeCard extends HookConsumerWidget {
                 : isWatched
                 ? watchedCardColor
                 : normalCardColor,
-            borderRadius: BorderRadius.circular(12.0),
+            borderRadius: BorderRadius.circular(AppRadius.md),
             border: Border.all(
               color: showFocus
                   ? AppFocus.ringColor(context)
@@ -329,18 +331,41 @@ class EpisodeCard extends HookConsumerWidget {
                           ),
                           const SizedBox(width: LayoutConstants.spacingMd),
                           Expanded(
-                            child: Text(
-                              "${episode.episode}. ${episode.name.toUpperCase()}",
-                              style: Theme.of(context).textTheme.titleSmall
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: isWatched
-                                        ? theme.colorScheme.onSurface
-                                              .withValues(alpha: 0.65)
-                                        : theme.colorScheme.onSurface,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  "${episode.episode}. ${episode.name.toUpperCase()}",
+                                  style: Theme.of(context).textTheme.titleSmall
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: isWatched
+                                            ? theme.colorScheme.onSurface
+                                                  .withValues(alpha: 0.65)
+                                            : theme.colorScheme.onSurface,
+                                      ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                if (_formatAirDate(episode.airDate)
+                                    case final airDateText?)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 2),
+                                    child: Text(
+                                      airDateText,
+                                      style: TextStyle(
+                                        color: theme
+                                            .colorScheme
+                                            .onSurfaceVariant
+                                            .withValues(alpha: 0.7),
+                                        fontSize: 11,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+                              ],
                             ),
                           ),
                         ],
@@ -475,7 +500,7 @@ class EpisodeCard extends HookConsumerWidget {
               '${parentItem.title} - ${episode.name}',
               episode.url,
             ),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppRadius.md),
             child: Center(
               // The ring stays at its 32 dp visual size inside the 48 dp target.
               child: SizedBox(
@@ -544,7 +569,7 @@ class EpisodeCard extends HookConsumerWidget {
     return Stack(
       children: [
         ClipRRect(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           child: SizedBox(
             width: 140,
             child: AspectRatio(
@@ -573,7 +598,7 @@ class EpisodeCard extends HookConsumerWidget {
             child: IgnorePointer(
               child: Container(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
                   color: Colors.black.withValues(alpha: 0.28),
                 ),
               ),
@@ -602,7 +627,7 @@ class EpisodeCard extends HookConsumerWidget {
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.primary
                     .withValues(alpha: 0.9),
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(AppRadius.xs),
               ),
               child: Text(
                 statusBadge,
@@ -708,7 +733,7 @@ class _EpisodeCardActionState extends State<_EpisodeCardAction> {
             duration: AppFocus.duration,
             padding: const EdgeInsets.all(2),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
               color: AppFocus.rowTint(context, focused: show),
               border:
                   AppFocus.border(context, focused: show) ??
@@ -723,4 +748,13 @@ class _EpisodeCardActionState extends State<_EpisodeCardAction> {
       ),
     );
   }
+}
+
+/// Formats an ISO air date (`2024-05-31`) as `May 31, 2024`. Returns the raw
+/// string when it cannot be parsed and null when there is no date at all.
+String? _formatAirDate(String? raw) {
+  if (raw == null || raw.isEmpty) return null;
+  final parsed = DateTime.tryParse(raw);
+  if (parsed == null) return raw;
+  return DateFormat.yMMMd().format(parsed);
 }

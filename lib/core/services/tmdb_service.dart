@@ -942,6 +942,49 @@ class TmdbService {
     return null;
   }
 
+  /// Every movie/show a person has been cast in, from TMDB's
+  /// `/person/{id}/combined_credits`. Items carry a `media_type` of `movie`
+  /// or `tv` and parse through [MultimediaItem.fromTmdbJson] like any other
+  /// discovery result.
+  Future<List<MultimediaItem>> getPersonCombinedCredits(
+    int personId, {
+    String language = 'en-US',
+  }) async {
+    if (TmdbConfig.apiKey.isEmpty) return const [];
+
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/person/$personId/combined_credits',
+        queryParameters: {'api_key': TmdbConfig.apiKey, 'language': language},
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        final cast = response.data!['cast'];
+        if (cast is! List) return const [];
+        return cast
+            .whereType<Map<String, dynamic>>()
+            // `media_type` is what fromTmdbJson keys off; person credits
+            // always carry it, but guard anyway so a stray item cannot
+            // misparse as a movie.
+            .where((item) => item['media_type'] != null)
+            .map(MultimediaItem.fromTmdbJson)
+            // Credits without artwork read as broken tiles; drop them.
+            .where((item) => item.posterUrl.isNotEmpty)
+            .toList();
+      }
+      talker.warning(
+        'TmdbService.getPersonCombinedCredits: '
+        'status ${response.statusCode} for $personId',
+      );
+    } catch (e, st) {
+      talker.error(
+        'TmdbService.getPersonCombinedCredits failed for $personId',
+        e,
+        st,
+      );
+    }
+    return const [];
+  }
+
   Future<Map<String, dynamic>?> getTvDetails(
     int tvId, {
     String language = 'en-US',

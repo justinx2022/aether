@@ -241,6 +241,7 @@ class _MediaHorizontalListState extends State<MediaHorizontalList> {
                     child: MultimediaCard(
                       imageUrl: imageUrl,
                       title: itemTitle,
+                      releaseDate: item.releaseDate,
                       heroTag: uniqueTag,
                       isPortrait: _isPortrait,
                       onTap: () {

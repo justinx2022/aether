@@ -200,6 +200,7 @@ class _ViewAllScreenState extends ConsumerState<ViewAllScreen> {
                   return MultimediaCard(
                     imageUrl: imageUrl,
                     title: itemTitle,
+                    releaseDate: item.releaseDate,
                     heroTag: uniqueTag,
                     isPortrait: _isPortrait,
                     onTap: () {

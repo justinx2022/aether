@@ -920,6 +920,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                       return MultimediaCard(
                         imageUrl: item.posterImageUrl,
                         title: item.title,
+                        releaseDate: item.releaseDate,
                         heroTag: uniqueTag,
                         onTap: () {
                           final itemToOpen = item.url.isNotEmpty && !item.url.startsWith('aether:')

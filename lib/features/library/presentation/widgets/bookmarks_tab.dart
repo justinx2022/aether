@@ -195,6 +195,7 @@ class _BookmarksTabState extends ConsumerState<BookmarksTab>
                 AppImageFallbacks.poster(item.posterUrl, label: item.title) ??
                 '',
             title: item.title,
+            releaseDate: item.releaseDate,
             heroTag: 'lib_bookmark_${item.url}_$index',
             onTap: () => _openDetails(item),
           );

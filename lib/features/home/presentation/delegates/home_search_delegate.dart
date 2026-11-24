@@ -403,6 +403,7 @@ class _HomeSearchResultsState extends ConsumerState<_HomeSearchResults> {
           focusNode: index == 0 ? widget.firstItemFocusNode : null,
           imageUrl: AppImageFallbacks.poster(item.posterUrl, label: item.title),
           title: item.title,
+          releaseDate: item.releaseDate,
           heroTag: uniqueTag,
           onTap: () =>
               DetailsRoute($extra: DetailsRouteExtra(item: item))

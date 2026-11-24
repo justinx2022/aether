@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/theme/app_world.dart';
 import '../../core/theme/design_tokens.dart';
@@ -20,6 +21,10 @@ class MultimediaCard extends ConsumerWidget {
   final FocusNode? focusNode;
   final int? rankIndex;
 
+  /// The release/first-air date, shown as a quiet line under the title.
+  /// Accepts an ISO date (`2024-05-31`) or a bare year (`2024`).
+  final String? releaseDate;
+
   const MultimediaCard({
     super.key,
     required this.imageUrl,
@@ -29,7 +34,21 @@ class MultimediaCard extends ConsumerWidget {
     this.isPortrait = true,
     this.focusNode,
     this.rankIndex,
+    this.releaseDate,
   });
+
+  /// `2024-05-31` → `May 31, 2024`; `2024` → `2024`. Anything unparsable is
+  /// shown as it arrived rather than dropped.
+  static String formatReleaseDate(String raw) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) return trimmed;
+    if (trimmed.length == 4 && int.tryParse(trimmed) != null) return trimmed;
+    try {
+      final parsed = DateTime.tryParse(trimmed);
+      if (parsed != null) return DateFormat.yMMMd().format(parsed);
+    } catch (_) {}
+    return trimmed;
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -142,6 +161,24 @@ class MultimediaCard extends ConsumerWidget {
           : null,
     );
 
+    final hasDate = releaseDate != null && releaseDate!.trim().isNotEmpty;
+    final dateTextStyle = TextStyle(
+      color: world.textPrimary.withValues(alpha: isInside ? 0.78 : 0.55),
+      fontSize: isDesktop ? 14 : 11,
+      fontWeight: FontWeight.w500,
+      letterSpacing: 0.2,
+      height: 1.2,
+      shadows: isInside
+          ? [
+              const Shadow(
+                color: Colors.black87,
+                blurRadius: 6,
+                offset: Offset(0, 1),
+              ),
+            ]
+          : null,
+    );
+
     final cardContent = RepaintBoundary(
       child: CardsWrapper(
         onTap: onTap,
@@ -150,8 +187,10 @@ class MultimediaCard extends ConsumerWidget {
         child: SizedBox(
           width: cardWidth,
           child: isInside
-              ? _buildInsideMode(context, imageWidget, titleTextStyle)
-              : _buildBelowMode(imageWidget, titleTextStyle),
+              ? _buildInsideMode(
+                  context, imageWidget, titleTextStyle, dateTextStyle, hasDate)
+              : _buildBelowMode(
+                  imageWidget, titleTextStyle, dateTextStyle, hasDate),
         ),
       ),
     );
@@ -192,7 +231,12 @@ class MultimediaCard extends ConsumerWidget {
     return cardContent;
   }
 
-  Widget _buildBelowMode(Widget imageWidget, TextStyle titleTextStyle) {
+  Widget _buildBelowMode(
+    Widget imageWidget,
+    TextStyle titleTextStyle,
+    TextStyle dateTextStyle,
+    bool hasDate,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -204,6 +248,15 @@ class MultimediaCard extends ConsumerWidget {
           overflow: TextOverflow.ellipsis,
           style: titleTextStyle,
         ),
+        if (hasDate) ...[
+          const SizedBox(height: 2),
+          Text(
+            formatReleaseDate(releaseDate!),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: dateTextStyle,
+          ),
+        ],
         const SizedBox(height: 2),
       ],
     );
@@ -213,6 +266,8 @@ class MultimediaCard extends ConsumerWidget {
     BuildContext context,
     Widget imageWidget,
     TextStyle titleTextStyle,
+    TextStyle dateTextStyle,
+    bool hasDate,
   ) {
     return Stack(
       children: [
@@ -230,12 +285,27 @@ class MultimediaCard extends ConsumerWidget {
               gradient: AppWorldTokens.colorsOf(context).artworkScrim,
             ),
             padding: const EdgeInsets.fromLTRB(10, 28, 10, 10),
-            child: Text(
-              title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: titleTextStyle,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: titleTextStyle,
+                ),
+                if (hasDate) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    formatReleaseDate(releaseDate!),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: dateTextStyle,
+                  ),
+                ],
+              ],
             ),
           ),
         ),
