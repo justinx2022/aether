@@ -1939,4 +1939,73 @@ class AppLocalizationsBe extends AppLocalizations {
 
   @override
   String get aiNeuralEngine => 'AI Neural Engine';
+
+  @override
+  String get enterProfilePinToUnlock => 'Enter profile PIN to unlock';
+
+  @override
+  String get incorrectPinTryAgain => 'Incorrect PIN. Try again.';
+
+  @override
+  String noOtherTitlesFound(String name) {
+    return 'No other titles found for $name';
+  }
+
+  @override
+  String get profileName => 'Profile Name';
+
+  @override
+  String get profileNameExample => 'e.g. Sara, Mathew, Walter, Alex';
+
+  @override
+  String get searchAvatarsHint => 'Search 100+ character avatars...';
+
+  @override
+  String get initialFeedExperience => 'Initial Feed Experience';
+
+  @override
+  String get universalFeedAllContent => 'Universal Feed (All Content)';
+
+  @override
+  String get cinemaOnlyFeatureFilms => 'Cinema Only (Feature Films)';
+
+  @override
+  String get seriesOnlyTelevisionFocus => 'Series Only (Television Focus)';
+
+  @override
+  String get animePriority => 'Anime Priority';
+
+  @override
+  String get maturityRatingMax => 'Maturity Rating (Max)';
+
+  @override
+  String get allAges => 'All Ages';
+
+  @override
+  String get olderKidsRating => '7+ (Older Kids)';
+
+  @override
+  String get teenRating => '13+ (Teen)';
+
+  @override
+  String get matureRating => '16+ (Mature)';
+
+  @override
+  String get adultsOnlyRating => '18+ (Adults Only)';
+
+  @override
+  String get kidsSafeShield => 'Kids Safe Shield';
+
+  @override
+  String get filtersOutAdultMatureContent =>
+      'Filters out adult & mature content';
+
+  @override
+  String get yourProfileName => 'Your Profile Name';
+
+  @override
+  String get enterNameHint => 'Enter name...';
+
+  @override
+  String get backToPresets => 'Back to Presets';
 }

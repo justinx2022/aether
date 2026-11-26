@@ -162,98 +162,19 @@ class PlaybackLauncher {
     if (!context.mounted) return false;
 
     final tier = maturityTier(cert);
-    final pinController = TextEditingController();
     var unlocked = false;
 
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF0F121C),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-          side: const BorderSide(color: Color(0xFF1E2638), width: 1),
-        ),
-        title: Row(
-          children: [
-            const Icon(Icons.lock_rounded, color: Color(0xFFF59E0B), size: 20),
-            const SizedBox(width: 10),
-            Text(
-              'Rated $tier',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '${maturityDescription(cert)}\n\n"${item.title}" is above this profile\'s $allowed limit.',
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
-            ),
-            if (profile?.hasPin == true) ...[
-              const SizedBox(height: 16),
-              TextField(
-                controller: pinController,
-                obscureText: true,
-                keyboardType: TextInputType.number,
-                maxLength: 4,
-                autofocus: true,
-                style: const TextStyle(
-                  color: Colors.white,
-                  letterSpacing: 8,
-                  fontSize: 20,
-                ),
-                decoration: InputDecoration(
-                  counterText: '',
-                  hintText: 'Enter profile PIN to unlock',
-                  hintStyle: const TextStyle(
-                    color: Colors.white30,
-                    letterSpacing: 0,
-                    fontSize: 13,
-                  ),
-                  filled: true,
-                  fillColor: Colors.white.withValues(alpha: 0.05),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white60)),
-          ),
-          if (profile?.hasPin == true)
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6366F1),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              onPressed: () {
-                if (profile!.verifyPin(pinController.text.trim())) {
-                  unlocked = true;
-                  Navigator.pop(ctx);
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Incorrect PIN. Try again.')),
-                  );
-                }
-              },
-              child: const Text('Unlock', style: TextStyle(color: Colors.white)),
-            ),
-        ],
+      builder: (ctx) => _MaturityGateDialog(
+        heading: 'Rated $tier',
+        body:
+            '${maturityDescription(cert)}\n\n"${item.title}" is above this '
+            "profile's $allowed limit.",
+        hasPin: profile?.hasPin == true,
+        verifyPin: (pin) => profile!.verifyPin(pin),
+        onUnlocked: () => unlocked = true,
       ),
     );
     return unlocked;
@@ -524,6 +445,147 @@ class PlaybackLauncher {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The maturity gate, as its own widget so the PIN controller it owns dies
+/// with the dialog instead of with the function that showed it — the dialog
+/// is still mounted for its exit transition when the showing `await` returns.
+class _MaturityGateDialog extends StatefulWidget {
+  const _MaturityGateDialog({
+    required this.heading,
+    required this.body,
+    required this.hasPin,
+    required this.verifyPin,
+    required this.onUnlocked,
+  });
+
+  /// "Rated $tier" — the lock row's text.
+  final String heading;
+
+  /// The certification description and the "above this profile's limit" line.
+  final String body;
+
+  /// Whether the active profile guards itself with a PIN; without one the
+  /// dialog is informational only and can only be dismissed.
+  final bool hasPin;
+
+  /// Checks the entered PIN against the profile's own.
+  final bool Function(String pin) verifyPin;
+
+  /// Called when the entered PIN verifies, just before the dialog pops.
+  final VoidCallback onUnlocked;
+
+  @override
+  State<_MaturityGateDialog> createState() => _MaturityGateDialogState();
+}
+
+class _MaturityGateDialogState extends State<_MaturityGateDialog> {
+  final TextEditingController _pinController = TextEditingController();
+
+  @override
+  void dispose() {
+    _pinController.dispose();
+    super.dispose();
+  }
+
+  void _verify() {
+    final l10n = AppLocalizations.of(context)!;
+    if (widget.verifyPin(_pinController.text.trim())) {
+      widget.onUnlocked();
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.incorrectPinTryAgain)),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return AlertDialog(
+      backgroundColor: const Color(0xFF0F121C),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: const BorderSide(color: Color(0xFF1E2638), width: 1),
+      ),
+      title: Row(
+        children: [
+          const Icon(Icons.lock_rounded, color: Color(0xFFF59E0B), size: 20),
+          const SizedBox(width: 10),
+          Text(
+            widget.heading,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            widget.body,
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
+          ),
+          if (widget.hasPin) ...[
+            const SizedBox(height: 16),
+            TextField(
+              controller: _pinController,
+              obscureText: true,
+              keyboardType: TextInputType.number,
+              maxLength: 4,
+              autofocus: true,
+              onSubmitted: (_) => _verify(),
+              style: const TextStyle(
+                color: Colors.white,
+                letterSpacing: 8,
+                fontSize: 20,
+              ),
+              decoration: InputDecoration(
+                counterText: '',
+                hintText: l10n.enterProfilePinToUnlock,
+                hintStyle: const TextStyle(
+                  color: Colors.white30,
+                  letterSpacing: 0,
+                  fontSize: 13,
+                ),
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.05),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(
+            l10n.cancel,
+            style: const TextStyle(color: Colors.white60),
+          ),
+        ),
+        if (widget.hasPin)
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF6366F1),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed: _verify,
+            child: Text(l10n.unlock, style: const TextStyle(color: Colors.white)),
+          ),
+      ],
     );
   }
 }

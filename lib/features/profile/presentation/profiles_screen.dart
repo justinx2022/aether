@@ -1,3 +1,4 @@
+import 'package:aether/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -52,6 +53,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
 
   void _showPinDialog(UserProfile profile) {
     _pinController.clear();
+    final l10n = AppLocalizations.of(context)!;
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -90,7 +92,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white60)),
+            child: Text(l10n.cancel, style: const TextStyle(color: Colors.white60)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -112,11 +114,11 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                 }
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Incorrect PIN. Try again.')),
+                  SnackBar(content: Text(l10n.incorrectPinTryAgain)),
                 );
               }
             },
-            child: const Text('Unlock', style: TextStyle(color: Colors.white)),
+            child: Text(l10n.unlock, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -125,6 +127,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
 
   void _showAddProfileDialog() {
     _addNameController.clear();
+    final l10n = AppLocalizations.of(context)!;
     String selectedAvatarId = ProfileAvatars.all.first.id;
     String selectedCategory = ProfileAvatars.categories.first;
     String searchQuery = '';
@@ -184,9 +187,9 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                       autofocus: true,
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
-                        labelText: 'Profile Name',
+                        labelText: l10n.profileName,
                         labelStyle: const TextStyle(color: Colors.white60),
-                        hintText: 'e.g. Sara, Mathew, Walter, Alex',
+                        hintText: l10n.profileNameExample,
                         hintStyle: const TextStyle(color: Colors.white30),
                         filled: true,
                         fillColor: Colors.white.withValues(alpha: 0.05),
@@ -202,7 +205,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                     TextField(
                       style: const TextStyle(color: Colors.white, fontSize: 13),
                       decoration: InputDecoration(
-                        hintText: 'Search 100+ character avatars...',
+                        hintText: l10n.searchAvatarsHint,
                         hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
                         prefixIcon: const Icon(Icons.search_rounded, color: Colors.white54, size: 18),
                         isDense: true,
@@ -340,7 +343,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                       dropdownColor: const Color(0xFF0F121C),
                       style: const TextStyle(color: Colors.white, fontSize: 13),
                       decoration: InputDecoration(
-                        labelText: 'Initial Feed Experience',
+                        labelText: l10n.initialFeedExperience,
                         labelStyle: const TextStyle(color: Colors.white60),
                         filled: true,
                         fillColor: Colors.white.withValues(alpha: 0.05),
@@ -349,11 +352,11 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                           borderSide: BorderSide.none,
                         ),
                       ),
-                      items: const [
-                        DropdownMenuItem(value: 'all', child: Text('Universal Feed (All Content)')),
-                        DropdownMenuItem(value: 'movies', child: Text('Cinema Only (Feature Films)')),
-                        DropdownMenuItem(value: 'series', child: Text('Series Only (Television Focus)')),
-                        DropdownMenuItem(value: 'anime', child: Text('Anime Priority')),
+                      items: [
+                        DropdownMenuItem(value: 'all', child: Text(l10n.universalFeedAllContent)),
+                        DropdownMenuItem(value: 'movies', child: Text(l10n.cinemaOnlyFeatureFilms)),
+                        DropdownMenuItem(value: 'series', child: Text(l10n.seriesOnlyTelevisionFocus)),
+                        DropdownMenuItem(value: 'anime', child: Text(l10n.animePriority)),
                       ],
                       onChanged: (val) {
                         if (val != null) setModalState(() => feedMode = val);
@@ -365,7 +368,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                       dropdownColor: const Color(0xFF0F121C),
                       style: const TextStyle(color: Colors.white, fontSize: 13),
                       decoration: InputDecoration(
-                        labelText: 'Maturity Rating (Max)',
+                        labelText: l10n.maturityRatingMax,
                         labelStyle: const TextStyle(color: Colors.white60),
                         filled: true,
                         fillColor: Colors.white.withValues(alpha: 0.05),
@@ -374,12 +377,12 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                           borderSide: BorderSide.none,
                         ),
                       ),
-                      items: const [
-                        DropdownMenuItem(value: 'All', child: Text('All Ages')),
-                        DropdownMenuItem(value: '7+', child: Text('7+ (Older Kids)')),
-                        DropdownMenuItem(value: '13+', child: Text('13+ (Teen)')),
-                        DropdownMenuItem(value: '16+', child: Text('16+ (Mature)')),
-                        DropdownMenuItem(value: '18+', child: Text('18+ (Adults Only)')),
+                      items: [
+                        DropdownMenuItem(value: 'All', child: Text(l10n.allAges)),
+                        DropdownMenuItem(value: '7+', child: Text(l10n.olderKidsRating)),
+                        DropdownMenuItem(value: '13+', child: Text(l10n.teenRating)),
+                        DropdownMenuItem(value: '16+', child: Text(l10n.matureRating)),
+                        DropdownMenuItem(value: '18+', child: Text(l10n.adultsOnlyRating)),
                       ],
                       onChanged: (val) {
                         if (val != null) setModalState(() => maturityRating = val);
@@ -388,8 +391,8 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                     const SizedBox(height: 8),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Kids Safe Shield', style: TextStyle(color: Colors.white, fontSize: 13)),
-                      subtitle: const Text('Filters out adult & mature content', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                      title: Text(l10n.kidsSafeShield, style: const TextStyle(color: Colors.white, fontSize: 13)),
+                      subtitle: Text(l10n.filtersOutAdultMatureContent, style: const TextStyle(color: Colors.white54, fontSize: 11)),
                       value: isKids,
                       activeTrackColor: const Color(0xFF6366F1),
                       onChanged: (val) => setModalState(() => isKids = val),
@@ -401,7 +404,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel', style: TextStyle(color: Colors.white60)),
+                child: Text(l10n.cancel, style: const TextStyle(color: Colors.white60)),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
@@ -435,6 +438,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
 
   void _showEditProfileDialog(UserProfile profile) {
     _editNameController.text = profile.name;
+    final l10n = AppLocalizations.of(context)!;
     String selectedAvatarId = profile.avatarId;
     final currentAvatar = ProfileAvatars.get(profile.avatarId);
     String selectedCategory = currentAvatar.category;
@@ -494,7 +498,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                       controller: _editNameController,
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
-                        labelText: 'Profile Name',
+                        labelText: l10n.profileName,
                         labelStyle: const TextStyle(color: Colors.white60),
                         filled: true,
                         fillColor: Colors.white.withValues(alpha: 0.05),
@@ -510,7 +514,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                     TextField(
                       style: const TextStyle(color: Colors.white, fontSize: 13),
                       decoration: InputDecoration(
-                        hintText: 'Search 100+ character avatars...',
+                        hintText: l10n.searchAvatarsHint,
                         hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
                         prefixIcon: const Icon(Icons.search_rounded, color: Colors.white54, size: 18),
                         isDense: true,
@@ -648,7 +652,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                       dropdownColor: const Color(0xFF0F121C),
                       style: const TextStyle(color: Colors.white, fontSize: 13),
                       decoration: InputDecoration(
-                        labelText: 'Initial Feed Experience',
+                        labelText: l10n.initialFeedExperience,
                         labelStyle: const TextStyle(color: Colors.white60),
                         filled: true,
                         fillColor: Colors.white.withValues(alpha: 0.05),
@@ -657,11 +661,11 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                           borderSide: BorderSide.none,
                         ),
                       ),
-                      items: const [
-                        DropdownMenuItem(value: 'all', child: Text('Universal Feed (All Content)')),
-                        DropdownMenuItem(value: 'movies', child: Text('Cinema Only (Feature Films)')),
-                        DropdownMenuItem(value: 'series', child: Text('Series Only (Television Focus)')),
-                        DropdownMenuItem(value: 'anime', child: Text('Anime Priority')),
+                      items: [
+                        DropdownMenuItem(value: 'all', child: Text(l10n.universalFeedAllContent)),
+                        DropdownMenuItem(value: 'movies', child: Text(l10n.cinemaOnlyFeatureFilms)),
+                        DropdownMenuItem(value: 'series', child: Text(l10n.seriesOnlyTelevisionFocus)),
+                        DropdownMenuItem(value: 'anime', child: Text(l10n.animePriority)),
                       ],
                       onChanged: (val) {
                         if (val != null) setModalState(() => feedMode = val);
@@ -673,7 +677,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                       dropdownColor: const Color(0xFF0F121C),
                       style: const TextStyle(color: Colors.white, fontSize: 13),
                       decoration: InputDecoration(
-                        labelText: 'Maturity Rating (Max)',
+                        labelText: l10n.maturityRatingMax,
                         labelStyle: const TextStyle(color: Colors.white60),
                         filled: true,
                         fillColor: Colors.white.withValues(alpha: 0.05),
@@ -682,12 +686,12 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                           borderSide: BorderSide.none,
                         ),
                       ),
-                      items: const [
-                        DropdownMenuItem(value: 'All', child: Text('All Ages')),
-                        DropdownMenuItem(value: '7+', child: Text('7+ (Older Kids)')),
-                        DropdownMenuItem(value: '13+', child: Text('13+ (Teen)')),
-                        DropdownMenuItem(value: '16+', child: Text('16+ (Mature)')),
-                        DropdownMenuItem(value: '18+', child: Text('18+ (Adults Only)')),
+                      items: [
+                        DropdownMenuItem(value: 'All', child: Text(l10n.allAges)),
+                        DropdownMenuItem(value: '7+', child: Text(l10n.olderKidsRating)),
+                        DropdownMenuItem(value: '13+', child: Text(l10n.teenRating)),
+                        DropdownMenuItem(value: '16+', child: Text(l10n.matureRating)),
+                        DropdownMenuItem(value: '18+', child: Text(l10n.adultsOnlyRating)),
                       ],
                       onChanged: (val) {
                         if (val != null) setModalState(() => maturityRating = val);
@@ -696,8 +700,8 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
                     const SizedBox(height: 8),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Kids Safe Shield', style: TextStyle(color: Colors.white, fontSize: 13)),
-                      subtitle: const Text('Filters out adult & mature content', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                      title: Text(l10n.kidsSafeShield, style: const TextStyle(color: Colors.white, fontSize: 13)),
+                      subtitle: Text(l10n.filtersOutAdultMatureContent, style: const TextStyle(color: Colors.white54, fontSize: 11)),
                       value: isKids,
                       activeTrackColor: const Color(0xFF6366F1),
                       onChanged: (val) => setModalState(() => isKids = val),
@@ -709,7 +713,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel', style: TextStyle(color: Colors.white60)),
+                child: Text(l10n.cancel, style: const TextStyle(color: Colors.white60)),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
@@ -1159,6 +1163,7 @@ class _FirstRunSetupViewState extends ConsumerState<_FirstRunSetupView> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final dev = ref.watch(deviceProfileProvider).asData?.value;
     final isTv = dev?.isTv ?? false;
 
@@ -1296,9 +1301,9 @@ class _FirstRunSetupViewState extends ConsumerState<_FirstRunSetupView> {
                               autofocus: !isTv,
                               style: const TextStyle(color: Colors.white, fontSize: 17),
                               decoration: InputDecoration(
-                                labelText: 'Your Profile Name',
+                                labelText: l10n.yourProfileName,
                                 labelStyle: const TextStyle(color: Colors.white60),
-                                hintText: 'Enter name...',
+                                hintText: l10n.enterNameHint,
                                 hintStyle: const TextStyle(color: Colors.white24),
                                 filled: true,
                                 fillColor: Colors.white.withValues(alpha: 0.05),
@@ -1360,7 +1365,7 @@ class _FirstRunSetupViewState extends ConsumerState<_FirstRunSetupView> {
                         children: [
                           TextButton(
                             onPressed: () => setState(() => _isCustomizing = false),
-                            child: const Text('Back to Presets', style: TextStyle(color: Colors.white60)),
+                            child: Text(l10n.backToPresets, style: const TextStyle(color: Colors.white60)),
                           ),
                           const SizedBox(width: 12),
                           FilledButton(

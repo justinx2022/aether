@@ -3518,6 +3518,138 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'AI Neural Engine'**
   String get aiNeuralEngine;
+
+  /// Hint text of the PIN field in the maturity gate dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter profile PIN to unlock'**
+  String get enterProfilePinToUnlock;
+
+  /// Snackbar shown when the profile PIN does not match.
+  ///
+  /// In en, this message translates to:
+  /// **'Incorrect PIN. Try again.'**
+  String get incorrectPinTryAgain;
+
+  /// Snackbar shown when an actor has no other credited titles.
+  ///
+  /// In en, this message translates to:
+  /// **'No other titles found for {name}'**
+  String noOtherTitlesFound(String name);
+
+  /// Label of the profile name text field.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile Name'**
+  String get profileName;
+
+  /// Hint of the profile name text field.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Sara, Mathew, Walter, Alex'**
+  String get profileNameExample;
+
+  /// Hint of the avatar search field; the library keeps growing past 100.
+  ///
+  /// In en, this message translates to:
+  /// **'Search 100+ character avatars...'**
+  String get searchAvatarsHint;
+
+  /// Label of the feed experience dropdown in profile setup.
+  ///
+  /// In en, this message translates to:
+  /// **'Initial Feed Experience'**
+  String get initialFeedExperience;
+
+  /// Feed experience option: movies and series together.
+  ///
+  /// In en, this message translates to:
+  /// **'Universal Feed (All Content)'**
+  String get universalFeedAllContent;
+
+  /// Feed experience option: feature films only.
+  ///
+  /// In en, this message translates to:
+  /// **'Cinema Only (Feature Films)'**
+  String get cinemaOnlyFeatureFilms;
+
+  /// Feed experience option: television series only.
+  ///
+  /// In en, this message translates to:
+  /// **'Series Only (Television Focus)'**
+  String get seriesOnlyTelevisionFocus;
+
+  /// Feed experience option: prioritize anime titles.
+  ///
+  /// In en, this message translates to:
+  /// **'Anime Priority'**
+  String get animePriority;
+
+  /// Label of the maximum maturity rating dropdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Maturity Rating (Max)'**
+  String get maturityRatingMax;
+
+  /// Maturity option: no restriction.
+  ///
+  /// In en, this message translates to:
+  /// **'All Ages'**
+  String get allAges;
+
+  /// Maturity option for older kids.
+  ///
+  /// In en, this message translates to:
+  /// **'7+ (Older Kids)'**
+  String get olderKidsRating;
+
+  /// Maturity option for teens.
+  ///
+  /// In en, this message translates to:
+  /// **'13+ (Teen)'**
+  String get teenRating;
+
+  /// Maturity option for mature audiences.
+  ///
+  /// In en, this message translates to:
+  /// **'16+ (Mature)'**
+  String get matureRating;
+
+  /// Maturity option for adults only.
+  ///
+  /// In en, this message translates to:
+  /// **'18+ (Adults Only)'**
+  String get adultsOnlyRating;
+
+  /// Title of the kids safe shield toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Kids Safe Shield'**
+  String get kidsSafeShield;
+
+  /// Subtitle of the kids safe shield toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Filters out adult & mature content'**
+  String get filtersOutAdultMatureContent;
+
+  /// Label of the custom profile name field in first-run setup.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Profile Name'**
+  String get yourProfileName;
+
+  /// Hint of the custom profile name field in first-run setup.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter name...'**
+  String get enterNameHint;
+
+  /// Button that returns from custom profile setup to the preset list.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to Presets'**
+  String get backToPresets;
 }
 
 class _AppLocalizationsDelegate

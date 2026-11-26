@@ -1368,6 +1368,99 @@
   "aiNeuralEngine": "AI Neural Engine",
   "@aiNeuralEngine": {
     "description": "Title of the AI settings screen. 'Neural Engine' is the feature's own name."
+  },
+  "enterProfilePinToUnlock": "Enter profile PIN to unlock",
+  "@enterProfilePinToUnlock": {
+    "description": "Hint text of the PIN field in the maturity gate dialog."
+  },
+  "incorrectPinTryAgain": "Incorrect PIN. Try again.",
+  "@incorrectPinTryAgain": {
+    "description": "Snackbar shown when the profile PIN does not match."
+  },
+  "noOtherTitlesFound": "No other titles found for {name}",
+  "@noOtherTitlesFound": {
+    "description": "Snackbar shown when an actor has no other credited titles.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "profileName": "Profile Name",
+  "@profileName": {
+    "description": "Label of the profile name text field."
+  },
+  "profileNameExample": "e.g. Sara, Mathew, Walter, Alex",
+  "@profileNameExample": {
+    "description": "Hint of the profile name text field."
+  },
+  "searchAvatarsHint": "Search 100+ character avatars...",
+  "@searchAvatarsHint": {
+    "description": "Hint of the avatar search field; the library keeps growing past 100."
+  },
+  "initialFeedExperience": "Initial Feed Experience",
+  "@initialFeedExperience": {
+    "description": "Label of the feed experience dropdown in profile setup."
+  },
+  "universalFeedAllContent": "Universal Feed (All Content)",
+  "@universalFeedAllContent": {
+    "description": "Feed experience option: movies and series together."
+  },
+  "cinemaOnlyFeatureFilms": "Cinema Only (Feature Films)",
+  "@cinemaOnlyFeatureFilms": {
+    "description": "Feed experience option: feature films only."
+  },
+  "seriesOnlyTelevisionFocus": "Series Only (Television Focus)",
+  "@seriesOnlyTelevisionFocus": {
+    "description": "Feed experience option: television series only."
+  },
+  "animePriority": "Anime Priority",
+  "@animePriority": {
+    "description": "Feed experience option: prioritize anime titles."
+  },
+  "maturityRatingMax": "Maturity Rating (Max)",
+  "@maturityRatingMax": {
+    "description": "Label of the maximum maturity rating dropdown."
+  },
+  "allAges": "All Ages",
+  "@allAges": {
+    "description": "Maturity option: no restriction."
+  },
+  "olderKidsRating": "7+ (Older Kids)",
+  "@olderKidsRating": {
+    "description": "Maturity option for older kids."
+  },
+  "teenRating": "13+ (Teen)",
+  "@teenRating": {
+    "description": "Maturity option for teens."
+  },
+  "matureRating": "16+ (Mature)",
+  "@matureRating": {
+    "description": "Maturity option for mature audiences."
+  },
+  "adultsOnlyRating": "18+ (Adults Only)",
+  "@adultsOnlyRating": {
+    "description": "Maturity option for adults only."
+  },
+  "kidsSafeShield": "Kids Safe Shield",
+  "@kidsSafeShield": {
+    "description": "Title of the kids safe shield toggle."
+  },
+  "filtersOutAdultMatureContent": "Filters out adult & mature content",
+  "@filtersOutAdultMatureContent": {
+    "description": "Subtitle of the kids safe shield toggle."
+  },
+  "yourProfileName": "Your Profile Name",
+  "@yourProfileName": {
+    "description": "Label of the custom profile name field in first-run setup."
+  },
+  "enterNameHint": "Enter name...",
+  "@enterNameHint": {
+    "description": "Hint of the custom profile name field in first-run setup."
+  },
+  "backToPresets": "Back to Presets",
+  "@backToPresets": {
+    "description": "Button that returns from custom profile setup to the preset list."
   }
 }
 

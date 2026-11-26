@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -119,20 +118,18 @@ class CustomBottomNavBar extends StatelessWidget {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(height / 2),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-                child: Container(
-                  height: height,
-                  color: isDark
-                      ? const Color(0xFF10121A).withValues(alpha: 0.65)
-                      : Colors.white.withValues(alpha: 0.75),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      highlight,
-                      Row(children: tabs),
-                    ],
-                  ),
+              // A solid surface, not a frosted one: depth lives in the
+              // hairline and the shadow below, never in a blur of the
+              // content scrolling behind the pill.
+              child: Container(
+                height: height,
+                color: isDark ? world.elevated : Colors.white,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    highlight,
+                    Row(children: tabs),
+                  ],
                 ),
               ),
             ),

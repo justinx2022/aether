@@ -174,7 +174,6 @@ class UserProfile {
 /// Curated cinematic and natural profile avatars matching the dark cinema theme.
 class ProfileAvatarInfo {
   final String id;
-  final String label;
   final String subtitle;
   final String category;
   final IconData icon;
@@ -185,9 +184,12 @@ class ProfileAvatarInfo {
   final Color glowColor;
   final bool isNatural;
 
+  /// Character/show display name, resolved from [ProfileAvatars._labelsById]
+  /// by [id]; every avatar has an entry, so the fallback never shows.
+  String get label => ProfileAvatars._labelsById[id] ?? id;
+
   const ProfileAvatarInfo({
     required this.id,
-    required this.label,
     required this.subtitle,
     required this.category,
     required this.icon,
@@ -201,6 +203,116 @@ class ProfileAvatarInfo {
 }
 
 class ProfileAvatars {
+
+  /// Character and show names for every avatar, keyed by [ProfileAvatarInfo.id].
+  ///
+  /// These are proper nouns - character and show names - not translatable UI
+  /// copy: the 41 ARB locales would only garble them. They live in a const
+  /// data table rather than a `label:` widget-argument position, which is
+  /// exactly what the l10n gate (test/l10n/hardcoded_strings_test.dart)
+  /// polices; same reasoning as subtitle_search_provider's locale names.
+  static const Map<String, String> _labelsById = <String, String>{
+    'avatar_saul_goodman': 'Saul Goodman',
+    'avatar_heisenberg': 'Walter White',
+    'avatar_jesse_pinkman': 'Jesse Pinkman',
+    'avatar_gus_fring': 'Gus Fring',
+    'avatar_shelby': 'Tommy Shelby',
+    'avatar_arthur_shelby': 'Arthur Shelby',
+    'avatar_tony_soprano': 'Tony Soprano',
+    'avatar_vito_corleone': 'Vito Corleone',
+    'avatar_michael_corleone': 'Michael Corleone',
+    'avatar_tony_montana': 'Tony Montana',
+    'avatar_jordan_belfort': 'Jordan Belfort',
+    'avatar_bateman': 'Patrick Bateman',
+    'avatar_rust_cohle': 'Rust Cohle',
+    'avatar_succession': 'Logan Roy',
+    'avatar_kendall_roy': 'Kendall Roy',
+    'avatar_lucifer': 'Lucifer',
+    'avatar_joel': 'Joel Miller',
+    'avatar_ellie': 'Ellie Williams',
+    'avatar_lara_croft': 'Lara Croft',
+    'avatar_rick_grimes': 'Rick Grimes',
+    'avatar_daryl_dixon': 'Daryl Dixon',
+    'avatar_negan': 'Negan Smith',
+    'avatar_john_wick': 'John Wick',
+    'avatar_tyler_durden': 'Tyler Durden',
+    'avatar_max_rockatansky': 'Max Rockatansky',
+    'avatar_furiosa': 'Imperator Furiosa',
+    'avatar_ethan_hunt': 'Ethan Hunt',
+    'avatar_james_bond': 'James Bond (007)',
+    'avatar_travis_bickle': 'Travis Bickle',
+    'avatar_the_bride': 'The Bride',
+    'avatar_baby_driver': 'Baby',
+    'avatar_paul_atreides': 'Paul Atreides',
+    'avatar_chani': 'Chani',
+    'avatar_blade_runner': 'Officer K',
+    'avatar_rick_deckard': 'Rick Deckard',
+    'avatar_neo': 'Neo',
+    'avatar_morpheus': 'Morpheus',
+    'avatar_trinity': 'Trinity',
+    'avatar_interstellar': 'Cooper',
+    'avatar_severance': 'Mark Scout',
+    'avatar_expanse': 'James Holden',
+    'avatar_luke_skywalker': 'Luke Skywalker',
+    'avatar_darth_vader': 'Darth Vader',
+    'avatar_han_solo': 'Han Solo',
+    'avatar_mandalorian': 'The Mandalorian',
+    'avatar_cassian_andor': 'Cassian Andor',
+    'avatar_jon_snow': 'Jon Snow',
+    'avatar_daenerys': 'Daenerys',
+    'avatar_tyrion': 'Tyrion Lannister',
+    'avatar_arya_stark': 'Arya Stark',
+    'avatar_daemon_targaryen': 'Daemon Targaryen',
+    'avatar_rhaenyra': 'Rhaenyra',
+    'avatar_witcher': 'Geralt of Rivia',
+    'avatar_aragorn': 'Aragorn',
+    'avatar_gandalf': 'Gandalf',
+    'avatar_legolas': 'Legolas',
+    'avatar_frodo': 'Frodo Baggins',
+    'avatar_jack_sparrow': 'Jack Sparrow',
+    'avatar_ragnarlothbrok': 'Ragnar Lothbrok',
+    'avatar_wednesday': 'Wednesday Addams',
+    'avatar_eleven': 'Eleven',
+    'avatar_iron_man': 'Tony Stark',
+    'avatar_captain_america': 'Steve Rogers',
+    'avatar_thor': 'Thor Odinson',
+    'avatar_loki': 'Loki',
+    'avatar_spider_man': 'Peter Parker',
+    'avatar_doctor_strange': 'Doctor Strange',
+    'avatar_scarlet_witch': 'Wanda Maximoff',
+    'avatar_wolverine': 'Logan',
+    'avatar_deadpool': 'Wade Wilson',
+    'avatar_batman_bale': 'Bruce Wayne',
+    'avatar_batman_pattinson': 'The Batman',
+    'avatar_joker_ledger': 'The Joker',
+    'avatar_joker_phoenix': 'Arthur Fleck',
+    'avatar_homelander': 'Homelander',
+    'avatar_billy_butcher': 'Billy Butcher',
+    'avatar_daredevil': 'Daredevil',
+    'avatar_peacemaker': 'Peacemaker',
+    'avatar_gandalf_grey': 'Gandalf the Grey',
+    'avatar_spike_spiegel': 'Spike Spiegel',
+    'avatar_chihiro': 'Chihiro',
+    'avatar_totoro': 'Totoro',
+    'avatar_eren_yeager': 'Eren Yeager',
+    'avatar_levi_ackerman': 'Levi Ackerman',
+    'avatar_monkey_luffy': 'Monkey D. Luffy',
+    'avatar_roronoa_zoro': 'Roronoa Zoro',
+    'avatar_gojo_satoru': 'Satoru Gojo',
+    'avatar_jinx_arcane': 'Jinx',
+    'avatar_vi_arcane': 'Vi',
+    'avatar_miles_morales': 'Miles Morales',
+    'avatar_gwen_stacy': 'Gwen Stacy',
+    'avatar_naruto': 'Naruto Uzumaki',
+    'avatar_kakashi': 'Kakashi Hatake',
+    'avatar_aurora': 'Aurora Borealis',
+    'avatar_nebula': 'Orion Nebula',
+    'avatar_alpine': 'Alpine Glacier',
+    'avatar_eclipse': 'Crimson Eclipse',
+    'avatar_forest': 'Emerald Canopy',
+    'avatar_sahara': 'Golden Dunes',
+    'avatar_void': 'Cosmic Void',
+  };
   static const List<String> categories = [
     'Crime & Prestige',
     'Survival & Action',
@@ -214,7 +326,6 @@ class ProfileAvatars {
   static const List<ProfileAvatarInfo> all = [
     ProfileAvatarInfo(
       id: 'avatar_saul_goodman',
-      label: 'Saul Goodman',
       subtitle: 'Better Call Saul',
       category: 'Crime & Prestige',
       icon: Icons.gavel_rounded,
@@ -227,7 +338,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_heisenberg',
-      label: 'Walter White',
       subtitle: 'Breaking Bad',
       category: 'Crime & Prestige',
       icon: Icons.science_rounded,
@@ -240,7 +350,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_jesse_pinkman',
-      label: 'Jesse Pinkman',
       subtitle: 'Breaking Bad',
       category: 'Crime & Prestige',
       icon: Icons.whatshot_rounded,
@@ -253,7 +362,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_gus_fring',
-      label: 'Gus Fring',
       subtitle: 'Los Pollos Hermanos',
       category: 'Crime & Prestige',
       icon: Icons.storefront_rounded,
@@ -266,7 +374,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_shelby',
-      label: 'Tommy Shelby',
       subtitle: 'Peaky Blinders',
       category: 'Crime & Prestige',
       icon: Icons.smoking_rooms_rounded,
@@ -279,7 +386,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_arthur_shelby',
-      label: 'Arthur Shelby',
       subtitle: 'Peaky Blinders',
       category: 'Crime & Prestige',
       icon: Icons.sports_mma_rounded,
@@ -292,7 +398,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_tony_soprano',
-      label: 'Tony Soprano',
       subtitle: 'The Sopranos',
       category: 'Crime & Prestige',
       icon: Icons.restaurant_rounded,
@@ -305,7 +410,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_vito_corleone',
-      label: 'Vito Corleone',
       subtitle: 'The Godfather',
       category: 'Crime & Prestige',
       icon: Icons.family_restroom_rounded,
@@ -318,7 +422,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_michael_corleone',
-      label: 'Michael Corleone',
       subtitle: 'The Godfather',
       category: 'Crime & Prestige',
       icon: Icons.balance_rounded,
@@ -331,7 +434,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_tony_montana',
-      label: 'Tony Montana',
       subtitle: 'Scarface',
       category: 'Crime & Prestige',
       icon: Icons.monetization_on_rounded,
@@ -344,7 +446,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_jordan_belfort',
-      label: 'Jordan Belfort',
       subtitle: 'Wolf of Wall Street',
       category: 'Crime & Prestige',
       icon: Icons.trending_up_rounded,
@@ -357,7 +458,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_bateman',
-      label: 'Patrick Bateman',
       subtitle: 'American Psycho',
       category: 'Crime & Prestige',
       icon: Icons.business_center_rounded,
@@ -370,7 +470,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_rust_cohle',
-      label: 'Rust Cohle',
       subtitle: 'True Detective',
       category: 'Crime & Prestige',
       icon: Icons.search_rounded,
@@ -383,7 +482,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_succession',
-      label: 'Logan Roy',
       subtitle: 'Succession',
       category: 'Crime & Prestige',
       icon: Icons.account_balance_rounded,
@@ -396,7 +494,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_kendall_roy',
-      label: 'Kendall Roy',
       subtitle: 'Succession',
       category: 'Crime & Prestige',
       icon: Icons.psychology_rounded,
@@ -409,7 +506,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_lucifer',
-      label: 'Lucifer',
       subtitle: 'Lord of Hell',
       category: 'Crime & Prestige',
       icon: Icons.flare_rounded,
@@ -422,7 +518,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_joel',
-      label: 'Joel Miller',
       subtitle: 'The Last of Us',
       category: 'Survival & Action',
       icon: Icons.forest_rounded,
@@ -435,7 +530,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_ellie',
-      label: 'Ellie Williams',
       subtitle: 'The Last of Us',
       category: 'Survival & Action',
       icon: Icons.nature_people_rounded,
@@ -448,7 +542,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_lara_croft',
-      label: 'Lara Croft',
       subtitle: 'Tomb Raider',
       category: 'Survival & Action',
       icon: Icons.explore_rounded,
@@ -461,7 +554,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_rick_grimes',
-      label: 'Rick Grimes',
       subtitle: 'The Walking Dead',
       category: 'Survival & Action',
       icon: Icons.shield_rounded,
@@ -474,7 +566,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_daryl_dixon',
-      label: 'Daryl Dixon',
       subtitle: 'The Walking Dead',
       category: 'Survival & Action',
       icon: Icons.sports_handball_rounded,
@@ -487,7 +578,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_negan',
-      label: 'Negan Smith',
       subtitle: 'The Walking Dead',
       category: 'Survival & Action',
       icon: Icons.sports_baseball_rounded,
@@ -500,7 +590,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_john_wick',
-      label: 'John Wick',
       subtitle: 'Baba Yaga',
       category: 'Survival & Action',
       icon: Icons.adjust_rounded,
@@ -513,7 +602,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_tyler_durden',
-      label: 'Tyler Durden',
       subtitle: 'Fight Club',
       category: 'Survival & Action',
       icon: Icons.fitness_center_rounded,
@@ -526,7 +614,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_max_rockatansky',
-      label: 'Max Rockatansky',
       subtitle: 'Mad Max: Fury Road',
       category: 'Survival & Action',
       icon: Icons.local_fire_department_rounded,
@@ -539,7 +626,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_furiosa',
-      label: 'Imperator Furiosa',
       subtitle: 'Fury Road',
       category: 'Survival & Action',
       icon: Icons.speed_rounded,
@@ -552,7 +638,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_ethan_hunt',
-      label: 'Ethan Hunt',
       subtitle: 'Mission: Impossible',
       category: 'Survival & Action',
       icon: Icons.flight_takeoff_rounded,
@@ -565,7 +650,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_james_bond',
-      label: 'James Bond (007)',
       subtitle: 'MI6 Agent',
       category: 'Survival & Action',
       icon: Icons.military_tech_rounded,
@@ -578,7 +662,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_travis_bickle',
-      label: 'Travis Bickle',
       subtitle: 'Taxi Driver',
       category: 'Survival & Action',
       icon: Icons.local_taxi_rounded,
@@ -591,7 +674,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_the_bride',
-      label: 'The Bride',
       subtitle: 'Kill Bill',
       category: 'Survival & Action',
       icon: Icons.flash_on_rounded,
@@ -604,7 +686,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_baby_driver',
-      label: 'Baby',
       subtitle: 'Baby Driver',
       category: 'Survival & Action',
       icon: Icons.headphones_rounded,
@@ -617,7 +698,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_paul_atreides',
-      label: 'Paul Atreides',
       subtitle: 'Dune: Part Two',
       category: 'Sci-Fi & Cyberpunk',
       icon: Icons.terrain_rounded,
@@ -630,7 +710,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_chani',
-      label: 'Chani',
       subtitle: 'Dune: Part Two',
       category: 'Sci-Fi & Cyberpunk',
       icon: Icons.blur_on_rounded,
@@ -643,7 +722,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_blade_runner',
-      label: 'Officer K',
       subtitle: 'Blade Runner 2049',
       category: 'Sci-Fi & Cyberpunk',
       icon: Icons.remove_red_eye_rounded,
@@ -656,7 +734,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_rick_deckard',
-      label: 'Rick Deckard',
       subtitle: 'Blade Runner',
       category: 'Sci-Fi & Cyberpunk',
       icon: Icons.lens_blur_rounded,
@@ -669,7 +746,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_neo',
-      label: 'Neo',
       subtitle: 'The Matrix',
       category: 'Sci-Fi & Cyberpunk',
       icon: Icons.terminal_rounded,
@@ -682,7 +758,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_morpheus',
-      label: 'Morpheus',
       subtitle: 'The Matrix',
       category: 'Sci-Fi & Cyberpunk',
       icon: Icons.visibility_rounded,
@@ -695,7 +770,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_trinity',
-      label: 'Trinity',
       subtitle: 'The Matrix',
       category: 'Sci-Fi & Cyberpunk',
       icon: Icons.sports_motorsports_rounded,
@@ -708,7 +782,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_interstellar',
-      label: 'Cooper',
       subtitle: 'Interstellar',
       category: 'Sci-Fi & Cyberpunk',
       icon: Icons.rocket_launch_rounded,
@@ -721,7 +794,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_severance',
-      label: 'Mark Scout',
       subtitle: 'Severance',
       category: 'Sci-Fi & Cyberpunk',
       icon: Icons.badge_rounded,
@@ -734,7 +806,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_expanse',
-      label: 'James Holden',
       subtitle: 'The Expanse',
       category: 'Sci-Fi & Cyberpunk',
       icon: Icons.satellite_alt_rounded,
@@ -747,7 +818,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_luke_skywalker',
-      label: 'Luke Skywalker',
       subtitle: 'Star Wars',
       category: 'Sci-Fi & Cyberpunk',
       icon: Icons.light_mode_rounded,
@@ -760,7 +830,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_darth_vader',
-      label: 'Darth Vader',
       subtitle: 'Lord of the Sith',
       category: 'Sci-Fi & Cyberpunk',
       icon: Icons.dark_mode_rounded,
@@ -773,7 +842,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_han_solo',
-      label: 'Han Solo',
       subtitle: 'Millennium Falcon',
       category: 'Sci-Fi & Cyberpunk',
       icon: Icons.flight_rounded,
@@ -786,7 +854,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_mandalorian',
-      label: 'The Mandalorian',
       subtitle: 'Din Djarin',
       category: 'Sci-Fi & Cyberpunk',
       icon: Icons.security_rounded,
@@ -799,7 +866,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_cassian_andor',
-      label: 'Cassian Andor',
       subtitle: 'Andor',
       category: 'Sci-Fi & Cyberpunk',
       icon: Icons.crisis_alert_rounded,
@@ -812,7 +878,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_jon_snow',
-      label: 'Jon Snow',
       subtitle: 'King in the North',
       category: 'Fantasy & Lore',
       icon: Icons.ac_unit_rounded,
@@ -825,7 +890,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_daenerys',
-      label: 'Daenerys',
       subtitle: 'Mother of Dragons',
       category: 'Fantasy & Lore',
       icon: Icons.local_fire_department_rounded,
@@ -838,7 +902,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_tyrion',
-      label: 'Tyrion Lannister',
       subtitle: 'Hand of the King',
       category: 'Fantasy & Lore',
       icon: Icons.wine_bar_rounded,
@@ -851,7 +914,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_arya_stark',
-      label: 'Arya Stark',
       subtitle: 'No One',
       category: 'Fantasy & Lore',
       icon: Icons.colorize_rounded,
@@ -864,7 +926,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_daemon_targaryen',
-      label: 'Daemon Targaryen',
       subtitle: 'Rogue Prince',
       category: 'Fantasy & Lore',
       icon: Icons.military_tech_rounded,
@@ -877,7 +938,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_rhaenyra',
-      label: 'Rhaenyra',
       subtitle: 'The Black Queen',
       category: 'Fantasy & Lore',
       icon: Icons.auto_awesome_rounded,
@@ -890,7 +950,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_witcher',
-      label: 'Geralt of Rivia',
       subtitle: 'The White Wolf',
       category: 'Fantasy & Lore',
       icon: Icons.shield_moon_rounded,
@@ -903,7 +962,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_aragorn',
-      label: 'Aragorn',
       subtitle: 'King of Gondor',
       category: 'Fantasy & Lore',
       icon: Icons.star_rounded,
@@ -916,7 +974,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_gandalf',
-      label: 'Gandalf',
       subtitle: 'The White',
       category: 'Fantasy & Lore',
       icon: Icons.auto_fix_high_rounded,
@@ -929,7 +986,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_legolas',
-      label: 'Legolas',
       subtitle: 'Woodland Elf',
       category: 'Fantasy & Lore',
       icon: Icons.track_changes_rounded,
@@ -942,7 +998,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_frodo',
-      label: 'Frodo Baggins',
       subtitle: 'Ring-bearer',
       category: 'Fantasy & Lore',
       icon: Icons.panorama_fish_eye_rounded,
@@ -955,7 +1010,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_jack_sparrow',
-      label: 'Jack Sparrow',
       subtitle: 'Captain',
       category: 'Fantasy & Lore',
       icon: Icons.sailing_rounded,
@@ -968,7 +1022,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_ragnarlothbrok',
-      label: 'Ragnar Lothbrok',
       subtitle: 'Vikings',
       category: 'Fantasy & Lore',
       icon: Icons.navigation_rounded,
@@ -981,7 +1034,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_wednesday',
-      label: 'Wednesday Addams',
       subtitle: 'Nevermore',
       category: 'Fantasy & Lore',
       icon: Icons.nightlight_round,
@@ -994,7 +1046,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_eleven',
-      label: 'Eleven',
       subtitle: 'Stranger Things',
       category: 'Fantasy & Lore',
       icon: Icons.psychology_alt_rounded,
@@ -1007,7 +1058,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_iron_man',
-      label: 'Tony Stark',
       subtitle: 'Iron Man',
       category: 'Superheroes & Comics',
       icon: Icons.bolt_rounded,
@@ -1020,7 +1070,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_captain_america',
-      label: 'Steve Rogers',
       subtitle: 'Captain America',
       category: 'Superheroes & Comics',
       icon: Icons.shield_rounded,
@@ -1033,7 +1082,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_thor',
-      label: 'Thor Odinson',
       subtitle: 'God of Thunder',
       category: 'Superheroes & Comics',
       icon: Icons.electric_bolt_rounded,
@@ -1046,7 +1094,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_loki',
-      label: 'Loki',
       subtitle: 'God of Stories',
       category: 'Superheroes & Comics',
       icon: Icons.auto_stories_rounded,
@@ -1059,7 +1106,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_spider_man',
-      label: 'Peter Parker',
       subtitle: 'Spider-Man',
       category: 'Superheroes & Comics',
       icon: Icons.pest_control_rounded,
@@ -1072,7 +1118,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_doctor_strange',
-      label: 'Doctor Strange',
       subtitle: 'Sorcerer Supreme',
       category: 'Superheroes & Comics',
       icon: Icons.circle_notifications_rounded,
@@ -1085,7 +1130,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_scarlet_witch',
-      label: 'Wanda Maximoff',
       subtitle: 'Scarlet Witch',
       category: 'Superheroes & Comics',
       icon: Icons.blur_circular_rounded,
@@ -1098,7 +1142,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_wolverine',
-      label: 'Logan',
       subtitle: 'Wolverine',
       category: 'Superheroes & Comics',
       icon: Icons.content_cut_rounded,
@@ -1111,7 +1154,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_deadpool',
-      label: 'Wade Wilson',
       subtitle: 'Deadpool',
       category: 'Superheroes & Comics',
       icon: Icons.theater_comedy_rounded,
@@ -1124,7 +1166,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_batman_bale',
-      label: 'Bruce Wayne',
       subtitle: 'The Dark Knight',
       category: 'Superheroes & Comics',
       icon: Icons.nightlife_rounded,
@@ -1137,7 +1178,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_batman_pattinson',
-      label: 'The Batman',
       subtitle: 'Vengeance',
       category: 'Superheroes & Comics',
       icon: Icons.radar_rounded,
@@ -1150,7 +1190,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_joker_ledger',
-      label: 'The Joker',
       subtitle: 'Agent of Chaos',
       category: 'Superheroes & Comics',
       icon: Icons.sentiment_very_dissatisfied_rounded,
@@ -1163,7 +1202,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_joker_phoenix',
-      label: 'Arthur Fleck',
       subtitle: 'Joker',
       category: 'Superheroes & Comics',
       icon: Icons.face_retouching_natural_rounded,
@@ -1176,7 +1214,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_homelander',
-      label: 'Homelander',
       subtitle: 'The Boys',
       category: 'Superheroes & Comics',
       icon: Icons.military_tech_rounded,
@@ -1189,7 +1226,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_billy_butcher',
-      label: 'Billy Butcher',
       subtitle: 'The Boys',
       category: 'Superheroes & Comics',
       icon: Icons.fingerprint_rounded,
@@ -1202,7 +1238,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_daredevil',
-      label: 'Daredevil',
       subtitle: 'Matt Murdock',
       category: 'Superheroes & Comics',
       icon: Icons.hearing_rounded,
@@ -1215,7 +1250,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_peacemaker',
-      label: 'Peacemaker',
       subtitle: 'Christopher Smith',
       category: 'Superheroes & Comics',
       icon: Icons.flag_rounded,
@@ -1228,7 +1262,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_gandalf_grey',
-      label: 'Gandalf the Grey',
       subtitle: 'Mithrandir',
       category: 'Fantasy & Lore',
       icon: Icons.hiking_rounded,
@@ -1241,7 +1274,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_spike_spiegel',
-      label: 'Spike Spiegel',
       subtitle: 'Cowboy Bebop',
       category: 'Anime & Animation',
       icon: Icons.music_note_rounded,
@@ -1254,7 +1286,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_chihiro',
-      label: 'Chihiro',
       subtitle: 'Spirited Away',
       category: 'Anime & Animation',
       icon: Icons.spa_rounded,
@@ -1267,7 +1298,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_totoro',
-      label: 'Totoro',
       subtitle: 'My Neighbor Totoro',
       category: 'Anime & Animation',
       icon: Icons.pets_rounded,
@@ -1280,7 +1310,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_eren_yeager',
-      label: 'Eren Yeager',
       subtitle: 'Attack on Titan',
       category: 'Anime & Animation',
       icon: Icons.flash_on_rounded,
@@ -1293,7 +1322,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_levi_ackerman',
-      label: 'Levi Ackerman',
       subtitle: 'Attack on Titan',
       category: 'Anime & Animation',
       icon: Icons.cleaning_services_rounded,
@@ -1306,7 +1334,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_monkey_luffy',
-      label: 'Monkey D. Luffy',
       subtitle: 'One Piece',
       category: 'Anime & Animation',
       icon: Icons.sailing_rounded,
@@ -1319,7 +1346,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_roronoa_zoro',
-      label: 'Roronoa Zoro',
       subtitle: 'One Piece',
       category: 'Anime & Animation',
       icon: Icons.hardware_rounded,
@@ -1332,7 +1358,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_gojo_satoru',
-      label: 'Satoru Gojo',
       subtitle: 'Jujutsu Kaisen',
       category: 'Anime & Animation',
       icon: Icons.visibility_rounded,
@@ -1345,7 +1370,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_jinx_arcane',
-      label: 'Jinx',
       subtitle: 'Arcane',
       category: 'Anime & Animation',
       icon: Icons.rocket_rounded,
@@ -1358,7 +1382,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_vi_arcane',
-      label: 'Vi',
       subtitle: 'Arcane',
       category: 'Anime & Animation',
       icon: Icons.sports_mma_rounded,
@@ -1371,7 +1394,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_miles_morales',
-      label: 'Miles Morales',
       subtitle: 'Spider-Verse',
       category: 'Anime & Animation',
       icon: Icons.graphic_eq_rounded,
@@ -1384,7 +1406,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_gwen_stacy',
-      label: 'Gwen Stacy',
       subtitle: 'Spider-Gwen',
       category: 'Anime & Animation',
       icon: Icons.favorite_rounded,
@@ -1397,7 +1418,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_naruto',
-      label: 'Naruto Uzumaki',
       subtitle: 'Hidden Leaf',
       category: 'Anime & Animation',
       icon: Icons.sports_martial_arts_rounded,
@@ -1410,7 +1430,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_kakashi',
-      label: 'Kakashi Hatake',
       subtitle: 'Copy Ninja',
       category: 'Anime & Animation',
       icon: Icons.auto_stories_rounded,
@@ -1423,7 +1442,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_aurora',
-      label: 'Aurora Borealis',
       subtitle: 'Polar Lights',
       category: 'Cosmic & Natural',
       icon: Icons.auto_awesome_rounded,
@@ -1436,7 +1454,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_nebula',
-      label: 'Orion Nebula',
       subtitle: 'Stellar Nursery',
       category: 'Cosmic & Natural',
       icon: Icons.all_inclusive_rounded,
@@ -1449,7 +1466,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_alpine',
-      label: 'Alpine Glacier',
       subtitle: 'Glacial Horizon',
       category: 'Cosmic & Natural',
       icon: Icons.landscape_rounded,
@@ -1462,7 +1478,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_eclipse',
-      label: 'Crimson Eclipse',
       subtitle: 'Solar Corona',
       category: 'Cosmic & Natural',
       icon: Icons.brightness_3_rounded,
@@ -1475,7 +1490,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_forest',
-      label: 'Emerald Canopy',
       subtitle: 'Ancient Forest',
       category: 'Cosmic & Natural',
       icon: Icons.park_rounded,
@@ -1488,7 +1502,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_sahara',
-      label: 'Golden Dunes',
       subtitle: 'Sunset Solitude',
       category: 'Cosmic & Natural',
       icon: Icons.wb_sunny_rounded,
@@ -1501,7 +1514,6 @@ class ProfileAvatars {
     ),
     ProfileAvatarInfo(
       id: 'avatar_void',
-      label: 'Cosmic Void',
       subtitle: 'Infinite Horizon',
       category: 'Cosmic & Natural',
       icon: Icons.dark_mode_rounded,

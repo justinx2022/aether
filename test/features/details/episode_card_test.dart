@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:aether/core/domain/entity/multimedia_item.dart';
 import 'package:aether/core/storage/episode_watch_repository.dart';
@@ -102,6 +103,10 @@ class _FakeDetailsController extends DetailsController {
 
 const String _kUrl = 'https://fake.test/series/1';
 
+/// Initialized once in setUpAll, outside the fake async zone: real Hive file
+/// IO never settles inside a testWidgets body.
+late StorageService _storage;
+
 MultimediaItem _parent(List<Episode> episodes) => MultimediaItem(
   title: 'A Series',
   url: _kUrl,
@@ -162,8 +167,13 @@ Future<_Harness> _pumpCards(
   final item = _parent(episodes);
   final history = _NoHistory();
 
+  // The card tree resolves profileControllerProvider (via
+  // watchHistoryProvider), which reads storageServiceProvider. Give it a
+  // real StorageService - initialized once in setUpAll, outside the fake
+  // async zone, because real Hive file IO never settles inside testWidgets.
   final container = ProviderContainer(
     overrides: [
+      storageServiceProvider.overrideWithValue(_storage),
       historyRepositoryProvider.overrideWithValue(history),
       episodeWatchRepositoryProvider.overrideWithValue(
         _NoEpisodeWatch(history),
@@ -229,6 +239,30 @@ Future<_Harness> _pumpCards(
 }
 
 void main() {
+  final binding = TestWidgetsFlutterBinding.ensureInitialized();
+
+  late Directory dir;
+
+  setUpAll(() async {
+    dir = Directory.systemTemp.createTempSync('episode_card');
+    // StorageService.init() asks path_provider where to put its boxes.
+    binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('plugins.flutter.io/path_provider'),
+      (call) async => dir.path,
+    );
+    _storage = StorageService();
+    await _storage.init();
+  });
+
+  tearDownAll(() async {
+    await Hive.close();
+    binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('plugins.flutter.io/path_provider'),
+      null,
+    );
+    if (dir.existsSync()) dir.deleteSync(recursive: true);
+  });
+
   group('EpisodeCard download action reachability', () {
     // A 1080p television reports 960x540 dp; a landscape tablet and any wide
     // desktop window clear the same 900 dp breakpoint the old

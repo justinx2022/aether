@@ -1,3 +1,4 @@
+import 'package:aether/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -56,7 +57,7 @@ class _MovieCastListState extends ConsumerState<MovieCastList> {
       messenger?.showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text('No other titles found for ${actor.name}'),
+          content: Text(AppLocalizations.of(context)!.noOtherTitlesFound(actor.name)),
         ),
       );
       return;

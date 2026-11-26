@@ -1940,4 +1940,73 @@ class AppLocalizationsKn extends AppLocalizations {
 
   @override
   String get aiNeuralEngine => 'ಎಐ ನ್ಯೂರಲ್ ಎಂಜಿನ್';
+
+  @override
+  String get enterProfilePinToUnlock => 'ಅನ್‌ಲಾಕ್ ಮಾಡಲು ಪ್ರೊಫೈಲ್ ಪಿನ್ ನಮೂದಿಸಿ';
+
+  @override
+  String get incorrectPinTryAgain => 'ತಪ್ಪಾದ ಪಿನ್. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.';
+
+  @override
+  String noOtherTitlesFound(String name) {
+    return '$name ಗಾಗಿ ಬೇರೆ ಯಾವುದೇ ಶೀರ್ಷಿಕೆಗಳು ಸಿಗಲಿಲ್ಲ';
+  }
+
+  @override
+  String get profileName => 'ಪ್ರೊಫೈಲ್ ಹೆಸರು';
+
+  @override
+  String get profileNameExample => 'ಉದಾ: ಸಾರಾ, ಮ್ಯಾಥ್ಯೂ, ವಾಲ್ಟರ್, ಅಲೆಕ್ಸ್';
+
+  @override
+  String get searchAvatarsHint => '100+ ಪಾತ್ರ ಅವತಾರಗಳನ್ನು ಹುಡುಕಿ…';
+
+  @override
+  String get initialFeedExperience => 'ಆರಂಭಿಕ ಫೀಡ್ ಅನುಭವ';
+
+  @override
+  String get universalFeedAllContent => 'ಸಾರ್ವತ್ರಿಕ ಫೀಡ್ (ಎಲ್ಲಾ ವಿಷಯ)';
+
+  @override
+  String get cinemaOnlyFeatureFilms => 'ಚಲನಚಿತ್ರ ಮಾತ್ರ (ಫೀಚರ್ ಚಿತ್ರಗಳು)';
+
+  @override
+  String get seriesOnlyTelevisionFocus => 'ಸರಣಿ ಮಾತ್ರ (ದೂರದರ್ಶನ ಕೇಂದ್ರಿತ)';
+
+  @override
+  String get animePriority => 'ಅನಿಮೆ ಆದ್ಯತೆ';
+
+  @override
+  String get maturityRatingMax => 'ಪ್ರೌಢತೆ ರೇಟಿಂಗ್ (ಗರಿಷ್ಠ)';
+
+  @override
+  String get allAges => 'ಎಲ್ಲಾ ವಯಸ್ಸಿನವರು';
+
+  @override
+  String get olderKidsRating => '7+ (ದೊಡ್ಡ ಮಕ್ಕಳು)';
+
+  @override
+  String get teenRating => '13+ (ಹರೆಯದವರು)';
+
+  @override
+  String get matureRating => '16+ (ಪ್ರೌಢ)';
+
+  @override
+  String get adultsOnlyRating => '18+ (ವಯಸ್ಕರಿಗೆ ಮಾತ್ರ)';
+
+  @override
+  String get kidsSafeShield => 'ಮಕ್ಕಳ ಸುರಕ್ಷಿತ ಕವಚ';
+
+  @override
+  String get filtersOutAdultMatureContent =>
+      'ವಯಸ್ಕ ಮತ್ತು ಪ್ರೌಢ ವಿಷಯವನ್ನು ಫಿಲ್ಟರ್ ಮಾಡುತ್ತದೆ';
+
+  @override
+  String get yourProfileName => 'ನಿಮ್ಮ ಪ್ರೊಫೈಲ್ ಹೆಸರು';
+
+  @override
+  String get enterNameHint => 'ಹೆಸರು ನಮೂದಿಸಿ…';
+
+  @override
+  String get backToPresets => 'ಪ್ರೀಸೆಟ್‌ಗಳಿಗೆ ಹಿಂತಿರುಗಿ';
 }

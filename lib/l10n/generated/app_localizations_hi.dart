@@ -1928,4 +1928,74 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get aiNeuralEngine => 'एआई न्यूरल इंजन';
+
+  @override
+  String get enterProfilePinToUnlock =>
+      'अनलॉक करने के लिए प्रोफ़ाइल पिन दर्ज करें';
+
+  @override
+  String get incorrectPinTryAgain => 'गलत पिन। पुनः प्रयास करें।';
+
+  @override
+  String noOtherTitlesFound(String name) {
+    return '$name के लिए अन्य कोई शीर्षक नहीं मिला';
+  }
+
+  @override
+  String get profileName => 'प्रोफ़ाइल नाम';
+
+  @override
+  String get profileNameExample => 'जैसे: सारा, मैथ्यू, वाल्टर, एलेक्स';
+
+  @override
+  String get searchAvatarsHint => '100+ किरदार अवतार खोजें…';
+
+  @override
+  String get initialFeedExperience => 'प्रारंभिक फ़ीड अनुभव';
+
+  @override
+  String get universalFeedAllContent => 'सार्वभौमिक फ़ीड (सभी सामग्री)';
+
+  @override
+  String get cinemaOnlyFeatureFilms => 'केवल सिनेमा (फ़ीचर फ़िल्में)';
+
+  @override
+  String get seriesOnlyTelevisionFocus => 'केवल सीरीज़ (टेलीविज़न केंद्रित)';
+
+  @override
+  String get animePriority => 'एनीमे प्राथमिकता';
+
+  @override
+  String get maturityRatingMax => 'परिपक्वता रेटिंग (अधिकतम)';
+
+  @override
+  String get allAges => 'सभी आयु वर्ग';
+
+  @override
+  String get olderKidsRating => '7+ (बड़े बच्चे)';
+
+  @override
+  String get teenRating => '13+ (किशोर)';
+
+  @override
+  String get matureRating => '16+ (प्रौढ़)';
+
+  @override
+  String get adultsOnlyRating => '18+ (केवल वयस्क)';
+
+  @override
+  String get kidsSafeShield => 'किड्स सेफ शील्ड';
+
+  @override
+  String get filtersOutAdultMatureContent =>
+      'वयस्क और प्रौढ़ सामग्री फ़िल्टर करता है';
+
+  @override
+  String get yourProfileName => 'आपका प्रोफ़ाइल नाम';
+
+  @override
+  String get enterNameHint => 'नाम दर्ज करें…';
+
+  @override
+  String get backToPresets => 'प्रीसेट पर वापस जाएँ';
 }
