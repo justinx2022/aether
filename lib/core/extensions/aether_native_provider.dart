@@ -155,25 +155,11 @@ class AetherNativeProvider implements AetherProvider {
       tmdbId: tmdbId,
     );
 
-    if (nativeStreams.isNotEmpty) {
-      return nativeStreams;
-    }
-
-    // High quality fallback streams if FFI is in pure-dart mode or mock
-    final safeTitle = title.replaceAll(' ', '+');
-    return [
-      StreamResult(
-        url: 'https://aether.stream/v1/$safeTitle/master.m3u8',
-        source: '1080p',
-        providerName: name,
-      ),
-      if (mediaType == 'movie')
-        StreamResult(
-          url: 'https://aether.stream/v1/$safeTitle/4k.m3u8',
-          source: '4K',
-          providerName: '$name Ultra',
-        ),
-    ];
+    // Native Rust extraction now supplies real HLS links (VidZee, VidRock,
+    // VidSpark, VixSrc, VidApi). No mock fallback: returning fake URLs made
+    // playback unreliable, so an empty result lets the resolver fall through
+    // to other providers instead.
+    return nativeStreams;
   }
 
   String _extractTitle(String url) {

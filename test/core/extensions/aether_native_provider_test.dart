@@ -25,15 +25,15 @@ void main() {
       expect(series.contentType, MultimediaContentType.series);
     });
 
-    test('loadStreams resolves high-speed streams from title or token', () async {
+    test('loadStreams never returns fake placeholder URLs', () async {
       final provider = AetherNativeProvider();
 
-      // Test with plain URL
+      // Without tmdb/imdb ids there is nothing to extract: the provider must
+      // return an empty list rather than dead aether.stream mock URLs.
       final streams = await provider.loadStreams('https://aether.stream/watch/inception-2010');
-      expect(streams, isNotEmpty);
-      expect(streams.any((s) => s.source == '1080p' || s.source == 'Auto'), isTrue);
+      expect(streams.where((s) => s.url.contains('aether.stream')), isEmpty);
 
-      // Test with structured JSON token
+      // Structured JSON token shape is accepted and parsed.
       final token = jsonEncode({
         'title': 'Dune Part Two',
         'type': 'movie',
@@ -41,9 +41,10 @@ void main() {
         'imdbId': 'tt15239678',
         'tmdbId': 693134,
       });
+      // Real extraction is network-bound; just assert it completes without
+      // throwing and never yields a placeholder URL.
       final jsonStreams = await provider.loadStreams(token);
-      expect(jsonStreams, isNotEmpty);
-      expect(jsonStreams.any((s) => s.url.contains('Dune+Part+Two') || s.url.contains('Dune')), isTrue);
+      expect(jsonStreams.where((s) => s.url.contains('aether.stream')), isEmpty);
     });
   });
 }

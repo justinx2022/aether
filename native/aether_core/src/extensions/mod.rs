@@ -1,3 +1,4 @@
+pub mod extractors;
 pub mod host_api;
 pub mod models;
 pub mod registry;
