@@ -1,0 +1,141 @@
+name: macOS Release DMG & Zip
+
+on:
+  push:
+    branches: [master, main]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: macos-build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: 3.47.5
+
+jobs:
+  macos:
+    name: Build macOS Release (${{ matrix.arch }})
+    runs-on: macos-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [arm64, x64]
+        include:
+          - arch: arm64
+            torrserver_binary: TorrServer-darwin-arm64
+            xcode_arch: arm64
+          - arch: x64
+            torrserver_binary: TorrServer-darwin-amd64
+            xcode_arch: x86_64
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Select Latest Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+
+      - name: Install Dependencies
+        run: |
+          flutter config --enable-macos-desktop
+          flutter pub get
+          flutter gen-l10n
+          dart run build_runner build --delete-conflicting-outputs
+
+      # Strip unused TorrServer binaries to reduce app size
+      - name: Strip Unused Binaries
+        run: |
+          cd packages/flutter_torrent_server/assets/torrserver
+          find . -type f ! -name "${{ matrix.torrserver_binary }}" -delete
+
+      - name: Generate dart-defines file
+        shell: bash
+        run: |
+          cat > dart-defines.json << 'JSON_EOF'
+          {
+            "TMDB_API_KEY": "${{ secrets.TMDB_API_KEY }}",
+            "SIMKL_CLIENT_ID": "${{ secrets.SIMKL_CLIENT_ID }}",
+            "SIMKL_CLIENT_SECRET": "${{ secrets.SIMKL_CLIENT_SECRET }}",
+            "TRAKT_CLIENT_ID": "${{ secrets.TRAKT_CLIENT_ID }}",
+            "TRAKT_CLIENT_SECRET": "${{ secrets.TRAKT_CLIENT_SECRET }}",
+            "MAL_CLIENT_ID": "${{ secrets.MAL_CLIENT_ID }}",
+            "MAL_CLIENT_SECRET": "${{ secrets.MAL_CLIENT_SECRET }}",
+            "ANILIST_CLIENT_ID": "${{ secrets.ANILIST_CLIENT_ID }}",
+            "ANIMESKIP_CLIENT_ID": "${{ secrets.ANIMESKIP_CLIENT_ID }}",
+            "OPENSUBTITLES_API_KEY": "${{ secrets.OPENSUBTITLES_API_KEY }}"
+          }
+          JSON_EOF
+
+      - name: Build macOS (${{ matrix.arch }})
+        run: |
+          flutter build macos --release --config-only --dart-define-from-file=dart-defines.json
+          cd macos
+          xcodebuild -workspace Runner.xcworkspace \
+            -configuration Release \
+            -scheme Runner \
+            -derivedDataPath ../build/macos \
+            ARCHS="${{ matrix.xcode_arch }}" \
+            ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Re-sign Frameworks
+        run: |
+          APP_PATH="build/macos/Build/Products/Release/aether.app"
+          FRAMEWORKS_PATH="$APP_PATH/Contents/Frameworks"
+          echo "Re-signing frameworks..."
+          find "$FRAMEWORKS_PATH" -name "*.framework" -type d | while read framework; do
+            echo "Signing: $framework"
+            codesign --force --deep --sign - "$framework"
+          done
+          find "$FRAMEWORKS_PATH" -name "*.dylib" -type f | while read dylib; do
+            echo "Signing: $dylib"
+            codesign --force --sign - "$dylib"
+          done
+          echo "Signing app..."
+          codesign --force --deep --sign - "$APP_PATH"
+
+      - name: Generate DMG and Zip
+        run: |
+          cd build/macos/Build/Products/Release
+          mkdir -p dmg_temp
+          cp -R aether.app dmg_temp/
+          ln -s /Applications dmg_temp/Applications
+          hdiutil create -volname "Aether" -srcfolder dmg_temp -ov -format UDZO "../../../../../aether-macos-${{ matrix.arch }}.dmg"
+          zip -ry "../../../../../aether-macos-${{ matrix.arch }}.zip" aether.app
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: aether-macos-${{ matrix.arch }}
+          path: |
+            aether-macos-${{ matrix.arch }}.dmg
+            aether-macos-${{ matrix.arch }}.zip
+
+      - name: Publish to GitHub Releases
+        uses: ncipollo/release-action@v1
+        with:
+          tag: "macos-latest"
+          name: "Aether macOS Latest Release"
+          body: |
+            ### Aether macOS Release
+            - **`aether-macos-arm64.dmg`**: For Apple Silicon Macs (M1, M2, M3, M4).
+            - **`aether-macos-x64.dmg`**: For Intel-based Macs.
+            - **Portable `.zip`** versions also included.
+          allowUpdates: true
+          replacesArtifacts: true
+          artifacts: |
+            aether-macos-${{ matrix.arch }}.dmg
+            aether-macos-${{ matrix.arch }}.zip
+          token: ${{ secrets.GITHUB_TOKEN }}

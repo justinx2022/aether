@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
 
+import '../../../core/network/dio_client_provider.dart';
 import '../../../core/domain/entity/multimedia_item.dart';
 import '../../../core/extensions/extension_manager.dart';
 import '../../../core/config/tmdb_config.dart';
@@ -215,7 +217,41 @@ class ExploreDiscoveryNotifier extends Notifier<ExploreDiscoveryState> {
       }
     }
 
-    // 2. Fetch Native Provider content on page 1 for independence & offline resilience
+    // 2. Open Cinemeta Infinite Catalog fallback (ensures thousands of titles even without TMDB key)
+    final cinemetaItems = <MultimediaItem>[];
+    if (tmdbItems.isEmpty) {
+      try {
+        final cineFutures = <Future<List<MultimediaItem>>>[];
+        final genreName = filters.selectedGenre?.name;
+        final shouldFetchMovies =
+            filters.mediaType == 'all' || filters.mediaType == 'movie';
+        final shouldFetchTV =
+            filters.mediaType == 'all' || filters.mediaType == 'series';
+
+        if (shouldFetchMovies) {
+          cineFutures.add(_fetchCinemetaCatalog(
+            type: 'movie',
+            genre: genreName,
+            page: page,
+          ));
+        }
+        if (shouldFetchTV) {
+          cineFutures.add(_fetchCinemetaCatalog(
+            type: 'series',
+            genre: genreName,
+            page: page,
+          ));
+        }
+        final cineResults = await Future.wait(cineFutures);
+        for (final list in cineResults) {
+          cinemetaItems.addAll(list);
+        }
+      } catch (e) {
+        if (kDebugMode) debugPrint('Cinemeta catalog fetch error: $e');
+      }
+    }
+
+    // 3. Fetch Native Provider content on page 1 for independence & offline resilience
     final providerItems = <MultimediaItem>[];
     if (page == 1 && activeProvider != null) {
       try {
@@ -262,8 +298,8 @@ class ExploreDiscoveryNotifier extends Notifier<ExploreDiscoveryState> {
       } catch (_) {}
     }
 
-    // 3. Blend & Deduplicate via ADI Exposure Store
-    final combined = <MultimediaItem>[...tmdbItems, ...providerItems];
+    // 4. Blend & Deduplicate via ADI Exposure Store
+    final combined = <MultimediaItem>[...tmdbItems, ...cinemetaItems, ...providerItems];
     final unique = AdiExposureStore.instance.deduplicate(combined);
 
     // 4. Sort results
@@ -278,6 +314,63 @@ class ExploreDiscoveryNotifier extends Notifier<ExploreDiscoveryState> {
     }
 
     return unique;
+  }
+
+  Future<List<MultimediaItem>> _fetchCinemetaCatalog({
+    required String type,
+    String? genre,
+    required int page,
+  }) async {
+    try {
+      final dio = ref.read(dioClientProvider);
+      final skip = (page - 1) * 50;
+      final genreSegment = (genre != null && genre.isNotEmpty && genre != 'All Genres')
+          ? '/genre=${Uri.encodeComponent(genre)}'
+          : '';
+      final skipSegment = skip > 0 ? '/skip=$skip' : '';
+      final url = 'https://cinemeta-catalogs.strem.io/top/catalog/$type/top$genreSegment$skipSegment.json';
+      final response = await dio.get<Map<String, dynamic>>(
+        url,
+        options: Options(receiveTimeout: const Duration(seconds: 8)),
+      );
+      if (response.statusCode == 200 && response.data != null && response.data!['metas'] is List) {
+        final metas = response.data!['metas'] as List;
+        return metas.map((m) {
+          final map = m as Map<String, dynamic>;
+          final id = map['id']?.toString() ?? '';
+          final title = map['name']?.toString() ?? '';
+          final year = map['year']?.toString();
+          final poster = map['poster']?.toString() ?? '';
+          final banner = map['background']?.toString();
+          final desc = map['description']?.toString() ?? '';
+          final genres = (map['genres'] as List?)?.map((g) => g.toString()).toList() ?? [];
+
+          return _prepareResolvableItem(
+            MultimediaItem(
+              title: title,
+              url: RecommendationsService.catalogueToken(
+                imdbId: id.startsWith('tt') ? id : '',
+                type: type == 'series' ? 'series' : 'movie',
+                title: title,
+                year: year,
+              ),
+              posterUrl: poster,
+              bannerUrl: banner,
+              description: desc,
+              contentType: type == 'series' ? MultimediaContentType.series : MultimediaContentType.movie,
+              provider: RecommendationsService.catalogueProvider,
+              imdbId: id.startsWith('tt') ? id : null,
+              year: int.tryParse(year?.split(RegExp(r'[\D]')).first ?? ''),
+              releaseDateIso: year,
+              tags: genres,
+            ),
+          );
+        }).toList();
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('[ExploreDiscovery] Cinemeta fetch error: $e');
+    }
+    return [];
   }
 
   /// Ensures every card in Explore is 100% clickable and resolves into stream playback
