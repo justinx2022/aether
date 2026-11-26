@@ -152,7 +152,6 @@ class PlayerSettingsScreen extends ConsumerWidget {
                               ? 'Zero-copy Direct3D 11 hardware rendering (media_kit)'
                               : 'Hardware accelerated MediaCodec engine with high-speed caching')
                           : 'Standard libVLC engine',
-                      isLast: true,
                       trailing: Switch(
                         value: playerSettings.useMediaKitOnWindows,
                         onChanged: (val) => ref
@@ -163,6 +162,26 @@ class PlayerSettingsScreen extends ConsumerWidget {
                           .read(playerSettingsProvider.notifier)
                           .setUseMediaKitOnWindows(
                             !playerSettings.useMediaKitOnWindows,
+                          ),
+                    ),
+                  if (Platform.isWindows || Platform.isAndroid)
+                    SettingsTile(
+                      icon: Icons.swap_horiz_rounded,
+                      title: 'Cross-Engine Failover',
+                      subtitle: playerSettings.autoEngineFailover
+                          ? 'A stream one engine cannot play is retried on the other automatically, from where you left off'
+                          : 'Disabled - playback stops when every source fails',
+                      isLast: true,
+                      trailing: Switch(
+                        value: playerSettings.autoEngineFailover,
+                        onChanged: (val) => ref
+                            .read(playerSettingsProvider.notifier)
+                            .setAutoEngineFailover(val),
+                      ),
+                      onTap: () => ref
+                          .read(playerSettingsProvider.notifier)
+                          .setAutoEngineFailover(
+                            !playerSettings.autoEngineFailover,
                           ),
                     ),
                 ],

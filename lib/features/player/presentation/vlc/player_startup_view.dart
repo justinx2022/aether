@@ -65,6 +65,8 @@ class PlayerStartupView extends StatefulWidget {
     this.currentIndex,
     this.failed = false,
     this.onRetry,
+    this.onSwitchEngine,
+    this.switchEngineLabel,
     this.onDiveIn,
     this.onDoubleClick,
     this.isTv = false,
@@ -110,6 +112,14 @@ class PlayerStartupView extends StatefulWidget {
   final ValueChanged<int> onPick;
   final VoidCallback onBack;
   final VoidCallback? onRetry;
+
+  /// Moves the playback to the other engine from the failed frame. Null when
+  /// there is no other engine to offer.
+  final VoidCallback? onSwitchEngine;
+
+  /// What the engine-switch button says, e.g. "Try the VLC engine".
+  final String? switchEngineLabel;
+
   final VoidCallback? onDiveIn;
 
   /// Toggles full screen. Null where there is no window to full-screen.
@@ -463,6 +473,24 @@ class _PlayerStartupViewState extends State<PlayerStartupView>
                   const Icon(Icons.refresh_rounded, size: 18),
                   const SizedBox(width: 8),
                   Text(l10n.retry),
+                ],
+              ),
+            ),
+          ),
+        ],
+        if (widget.failed && widget.onSwitchEngine != null) ...[
+          const SizedBox(height: 12),
+          CustomButton(
+            isPrimary: false,
+            onPressed: widget.onSwitchEngine,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.swap_horiz_rounded, size: 18),
+                  const SizedBox(width: 8),
+                  Text(widget.switchEngineLabel ?? ''),
                 ],
               ),
             ),

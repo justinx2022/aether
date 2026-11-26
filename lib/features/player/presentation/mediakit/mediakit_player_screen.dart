@@ -34,6 +34,7 @@ import '../../../../core/storage/history_repository.dart';
 import '../../../details/presentation/details_controller.dart';
 import '../../../settings/presentation/player_settings_provider.dart';
 import '../../domain/episode_navigator.dart';
+import '../../domain/engine_failover.dart';
 import '../../domain/hls_video_length.dart';
 import '../../domain/network_buffer.dart';
 import '../../domain/playback_progress.dart';
@@ -73,12 +74,23 @@ class MediaKitPlayerScreen extends ConsumerStatefulWidget {
   final Episode? episode;
   final List<StreamResult>? preloadedStreams;
 
+  /// Where a cross-engine hand-off should pick up, in place of the stored
+  /// resume point. Null on a normal open.
+  final Duration? resumeAt;
+
+  /// Whether this screen was opened by the other engine's failover. A
+  /// hand-off engine never hands back automatically, so one dead stream
+  /// cannot bounce the viewer between two engines that both cannot play it.
+  final bool isEngineHandoff;
+
   const MediaKitPlayerScreen({
     super.key,
     required this.item,
     required this.videoUrl,
     this.episode,
     this.preloadedStreams,
+    this.resumeAt,
+    this.isEngineHandoff = false,
   });
 
   @override
@@ -1523,7 +1535,8 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
         token: _token,
       );
 
-      final startPosition = resumePoint?.position ?? Duration.zero;
+      final startPosition =
+          widget.resumeAt ?? resumePoint?.position ?? Duration.zero;
       // mpv reads its hwdec, cache and demuxer limits when the media opens.
       // These used to be applied without waiting, so the first open raced them
       // and could start with defaults. Resolution has been running meanwhile,
@@ -1612,6 +1625,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     final streams = _resolved?.streams ?? _candidates;
     if (streams.isEmpty) return;
     if (index < 0 || index >= streams.length) {
+      if (_maybeHandOffToOtherEngine()) return;
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -1854,6 +1868,41 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     }
   }
 
+  /// Whether this engine should give up and hand the stream to the other one.
+  ///
+  /// Called only when this engine has nothing left: every source failed, or
+  /// the list ran out. One automatic hop per playback - a hand-off screen
+  /// never hands back - keeps two engines that both cannot play a stream from
+  /// bouncing the viewer forever.
+  bool _maybeHandOffToOtherEngine() {
+    if (_disposed) return false;
+    final settings =
+        _read(playerSettingsProvider).asData?.value ?? const PlayerSettings();
+    if (!shouldHandOffToOtherEngine(
+      settingEnabled: settings.autoEngineFailover,
+      alreadyHandedOff: widget.isEngineHandoff,
+      platformSupported: engineFailoverPlatformSupported(defaultTargetPlatform),
+    )) {
+      return false;
+    }
+    _trace?.warn('engine-handoff', 'to ${PlaybackEngine.vlc.label}');
+    requestEngineSwitch(
+      PlaybackEngine.vlc,
+      resumeAt: _position,
+      fromFailover: true,
+    );
+    return true;
+  }
+
+  /// The failed frame's "try the other engine" button. User-driven, so it
+  /// overrides the one-hop rule - but the target still opens as a hand-off,
+  /// so it cannot bounce straight back here on its own.
+  void _switchEngineManually() {
+    if (_disposed) return;
+    _trace?.warn('engine-handoff', 'manual to ${PlaybackEngine.vlc.label}');
+    requestEngineSwitch(PlaybackEngine.vlc, resumeAt: _position);
+  }
+
   void _failoverNext() {
     final streams = _resolved?.streams ?? _candidates;
     if (_attemptIndex + 1 < streams.length) {
@@ -1864,6 +1913,10 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
       _openCandidate(_attemptIndex + 1, startAt: _position);
     } else {
       _trace?.warn('gave-up', 'no source left');
+      // This engine is out of road. Before raising the failed frame, offer
+      // the stream to the other engine once - it may simply play what this
+      // one could not.
+      if (_maybeHandOffToOtherEngine()) return;
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -3229,6 +3282,12 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                           : null,
                       onBack: _exitPlayer,
                       onRetry: _startPlayback,
+                      onSwitchEngine:
+                          (_error.isNotEmpty && !_isLoading)
+                          ? _switchEngineManually
+                          : null,
+                      switchEngineLabel:
+                          'Try the ${PlaybackEngine.vlc.label} engine',
                       stremioTheme: stremioTheme,
                       seamlessMode: seamlessMode,
                     ),

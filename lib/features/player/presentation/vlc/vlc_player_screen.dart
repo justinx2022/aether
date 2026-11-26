@@ -30,6 +30,7 @@ import '../../../../core/utils/app_utils.dart';
 import '../../../../core/utils/stream_quality_sorter.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../domain/episode_navigator.dart';
+import '../../domain/engine_failover.dart';
 import '../../../skip/data/skip_service.dart';
 import '../../domain/clear_key.dart';
 import '../../domain/hls_video_length.dart';
@@ -78,6 +79,8 @@ class VlcPlayerScreen extends ConsumerStatefulWidget {
     required this.videoUrl,
     this.episode,
     this.preloadedStreams,
+    this.resumeAt,
+    this.isEngineHandoff = false,
     super.key,
   });
 
@@ -91,6 +94,15 @@ class VlcPlayerScreen extends ConsumerStatefulWidget {
   /// Sources already aggregated by a source sheet. When present, no plugin
   /// call is made.
   final List<StreamResult>? preloadedStreams;
+
+  /// Where a cross-engine hand-off should pick up, in place of the stored
+  /// resume point. Null on a normal open.
+  final Duration? resumeAt;
+
+  /// Whether this screen was opened by the other engine's failover. A
+  /// hand-off engine never hands back automatically, so one dead stream
+  /// cannot bounce the viewer between two engines that both cannot play it.
+  final bool isEngineHandoff;
 
   @override
   ConsumerState<VlcPlayerScreen> createState() => _VlcPlayerScreenState();
@@ -1019,21 +1031,29 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
         episode: currentEpisode,
         videoUrl: _videoUrl,
       );
-      ResumePoint? resumePoint = localResume;
-      try {
-        resumePoint = await resumeLookup.timeout(
-          const Duration(milliseconds: 300),
-          onTimeout: () => localResume,
-        );
-      } catch (_) {
-        resumePoint = localResume;
+      if (widget.resumeAt != null) {
+        // A cross-engine hand-off carries its own position: the other engine
+        // got as far as [widget.resumeAt] before giving up. The stored resume
+        // point is skipped - it is older than where playback actually was -
+        // and the resume hint stays down, because there is nothing to offer.
+        _initialResume = null;
+        _resumePosition = widget.resumeAt!;
+      } else {
+        ResumePoint? resumePoint = localResume;
+        try {
+          resumePoint = await resumeLookup.timeout(
+            const Duration(milliseconds: 300),
+            onTimeout: () => localResume,
+          );
+        } catch (_) {
+          resumePoint = localResume;
+        }
+        _initialResume = resumePoint;
+        // From here the resume point belongs to the session rather than to the
+        // stored history entry: every later attempt, failover or hand-picked,
+        // starts from wherever playback actually got to.
+        _resumePosition = _initialResume?.position ?? Duration.zero;
       }
-      _initialResume = resumePoint;
-      if (_disposed) return;
-      // From here the resume point belongs to the session rather than to the
-      // stored history entry: every later attempt, failover or hand-picked,
-      // starts from wherever playback actually got to.
-      _resumePosition = _initialResume?.position ?? Duration.zero;
       // Per session. The hint belongs to the resume point resolved just above
       // and the reconnect budget to the media about to be opened; carrying
       // either forward offers a stale position or refuses to reconnect a feed
@@ -3690,8 +3710,47 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
     return true;
   }
 
+  /// Whether this engine should give up and hand the stream to the other one.
+  ///
+  /// Called only from [_fail], so only when this engine has nothing left:
+  /// every source failed, or the media itself would not open. One automatic
+  /// hop per playback - a hand-off screen never hands back - keeps two engines
+  /// that both cannot play a stream from bouncing the viewer forever.
+  bool _maybeHandOffToOtherEngine() {
+    if (_disposed) return false;
+    final settings =
+        _read(playerSettingsProvider).asData?.value ?? const PlayerSettings();
+    if (!shouldHandOffToOtherEngine(
+      settingEnabled: settings.autoEngineFailover,
+      alreadyHandedOff: widget.isEngineHandoff,
+      platformSupported: engineFailoverPlatformSupported(defaultTargetPlatform),
+    )) {
+      return false;
+    }
+    _trace?.warn('engine-handoff', 'to ${PlaybackEngine.mediaKit.label}');
+    requestEngineSwitch(
+      PlaybackEngine.mediaKit,
+      resumeAt: _resumePosition,
+      fromFailover: true,
+    );
+    return true;
+  }
+
+  /// The failed frame's "try the other engine" button. User-driven, so it
+  /// overrides the one-hop rule - but the target still opens as a hand-off,
+  /// so it cannot bounce straight back here on its own.
+  void _switchEngineManually() {
+    if (_disposed) return;
+    _trace?.warn('engine-handoff', 'manual to ${PlaybackEngine.mediaKit.label}');
+    requestEngineSwitch(PlaybackEngine.mediaKit, resumeAt: _resumePosition);
+  }
+
   void _fail(String message) {
     if (_disposed) return;
+    // This engine is out of road. Before raising the failed frame, offer the
+    // stream to the other engine once - it may simply play what this one
+    // could not.
+    if (_maybeHandOffToOtherEngine()) return;
     // Nothing is opening any more, so nothing has a first frame to be late for.
     _firstFrameDeadline?.cancel();
     // Same rule as [_showEnded] and [_setSawFrames]: the failed frame unmounts
@@ -4348,6 +4407,8 @@ class _VlcPlayerScreenState extends ConsumerState<VlcPlayerScreen>
       onDiveIn: !failed && sources.isNotEmpty ? _diveInNow : null,
       onBack: _handleBack,
       onRetry: _retry,
+      onSwitchEngine: failed ? _switchEngineManually : null,
+      switchEngineLabel: 'Try the ${PlaybackEngine.mediaKit.label} engine',
       // Desktop only, like the gesture over the video it mirrors: a phone or
       // a television has no window to full-screen.
       onDoubleClick: _fullscreenAvailable ? _toggleFullscreen : null,

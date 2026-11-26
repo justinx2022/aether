@@ -188,6 +188,10 @@ class PlayerSettings {
   /// Whether to use high-performance media_kit (libmpv) on Windows.
   final bool useMediaKitOnWindows;
 
+  /// Whether an engine that exhausts every source hands the playback to the
+  /// other engine automatically, resuming where the failing one had reached.
+  final bool autoEngineFailover;
+
   /// Player theme accent color (default Neon Violet 0xFFA855F7).
   final int playerThemeColor;
 
@@ -245,6 +249,7 @@ class PlayerSettings {
     this.seamlessPlayback = true,
     this.lanSync = true,
     this.useMediaKitOnWindows = true,
+    this.autoEngineFailover = true,
     this.playerThemeColor = 0xFFA855F7,
     this.showCenterControls = true,
     this.showPlayerStatsOverlay = false,
@@ -293,6 +298,7 @@ class PlayerSettings {
     bool? seamlessPlayback,
     bool? lanSync,
     bool? useMediaKitOnWindows,
+    bool? autoEngineFailover,
     int? playerThemeColor,
     bool? showCenterControls,
     bool? showPlayerStatsOverlay,
@@ -347,6 +353,7 @@ class PlayerSettings {
       seamlessPlayback: seamlessPlayback ?? this.seamlessPlayback,
       lanSync: lanSync ?? this.lanSync,
       useMediaKitOnWindows: useMediaKitOnWindows ?? this.useMediaKitOnWindows,
+      autoEngineFailover: autoEngineFailover ?? this.autoEngineFailover,
       playerThemeColor: playerThemeColor ?? this.playerThemeColor,
       showCenterControls: showCenterControls ?? this.showCenterControls,
       showPlayerStatsOverlay:
@@ -570,6 +577,12 @@ class PlayerSettingsNotifier extends _$PlayerSettingsNotifier {
           defaultValue: true,
         ) ??
         true;
+    final engineFailover =
+        storage.getPlayerSetting<bool>(
+          'player_auto_engine_failover',
+          defaultValue: true,
+        ) ??
+        true;
     final themeColor =
         storage.getPlayerSetting<int>(
           'player_theme_color',
@@ -639,6 +652,7 @@ class PlayerSettingsNotifier extends _$PlayerSettingsNotifier {
       seamlessPlayback: seamless,
       lanSync: lan,
       useMediaKitOnWindows: mediaKitWin,
+      autoEngineFailover: engineFailover,
       playerThemeColor: themeColor,
       showCenterControls: centerControls,
       showPlayerStatsOverlay: statsBadge,
@@ -1020,6 +1034,11 @@ class PlayerSettingsNotifier extends _$PlayerSettingsNotifier {
   Future<void> setUseMediaKitOnWindows(bool enabled) async {
     await _repository.setPlayerSetting('player_use_mediakit_windows', enabled);
     _update((PlayerSettings c) => c.copyWith(useMediaKitOnWindows: enabled));
+  }
+
+  Future<void> setAutoEngineFailover(bool enabled) async {
+    await _repository.setPlayerSetting('player_auto_engine_failover', enabled);
+    _update((PlayerSettings c) => c.copyWith(autoEngineFailover: enabled));
   }
 
   Future<void> setPlayerThemeColor(int color) async {
