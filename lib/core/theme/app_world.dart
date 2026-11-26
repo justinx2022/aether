@@ -71,45 +71,10 @@ class AppWorldColors {
 
   bool get isDark => brightness == Brightness.dark;
 
-  /// The fill behind a glass panel: ultra-transparent Apple-grade glassmorphism,
-  /// letting the page's gradient and backdrop show through cleanly with depth.
-  Color get glassFill => elevated.withValues(alpha: isDark ? 0.45 : 0.55);
-
-  /// The luminous edge that gives glass its characteristic shimmer.
-  /// Brighter on the top edge for a lit-from-above physical glass effect.
-  Color get glassEdge => (isDark ? Colors.white : Colors.black).withValues(
-    alpha: isDark ? 0.18 : 0.12,
-  );
-
-  /// A secondary, softer edge for layered translucent elements.
-  Color get glassEdgeSoft => (isDark ? Colors.white : Colors.black).withValues(
-    alpha: isDark ? 0.08 : 0.05,
-  );
-
-  /// Inner highlight for depth - simulates light catching the top rim.
-  LinearGradient get glassHighlight => LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [
-      (isDark ? Colors.white : Colors.black).withValues(alpha: 0.10),
-      (isDark ? Colors.white : Colors.black).withValues(alpha: 0.0),
-    ],
-    stops: const [0.0, 0.45],
-  );
-
-  /// A subtle luminous ambient glow behind elevated glass panels.
-  List<BoxShadow> get glassGlow => [
-    BoxShadow(
-      color: (isDark ? accent : background).withValues(alpha: 0.15),
-      blurRadius: 24,
-      spreadRadius: -8,
-    ),
-    BoxShadow(
-      color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.04),
-      blurRadius: 40,
-      spreadRadius: -12,
-    ),
-  ];
+  /// The hairline that separates chrome from the page: one pixel of the
+  /// divider colour, the way Apple draws a bar's bottom edge. Depth comes
+  /// from solid fills, hairlines and shadows - never from a blur.
+  Color get hairline => divider;
 
   /// A scrim for text laid over artwork. Opaque at the bottom so the last line
   /// of a title always sits on the page colour rather than on a poster.
@@ -156,28 +121,29 @@ class AppWorldColors {
   }
 }
 
-/// SKY at night: true obsidian OLED dark with subtle celestial cyan accent.
+/// SKY at night: Netflix black, Apple precision. True black canvas, neutral
+/// graphite surfaces, and the red a play button deserves.
 const AppWorldColors kSkyDark = AppWorldColors(
   background: Color(0xFF000000),
-  elevated: Color(0xFF0A0C14),
-  elevatedHigh: Color(0xFF141722),
-  accent: Color(0xFFA9C2E4),
-  onAccent: Color(0xFF000000),
-  textPrimary: Color(0xFFF4F6FA),
-  textSecondary: Color(0xFFAAB7C9),
-  divider: Color(0xFF18202F),
+  elevated: Color(0xFF141414),
+  elevatedHigh: Color(0xFF1F1F23),
+  accent: Color(0xFFE50914),
+  onAccent: Color(0xFFFFFFFF),
+  textPrimary: Color(0xFFF5F5F1),
+  textSecondary: Color(0xFFB3B3B3),
+  divider: Color(0xFF262626),
 );
 
-/// SKY in daylight: the same family, inverted for AA on paper.
+/// SKY in daylight: Apple paper with the red kept deep enough for AA.
 const AppWorldColors kSkyLight = AppWorldColors(
-  background: Color(0xFFF3F7FC),
+  background: Color(0xFFF4F6FA),
   elevated: Color(0xFFFFFFFF),
-  elevatedHigh: Color(0xFFE6EEF8),
-  accent: Color(0xFF3C6FA8),
+  elevatedHigh: Color(0xFFE8E8ED),
+  accent: Color(0xFFC11118),
   onAccent: Color(0xFFFFFFFF),
-  textPrimary: Color(0xFF0B1220),
-  textSecondary: Color(0xFF53657B),
-  divider: Color(0xFFD3DEEC),
+  textPrimary: Color(0xFF0B0B0F),
+  textSecondary: Color(0xFF565862),
+  divider: Color(0xFFD8D8DD),
 );
 
 /// GROUND at night: warm graphite, champagne accent.
@@ -254,74 +220,6 @@ class AppWorldTokens extends ThemeExtension<AppWorldTokens> {
     if (other is! AppWorldTokens) return this;
     return t < 0.5 ? this : other;
   }
-}
-
-/// Blur intensity tokens for consistent Apple-grade glass effects across the app.
-enum GlassBlurIntensity {
-  /// Subtle blur for cards and small surfaces - preserves detail.
-  subtle(8.0),
-
-  /// Medium blur for panels and sheets - creates clear depth.
-  medium(16.0),
-
-  /// Strong blur for overlays and modals - maximum depth separation.
-  strong(28.0),
-
-  /// Ultra blur for immersive surfaces like full-screen player backdrop.
-  ultra(40.0);
-
-  const GlassBlurIntensity(this.sigma);
-  final double sigma;
-
-  double scaled(double factor) => sigma * factor;
-}
-
-/// Tokens for glass panel styling.
-@immutable
-class GlassTokens {
-  const GlassTokens({
-    required this.blurIntensity,
-    required this.borderRadius,
-    required this.borderWidth,
-    required this.padding,
-  });
-
-  final GlassBlurIntensity blurIntensity;
-  final BorderRadius borderRadius;
-  final double borderWidth;
-  final EdgeInsets padding;
-
-  /// Standard glass panel tokens.
-  static const GlassTokens panel = GlassTokens(
-    blurIntensity: GlassBlurIntensity.medium,
-    borderRadius: BorderRadius.all(Radius.circular(16)),
-    borderWidth: 0.75,
-    padding: EdgeInsets.all(16),
-  );
-
-  /// Compact glass for chips, pills, and small elements.
-  static const GlassTokens compact = GlassTokens(
-    blurIntensity: GlassBlurIntensity.subtle,
-    borderRadius: BorderRadius.all(Radius.circular(999)),
-    borderWidth: 0.5,
-    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-  );
-
-  /// Large glass for sheets and modals.
-  static const GlassTokens sheet = GlassTokens(
-    blurIntensity: GlassBlurIntensity.strong,
-    borderRadius: BorderRadius.all(Radius.circular(24)),
-    borderWidth: 0.75,
-    padding: EdgeInsets.all(24),
-  );
-
-  /// Immersive glass for full-screen surfaces.
-  static const GlassTokens immersive = GlassTokens(
-    blurIntensity: GlassBlurIntensity.ultra,
-    borderRadius: BorderRadius.all(Radius.circular(0)),
-    borderWidth: 0.0,
-    padding: EdgeInsets.zero,
-  );
 }
 
 /// Animation tokens for ultra-smooth, spring-based motion.

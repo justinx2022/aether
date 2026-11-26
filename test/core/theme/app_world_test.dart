@@ -14,12 +14,14 @@ import 'package:aether/core/theme/theme_presets.dart';
 void main() {
   group('the tokens are the pack, verbatim', () {
     test('SKY at night', () {
+      // Netflix black: true-black canvas, #141414 elevated surfaces, the
+      // red mark as the only colour in the room.
       expect(kSkyDark.background, const Color(0xFF000000));
-      expect(kSkyDark.elevated, const Color(0xFF0A0C14));
-      expect(kSkyDark.accent, const Color(0xFFA9C2E4));
-      expect(kSkyDark.textPrimary, const Color(0xFFF4F6FA));
-      expect(kSkyDark.textSecondary, const Color(0xFFAAB7C9));
-      expect(kSkyDark.divider, const Color(0xFF18202F));
+      expect(kSkyDark.elevated, const Color(0xFF141414));
+      expect(kSkyDark.accent, const Color(0xFFE50914));
+      expect(kSkyDark.textPrimary, const Color(0xFFF5F5F1));
+      expect(kSkyDark.textSecondary, const Color(0xFFB3B3B3));
+      expect(kSkyDark.divider, const Color(0xFF262626));
     });
 
     test('GROUND at night', () {
@@ -132,9 +134,9 @@ void main() {
     test('tints the top of the page with the world accent', () {
       final top = kSkyDark.pageGradient.colors.first;
       expect(
-        top.b,
-        greaterThan(top.r),
-        reason: 'SKY has to stay blue at the top',
+        top.r,
+        greaterThan(top.b),
+        reason: 'SKY stays red at the top: the mark is the only colour',
       );
       final warm = kGroundDark.pageGradient.colors.first;
       expect(

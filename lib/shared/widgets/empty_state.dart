@@ -58,7 +58,7 @@ class EmptyState extends StatelessWidget {
               color: colors.accent.withValues(
                 alpha: colors.isDark ? 0.12 : 0.10,
               ),
-              border: Border.all(color: colors.glassEdge),
+              border: Border.all(color: colors.hairline),
             ),
             child: Icon(icon, size: 26, color: colors.accent),
           ),
@@ -108,7 +108,6 @@ class EmptyState extends StatelessWidget {
             : GlassSurface(
                 padding: const EdgeInsets.all(AppSpace.xxl),
                 borderRadius: AppRadius.sheet,
-                blurSigma: AppBlur.subtle,
                 child: content,
               ),
       ),

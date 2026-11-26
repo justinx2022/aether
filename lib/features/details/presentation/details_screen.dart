@@ -141,7 +141,6 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
             flexibleSpace: FlexibleSpaceBar(
               stretchModes: const [
                 StretchMode.zoomBackground,
-                StretchMode.blurBackground,
               ],
               background: Stack(
                 fit: StackFit.expand,

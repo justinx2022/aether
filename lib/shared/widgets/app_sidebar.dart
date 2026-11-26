@@ -123,11 +123,11 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
     });
   }
 
-  BoxDecoration _dockGlass(AppWorldColors world, BorderRadius radius) {
+  BoxDecoration _dockSurface(AppWorldColors world, BorderRadius radius) {
     return BoxDecoration(
-      color: world.glassFill,
+      color: world.elevated,
       borderRadius: radius,
-      border: Border.all(color: world.glassEdge),
+      border: Border.all(color: world.hairline),
     );
   }
 
@@ -163,10 +163,9 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
     // Top padding = 16.0, Item base size = 40.0, Gap = 16.0
     const unscaledCenters = [36.0, 92.0, 148.0, 204.0, 260.0];
 
-    // The dock is the app's most visible piece of glass: the world's tint, one
-    // lit edge, and a blur of whatever the branch is painting behind it. The
-    // radius and edge come from the shared tokens so it matches every other
-    // panel.
+    // The dock is the app's signature floating chrome: a solid elevated
+    // surface, one hairline edge, and a soft shadow. The radius and edge come
+    // from the shared tokens so it matches every other panel.
     final world = AppWorldTokens.colorsOf(context);
     final dockRadius = BorderRadius.circular(AppRadius.xl);
 
@@ -255,7 +254,7 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
                       child: ClipRRect(
                         borderRadius: dockRadius,
                         child: DecoratedBox(
-                          decoration: _dockGlass(world, dockRadius),
+                          decoration: _dockSurface(world, dockRadius),
                         ),
                       ),
                     ),

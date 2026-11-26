@@ -24,8 +24,9 @@ abstract final class AppSpace {
   static const double rail = 28;
 }
 
-/// Corner radii. Premium and soft: a 32 px radius reads as a panel, a 999 px
-/// radius reads as a toy, and this app wants the former.
+/// Corner radii. Netflix × Apple: content sits on confident rounded panels
+/// (a 32 px card, an 18 px tile), while every control is an Apple pill - a
+/// 999 px radius is the shape of a button, never of a panel.
 abstract final class AppRadius {
   static const double xs = 10;
   static const double sm = 14;
@@ -54,15 +55,6 @@ abstract final class AppMotion {
   /// than second-guessed.
   static bool reduced(BuildContext context) =>
       MediaQuery.maybeDisableAnimationsOf(context) ?? false;
-}
-
-/// Blur budgets. Glass is used on chrome, never on scrolling content - a
-/// backdrop blur is a saveLayer, and on a television that is the difference
-/// between 60 and 40 fps.
-abstract final class AppBlur {
-  static const double chrome = 18;
-  static const double sheet = 24;
-  static const double subtle = 10;
 }
 
 /// A small accent rule that sits above a section title. The pack's "restrained

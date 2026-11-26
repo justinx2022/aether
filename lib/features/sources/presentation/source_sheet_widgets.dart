@@ -218,9 +218,6 @@ class GlassSheetScaffold extends StatelessWidget {
   /// at 28.
   static const double radius = 28;
 
-  /// Blur behind the pane.
-  static const double blurSigma = 22;
-
   /// Height of one line of the header's title, measured off `titleMedium` at
   /// the weight below. The close button is centred against this rather than
   /// against the two-line block beside it - at the block's centre it floats

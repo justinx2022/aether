@@ -745,13 +745,20 @@ class _PatrickBatemanPainter extends CustomPainter {
 // ── 8 NATURAL & SCENIC LANDSCAPE VECTOR PAINTERS ──
 // ══════════════════════════════════════════════════════════════════════
 
+/// A soft radial glow with no [MaskFilter.blur]: the falloff is a gradient
+/// fill, which costs one draw and no filter pass.
+Paint _glowPaint(Color color, Offset center, double radius) => Paint()
+  ..shader = RadialGradient(
+    colors: [color, color.withValues(alpha: 0.0)],
+  ).createShader(Rect.fromCircle(center: center, radius: radius));
+
 /// 23. Aurora Borealis
 class _AuroraPainter extends CustomPainter {
   const _AuroraPainter();
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width, h = size.height;
-    final aurora1 = Paint()..color = const Color(0xFF10B981).withValues(alpha: 0.7)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
+    final aurora1 = Paint()..color = const Color(0xFF10B981).withValues(alpha: 0.55);
     final wave1 = Path()..moveTo(0, h * 0.45)..quadraticBezierTo(w * 0.35, h * 0.15, w * 0.65, h * 0.35)..quadraticBezierTo(w * 0.85, h * 0.50, w, h * 0.25)..lineTo(w, h * 0.60)..close();
     canvas.drawPath(wave1, aurora1);
     final mountains = Path()..moveTo(0, h)..lineTo(w * 0.25, h * 0.65)..lineTo(w * 0.50, h * 0.80)..lineTo(w * 0.75, h * 0.60)..lineTo(w, h * 0.85)..lineTo(w, h)..close();
@@ -767,9 +774,9 @@ class _NebulaPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width, h = size.height;
-    canvas.drawCircle(Offset(w * 0.38, h * 0.45), w * 0.35, Paint()..color = const Color(0xFFEC4899).withValues(alpha: 0.55)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 16));
-    canvas.drawCircle(Offset(w * 0.65, h * 0.55), w * 0.32, Paint()..color = const Color(0xFF8B5CF6).withValues(alpha: 0.60)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 18));
-    canvas.drawCircle(Offset(w * 0.50, h * 0.50), w * 0.10, Paint()..color = Colors.white..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6));
+    canvas.drawCircle(Offset(w * 0.38, h * 0.45), w * 0.35, _glowPaint(const Color(0xFFEC4899).withValues(alpha: 0.55), Offset(w * 0.38, h * 0.45), w * 0.35));
+    canvas.drawCircle(Offset(w * 0.65, h * 0.55), w * 0.32, _glowPaint(const Color(0xFF8B5CF6).withValues(alpha: 0.60), Offset(w * 0.65, h * 0.55), w * 0.32));
+    canvas.drawCircle(Offset(w * 0.50, h * 0.50), w * 0.10, _glowPaint(Colors.white.withValues(alpha: 0.9), Offset(w * 0.50, h * 0.50), w * 0.10));
   }
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
@@ -796,7 +803,7 @@ class _EclipsePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width, h = size.height;
-    canvas.drawCircle(Offset(w * 0.5, h * 0.5), w * 0.34, Paint()..color = const Color(0xFFF97316).withValues(alpha: 0.75)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14));
+    canvas.drawCircle(Offset(w * 0.5, h * 0.5), w * 0.34, _glowPaint(const Color(0xFFF97316).withValues(alpha: 0.75), Offset(w * 0.5, h * 0.5), w * 0.34));
     canvas.drawCircle(Offset(w * 0.5, h * 0.5), w * 0.26, Paint()..color = const Color(0xFF0F172A));
   }
   @override
@@ -841,7 +848,7 @@ class _AbyssalTrenchPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width, h = size.height;
-    canvas.drawCircle(Offset(w * 0.5, h * 0.5), w * 0.20, Paint()..color = const Color(0xFF38BDF8).withValues(alpha: 0.6)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12));
+    canvas.drawCircle(Offset(w * 0.5, h * 0.5), w * 0.20, _glowPaint(const Color(0xFF38BDF8).withValues(alpha: 0.6), Offset(w * 0.5, h * 0.5), w * 0.20));
     canvas.drawCircle(Offset(w * 0.5, h * 0.45), w * 0.08, Paint()..color = Colors.white);
   }
   @override
@@ -854,7 +861,7 @@ class _CosmicVoidPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width, h = size.height;
-    canvas.drawCircle(Offset(w * 0.5, h * 0.5), w * 0.30, Paint()..color = const Color(0xFF6366F1).withValues(alpha: 0.6)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10)..style = PaintingStyle.stroke..strokeWidth = 3.5);
+    canvas.drawCircle(Offset(w * 0.5, h * 0.5), w * 0.30, Paint()..color = const Color(0xFF6366F1).withValues(alpha: 0.6)..style = PaintingStyle.stroke..strokeWidth = 3.5);
     canvas.drawCircle(Offset(w * 0.5, h * 0.5), w * 0.30, Paint()..color = Colors.white..style = PaintingStyle.stroke..strokeWidth = 1.5);
   }
   @override

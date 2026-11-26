@@ -32,58 +32,43 @@ void main() {
   }
 
   group('GlassSurface', () {
-    testWidgets('paints its child through a clean surface layer', (tester) async {
+    testWidgets('paints its child on a solid elevated panel', (tester) async {
       await tester.pumpWidget(host(const GlassSurface(child: Text('panel'))));
 
       expect(find.text('panel'), findsOneWidget);
       expect(find.byType(BackdropFilter), findsNothing);
     });
 
-    testWidgets('a zero sigma is the same panel without a saveLayer', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        host(const GlassSurface(blurSigma: 0, child: Text('flat'))),
-      );
+    testWidgets('never installs a blur filter layer', (tester) async {
+      await tester.pumpWidget(host(const GlassSurface(child: Text('flat'))));
 
       expect(find.text('flat'), findsOneWidget);
       expect(
         find.byType(BackdropFilter),
         findsNothing,
-        reason: 'callers must be able to opt out of blur on cheap hardware',
+        reason: 'the redesign bans blur: depth is fills, hairlines, shadows',
       );
     });
 
-    testWidgets('reduced motion removes the blur, not the panel', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        host(const GlassSurface(child: Text('calm')), disableAnimations: true),
-      );
-
-      expect(find.text('calm'), findsOneWidget);
-      expect(find.byType(BackdropFilter), findsNothing);
-    });
-
-    testWidgets('a panel keeps its child above the fill', (tester) async {
-      // The glass tint is translucent; text painted *under* it would be washed
-      // out. This asserts the panel paints a tint, and the child is inside it.
+    testWidgets('a panel paints an opaque fill, not a tint', (tester) async {
+      // The panels are solid slabs now; text painted under them could never
+      // wash out because nothing shows through.
       await tester.pumpWidget(
         host(const GlassSurface(child: Text('readable'))),
       );
 
-      final tinted = tester
+      final fills = tester
           .widgetList<DecoratedBox>(find.byType(DecoratedBox))
           .map((box) => box.decoration)
           .whereType<BoxDecoration>()
           .map((decoration) => decoration.color)
           .whereType<Color>()
           .toList();
-      expect(tinted, isNotEmpty, reason: 'the panel must paint a fill');
+      expect(fills, isNotEmpty, reason: 'the panel must paint a fill');
       expect(
-        tinted.every((color) => color.a < 1),
+        fills.any((color) => color.a == 1),
         isTrue,
-        reason: 'glass is a tint, not a slab',
+        reason: 'panels are solid slabs now, not translucent tints',
       );
       expect(find.text('readable'), findsOneWidget);
     });

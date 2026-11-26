@@ -3,31 +3,28 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_world.dart';
 import '../../core/theme/design_tokens.dart';
 
-/// A translucent, tinted panel with one lit edge and a soft shadow.
+/// A solid elevated panel with one hairline edge and a soft shadow.
 ///
-/// This is the app's only glass. Everything that wants a translucent surface -
-/// the sidebar dock, the phone navigation pill, player sheets, dialogs, the
-/// details action bar - composes this rather than reaching for its own
-/// [BackdropFilter], so the blur radius, tint, edge and radius cannot drift
-/// apart, and so there is exactly one place to turn blur off if a low-end
-/// device needs it.
+/// This is the app's only raised surface. Everything that wants a lifted
+/// panel - the sidebar dock, the phone navigation pill, player sheets,
+/// dialogs, the details action bar - composes this rather than reaching for
+/// its own decoration, so the fill, edge and radius cannot drift apart.
+///
+/// There is no blur anywhere in the app: depth comes from solid fills,
+/// hairlines and shadows only.
 ///
 /// Rules the pack sets, enforced here:
-///  * glass is chrome, not content: never wrap a scrolling list or a card grid
-///    in this, and never more than one blur layer deep;
-///  * the tint comes from the active world, so a panel on GROUND is warm and a
+///  * panels are chrome, not content: never wrap a scrolling list or a card
+///    grid in this;
+///  * the fill comes from the active world, so a panel on GROUND is warm and a
 ///    panel on SKY is cool without the caller naming a colour;
-///  * the edge is a hairline, not a border, and it is the same bright on every
-///    panel;
-///  * [blurSigma] of zero paints the same panel without a saveLayer, for
-///    surfaces where the cost matters more than the depth.
+///  * the edge is a hairline, not a border, and it is the same on every panel.
 class GlassSurface extends StatelessWidget {
   const GlassSurface({
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(AppSpace.lg),
     this.borderRadius,
-    this.blurSigma = AppBlur.chrome,
     this.fill,
     this.border,
     this.shadow = true,
@@ -37,13 +34,12 @@ class GlassSurface extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
   final BorderRadius? borderRadius;
-  final double blurSigma;
 
-  /// Overrides the world's glass fill. For the rare panel that needs to be
-  /// darker or lighter than glass - a player scrim, for instance.
+  /// Overrides the world's elevated fill. For the rare panel that needs to be
+  /// darker or lighter - a player scrim, for instance.
   final Color? fill;
 
-  /// Overrides the hairline. Null keeps the world's lit edge.
+  /// Overrides the hairline. Null keeps the world's hairline edge.
   final BoxBorder? border;
 
   final bool shadow;
@@ -56,14 +52,14 @@ class GlassSurface extends StatelessWidget {
 
     Widget panel = DecoratedBox(
       decoration: BoxDecoration(
-        color: fill ?? colors.glassFill,
+        color: fill ?? colors.elevated,
         borderRadius: radius,
-        border: border ?? Border.all(color: colors.glassEdge, width: 1),
+        border: border ?? Border.all(color: colors.hairline, width: 1),
       ),
       child: Padding(padding: padding, child: child),
     );
 
-    // Clean, crisp solid OLED surface without expensive GPU BackdropFilter
+    // Solid surface, clipped crisp - no blur anywhere.
     panel = ClipRRect(
       borderRadius: radius,
       clipBehavior: clipBehavior,
@@ -109,7 +105,6 @@ class GlassPanel extends StatelessWidget {
     return GlassSurface(
       padding: padding,
       borderRadius: borderRadius ?? AppRadius.panel,
-      blurSigma: AppBlur.subtle,
       child: child,
     );
   }

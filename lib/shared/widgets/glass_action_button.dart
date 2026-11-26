@@ -109,7 +109,6 @@ class _GlassActionButtonState extends State<GlassActionButton> {
           )
         : GlassSurface(
             borderRadius: radius,
-            blurSigma: AppBlur.subtle,
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpace.lg,
               vertical: AppSpace.md,
