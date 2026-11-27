@@ -150,6 +150,11 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   /// normal first path; the proxy gets one fallback turn when needed.
   bool _attemptTriedDirect = false;
 
+  /// Whether this attempt already had its audio-only recovery pulled
+  /// forward. One pull per attempt: the early fire runs the same recovery
+  /// the startup watchdog would, just without sitting out the whole leash.
+  bool _audioOnlyRecoveryPulled = false;
+
   /// "Failed to recognize file format" errors for the current open path. mpv
   /// emits one per segment after it falls back to reading an unopenable
   /// playlist as plain text; three errors trigger the other path before the
@@ -846,6 +851,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     _attemptProviderId = '';
     _attemptTriedProxy = false;
     _attemptTriedDirect = false;
+    _audioOnlyRecoveryPulled = false;
     _trackSettlingUntil = null;
     _openToken++;
     // A file the viewer added belonged to the last episode as much as the
@@ -869,6 +875,36 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
         _position = pos;
         _subtitlePlayback.tick(pos);
         _maybeRecordProgress(pos);
+
+        // A source that plays sound but never draws is the worst way to
+        // fail: the clock moves, nothing looks wrong, and the startup
+        // watchdog sits out its whole leash before acting. Once the clock is
+        // visibly running with no video track the outcome is already known -
+        // audio is demuxing, video never arrived and never will - so pull
+        // the same recovery forward instead of making the viewer sit
+        // through the rest of the leash.
+        final openedAt = _attemptOpenedAt;
+        if (!_audioOnlyRecoveryPulled &&
+            openedAt != null &&
+            !_attemptHasVideoTrack &&
+            _player.state.playing &&
+            !_isSettlingTrackChange &&
+            DateTime.now().difference(openedAt) >
+                const Duration(seconds: 6)) {
+          _audioOnlyRecoveryPulled = true;
+          _trace?.warn(
+            'audio-only',
+            'clock moving with no video track; pulling recovery forward '
+                'attempt=$_attemptIndex',
+          );
+          final token = _openToken;
+          _startupWatchdog?.cancel();
+          _startupWatchdog = Timer(Duration.zero, () {
+            if (_disposed || !mounted || token != _openToken) return;
+            if (_attemptHasVideoTrack || _isSettlingTrackChange) return;
+            unawaited(_recoverFromSilentOpen(token));
+          });
+        }
 
         final remaining = _duration - pos;
 
@@ -1693,6 +1729,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     _attemptSawVideoParamsReset = false;
     _attemptTriedProxy = false;
     _attemptTriedDirect = true;
+    _audioOnlyRecoveryPulled = false;
     _unrecognizedFormatErrors = 0;
     _attemptProviderId = providerIdForStream(
       stream,
