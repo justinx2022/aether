@@ -166,14 +166,6 @@ fn extract_vidzee_server(req: &StreamResolutionRequest, server: &str) -> Vec<Str
 // 2. VidRock multi-CDN HLS (AES-256-GCM encrypted URLs)
 // ---------------------------------------------------------------------------
 
-/// One `#EXT-X-STREAM-INF` entry of a master playlist.
-struct MasterVariant {
-    uri: String,
-    bandwidth: u64,
-    height: Option<u32>,
-    has_video: bool,
-}
-
 /// Resolves a playlist URI reference against the master's address.
 ///
 /// Handles absolute URLs, scheme-relative `//host/...`, origin-absolute
@@ -245,25 +237,25 @@ fn resolve_best_video_variant(
                     .iter()
                     .any(|c| codecs.contains(c));
             pending = Some((bandwidth, height, has_video));
-        } else if !line.starts_with('#') && !line.is_empty() {
-            if let Some((bandwidth, height, has_video)) = pending.take() {
-                if has_video && best.map(|(_, bw, _)| bandwidth > bw).unwrap_or(true) {
-                    best = Some((line, bandwidth, height));
-                }
-            }
+        } else if !line.starts_with('#')
+            && !line.is_empty()
+            && let Some((bandwidth, height, has_video)) = pending.take()
+            && has_video
+            && best.map(|(_, bw, _)| bandwidth > bw).unwrap_or(true)
+        {
+            best = Some((line, bandwidth, height));
         }
     }
     let (uri, _, height) = best?;
 
     let mut url = resolve_uri(master_url, uri);
     // Signed CDNs expect the master's query on every child request.
-    if !url.contains('?') {
-        if let Some((_, q)) = master_url.split_once('?') {
-            if !q.is_empty() {
-                url.push('?');
-                url.push_str(q);
-            }
-        }
+    if !url.contains('?')
+        && let Some((_, q)) = master_url.split_once('?')
+        && !q.is_empty()
+    {
+        url.push('?');
+        url.push_str(q);
     }
     Some((url, height))
 }
@@ -271,7 +263,7 @@ fn resolve_best_video_variant(
 /// Payload layout: base64url(raw) where raw = 12-byte IV || ciphertext || tag.
 pub fn decrypt_vidrock_url(enc: &str) -> Option<String> {
     let mut b64 = enc.replace('-', "+").replace('_', "/");
-    while b64.len() % 4 != 0 {
+    while !b64.len().is_multiple_of(4) {
         b64.push('=');
     }
     let raw = BASE64_STANDARD.decode(b64.as_bytes()).ok()?;
@@ -292,7 +284,7 @@ pub fn decrypt_vidrock_url(enc: &str) -> Option<String> {
 }
 
 fn decode_hex(s: &str) -> Option<Vec<u8>> {
-    if s.len() % 2 != 0 {
+    if !s.len().is_multiple_of(2) {
         return None;
     }
     (0..s.len())
@@ -420,10 +412,10 @@ fn extract_vixsrc(req: &StreamResolutionRequest) -> Vec<StreamSource> {
     if let Some(tmdb) = req.tmdb_id {
         ids.push(tmdb.to_string());
     }
-    if let Some(imdb) = &req.imdb_id {
-        if !ids.iter().any(|i| i == imdb) {
-            ids.push(imdb.clone());
-        }
+    if let Some(imdb) = &req.imdb_id
+        && !ids.iter().any(|i| i == imdb)
+    {
+        ids.push(imdb.clone());
     }
     if ids.is_empty() {
         return Vec::new();
@@ -495,10 +487,10 @@ fn extract_vidapi(req: &StreamResolutionRequest) -> Vec<StreamSource> {
         .tmdb_id
         .map(|t| t.to_string())
         .or_else(|| req.imdb_id.clone());
-    if let Some(imdb) = &req.imdb_id {
-        if id_param.is_none() {
-            id_param = Some(format!("imdb={imdb}"));
-        }
+    if let Some(imdb) = &req.imdb_id
+        && id_param.is_none()
+    {
+        id_param = Some(format!("imdb={imdb}"));
     }
     let Some(id_param) = id_param else {
         return Vec::new();
@@ -639,7 +631,7 @@ fn extract_vidsrc_buzz(
     // Server refs: prefer the SSR block baked into the page, else one
     // `?a=sources` XHR. Bounded to the first three servers.
     let mut servers: Vec<(String, String, String)> = Vec::new(); // (ref, name, lang)
-    let mut push_server = |servers: &mut Vec<(String, String, String)>, s: &serde_json::Value| {
+    let push_server = |servers: &mut Vec<(String, String, String)>, s: &serde_json::Value| {
         let r = s.get("ref").and_then(|v| v.as_str()).unwrap_or_default();
         if r.is_empty() {
             return;
@@ -683,13 +675,12 @@ fn extract_vidsrc_buzz(
             ("Sec-Fetch-Site", "same-origin"),
             ("Referer", embed_url.as_str()),
         ];
-        if let Some(json) = get_json(&sources_url, &xhr_headers) {
-            if json.get("status").and_then(|s| s.as_str()) == Some("ok") {
-                if let Some(list) = json.get("servers").and_then(|v| v.as_array()) {
-                    for s in list {
-                        push_server(&mut servers, s);
-                    }
-                }
+        if let Some(json) = get_json(&sources_url, &xhr_headers)
+            && json.get("status").and_then(|s| s.as_str()) == Some("ok")
+            && let Some(list) = json.get("servers").and_then(|v| v.as_array())
+        {
+            for s in list {
+                push_server(&mut servers, s);
             }
         }
     }

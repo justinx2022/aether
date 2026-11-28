@@ -87,10 +87,9 @@ impl ProviderRegistry {
             .read()
             .ok()
             .and_then(|lock| lock.get(&key).cloned())
+        && at.elapsed() < NATIVE_CACHE_TTL
         {
-            if at.elapsed() < NATIVE_CACHE_TTL {
-                return streams;
-            }
+            return streams;
         }
 
         let streams = crate::extensions::extractors::extract_all_streams(req);
