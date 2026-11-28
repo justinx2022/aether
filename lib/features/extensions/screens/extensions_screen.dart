@@ -13,6 +13,8 @@ import '../../../shared/widgets/cards_wrapper.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/text_input_dialog.dart';
 import '../../../core/router/app_router.dart';
+import '../../../core/storage/extension_repository.dart'
+    hide ExtensionRepository;
 import '../../../shared/focus/app_focus.dart';
 
 import 'package:aether/l10n/generated/app_localizations.dart';
@@ -946,6 +948,10 @@ class _PluginTile extends ConsumerStatefulWidget {
 class _PluginTileState extends ConsumerState<_PluginTile> {
   final FocusNode _settingsFocusNode = FocusNode();
 
+  /// Local mirror of the persisted extension on/off switch so the tile
+  /// reacts instantly; null until first build reads storage.
+  bool? _extensionEnabled;
+
   @override
   void dispose() {
     _settingsFocusNode.dispose();
@@ -1023,6 +1029,12 @@ class _PluginTileState extends ConsumerState<_PluginTile> {
       widget.plugin.packageName,
     );
 
+    final extensionEnabled = _extensionEnabled ??=
+        ref.read(extensionRepositoryProvider).getExtensionData(
+              '${widget.plugin.packageName}:_extension_enabled',
+            ) !=
+        'false';
+
     final tile = ListTile(
       leading: Container(
         width: 44,
@@ -1072,7 +1084,15 @@ class _PluginTileState extends ConsumerState<_PluginTile> {
                     },
                   ),
 
-                if (isInstalled)
+                if (isInstalled) ...[
+                  Tooltip(
+                    message: 'Enable or disable this extension',
+                    child: Switch(
+                      value: extensionEnabled,
+                      onChanged: (v) => _toggleExtension(v),
+                    ),
+                  ),
+
                   // Always show the settings gear on installed plugins.
                   // Previously it was hidden when no settings/providers
                   // could be detected (e.g. JS engine not ready yet at first
@@ -1096,6 +1116,7 @@ class _PluginTileState extends ConsumerState<_PluginTile> {
                       }
                     },
                   ),
+                ],
 
                 if (isInstalled)
                   IconButton(
@@ -1125,6 +1146,22 @@ class _PluginTileState extends ConsumerState<_PluginTile> {
     );
 
     return _FocusableRow(child: tile);
+  }
+
+  /// Persists the extension on/off switch and re-syncs the extension
+  /// manager so disabled providers are unloaded immediately.
+  Future<void> _toggleExtension(bool enabled) async {
+    setState(() => _extensionEnabled = enabled);
+    await ref
+        .read(extensionRepositoryProvider)
+        .setExtensionData(
+          '${widget.plugin.packageName}:_extension_enabled',
+          enabled ? 'true' : 'false',
+        );
+    if (!mounted) return;
+    await ref.read(extensionManagerProvider.notifier).syncFromPlugins(
+          ref.read(extensionsControllerProvider).installedPlugins,
+        );
   }
 
   /// Subtitle widget: description · version/authors line · language chips.

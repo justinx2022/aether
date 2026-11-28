@@ -249,13 +249,19 @@ class ExtensionManager extends _$ExtensionManager {
         }
       }
 
-      // Unload Removed Plugins
+      // Unload Removed Plugins — and anything belonging to an extension the
+      // user has switched off, which is installed but must not serve streams.
       final installedPackageNames = installed.map((e) => e.packageName).toSet();
+      final disabledPackageNames = installed
+          .where((p) => !isExtensionEnabled(p.packageName))
+          .map((e) => e.packageName)
+          .toSet();
 
       final providersToRemove = <AetherProvider>[];
 
       for (final provider in state) {
-        if (!_belongsToInstalled(provider.packageName, installedPackageNames)) {
+        if (!_belongsToInstalled(provider.packageName, installedPackageNames) ||
+            _belongsToAnyPackage(provider.packageName, disabledPackageNames)) {
           providersToRemove.add(provider);
         }
       }
@@ -324,6 +330,15 @@ class ExtensionManager extends _$ExtensionManager {
     return saved == null || saved == 'true';
   }
 
+  /// Returns true if the user has this whole extension switched on
+  /// (default: true when the key has never been written). Read by the
+  /// Extensions screen's per-extension switch as well.
+  bool isExtensionEnabled(String packageName) {
+    final storage = ref.read(extensionRepositoryProvider);
+    final saved = storage.getExtensionData('$packageName:_extension_enabled');
+    return saved == null || saved == 'true';
+  }
+
   /// Registers shell providers for a plugin. JS is NOT evaluated here — it is
   /// loaded lazily on the first search/getHome/getDetails/loadStreams call.
   /// Sub-providers sharing the same JS file reuse one shared read Future so the
@@ -334,6 +349,15 @@ class ExtensionManager extends _$ExtensionManager {
   /// the live list, then fan-out into sub-providers exactly like the static path.
   Future<List<AetherProvider>> _loadPlugin(ExtensionPlugin plugin) async {
     if (_engine == null || _storageService == null) return [];
+    // An extension the user has switched off must not register providers,
+    // even when something (an active-provider lookup, a settings change)
+    // still asks for it by name.
+    if (!isExtensionEnabled(plugin.packageName)) {
+      talker.debug(
+        "ExtensionManager: Skipping ${plugin.packageName} — switched off in settings.",
+      );
+      return [];
+    }
     try {
       // A plugin whose JS no longer matches the hash recorded at install is
       // not the code the user agreed to run.
@@ -576,6 +600,20 @@ class ExtensionManager extends _$ExtensionManager {
               !p.packageName.startsWith('$packageName::'),
         )
         .toList();
+  }
+
+  /// True if [providerPackageName] belongs to one of [packageNames] (direct
+  /// or `parentPkg::subId`), without any special cases.
+  bool _belongsToAnyPackage(
+    String providerPackageName,
+    Set<String> packageNames,
+  ) {
+    if (packageNames.contains(providerPackageName)) return true;
+    final sep = providerPackageName.lastIndexOf('::');
+    if (sep > 0) {
+      return packageNames.contains(providerPackageName.substring(0, sep));
+    }
+    return false;
   }
 
   /// True if [providerPackageName] belongs to one of the installed packages.

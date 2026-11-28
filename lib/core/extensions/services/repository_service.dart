@@ -281,6 +281,9 @@ class RepositoryService {
         } else if (path.contains('wlext')) {
           jsonAsset = 'assets/plugins/wlext.json';
           jsAsset = 'assets/plugins/wlext.js';
+        } else if (path.contains('cinejoy')) {
+          jsonAsset = 'assets/plugins/cinejoy.json';
+          jsAsset = 'assets/plugins/cinejoy.js';
         } else {
           jsonAsset = 'assets/plugins/plugin.json';
           jsAsset = 'assets/plugins/plugin.js';
