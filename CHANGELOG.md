@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.3.0
+
+- **Profiles** – First-run profile setup, watch history and lists kept per profile, and optional PIN protection.
+- **Playback** – Profile-aware playback preferences and Cinemeta episode handling.
+- **Extensions** – Cinejoy mirror extension, with an on/off switch for each installed extension.
+
 ## v2.2.1
 - Fixed genre-filtered Explore returning one result (movie/TV genre-id translation)
 - Fixed endless Explore pagination; shelves stop when a page adds nothing new
