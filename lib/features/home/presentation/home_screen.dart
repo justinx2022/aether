@@ -9,6 +9,7 @@ import 'package:aether/features/home/presentation/widgets/continue_watching_sect
 import 'package:aether/features/home/presentation/widgets/because_you_watched_section.dart';
 import 'package:aether/features/search/presentation/search_provider.dart';
 import 'package:aether/features/tracking/data/sync_manager.dart';
+import 'package:aether/features/tracking/presentation/trakt_shelves_provider.dart';
 import 'package:aether/features/tracking/domain/sync_progress_item.dart';
 import 'package:aether/features/home/presentation/widgets/synced_progress_section.dart';
 import 'package:aether/features/library/presentation/history_provider.dart';
@@ -423,6 +424,78 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         $extra: DetailsRouteExtra(item: item),
                       ).push<void>(context),
                       heroTagPrefix: 'my_list',
+                    );
+                  },
+                ),
+              ),
+
+
+              // ── Trakt shelves: watchlist, personalized recommendations, ──
+              // and cross-device history. Each provider returns [] when
+              // Trakt is not connected, so the shelves vanish instead of
+              // leaving gaps for logged-out users.
+              SliverToBoxAdapter(
+                child: Consumer(
+                  builder: (context, ref, _) {
+                    final watchlist = ref.watch(traktWatchlistProvider);
+                    return watchlist.when(
+                      data: (items) => items.isEmpty
+                          ? const SizedBox.shrink()
+                          : MediaHorizontalList(
+                              title: 'From your Trakt Watchlist',
+                              mediaList: items,
+                              category: ViewAllCategory.providerContent,
+                              onTap: (item) => DetailsRoute(
+                                $extra: DetailsRouteExtra(item: item),
+                              ).push<void>(context),
+                              heroTagPrefix: 'trakt_watchlist',
+                            ),
+                      loading: () => const SizedBox.shrink(),
+                      error: (err, stack) => const SizedBox.shrink(),
+                    );
+                  },
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Consumer(
+                  builder: (context, ref, _) {
+                    final recs = ref.watch(traktRecommendationsProvider);
+                    return recs.when(
+                      data: (items) => items.isEmpty
+                          ? const SizedBox.shrink()
+                          : MediaHorizontalList(
+                              title: 'Trakt Recommends',
+                              mediaList: items,
+                              category: ViewAllCategory.providerContent,
+                              onTap: (item) => DetailsRoute(
+                                $extra: DetailsRouteExtra(item: item),
+                              ).push<void>(context),
+                              heroTagPrefix: 'trakt_recommends',
+                            ),
+                      loading: () => const SizedBox.shrink(),
+                      error: (err, stack) => const SizedBox.shrink(),
+                    );
+                  },
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Consumer(
+                  builder: (context, ref, _) {
+                    final traktHistory = ref.watch(traktHistoryProvider);
+                    return traktHistory.when(
+                      data: (items) => items.isEmpty
+                          ? const SizedBox.shrink()
+                          : MediaHorizontalList(
+                              title: 'Watched on Trakt',
+                              mediaList: items,
+                              category: ViewAllCategory.providerContent,
+                              onTap: (item) => DetailsRoute(
+                                $extra: DetailsRouteExtra(item: item),
+                              ).push<void>(context),
+                              heroTagPrefix: 'trakt_history',
+                            ),
+                      loading: () => const SizedBox.shrink(),
+                      error: (err, stack) => const SizedBox.shrink(),
                     );
                   },
                 ),

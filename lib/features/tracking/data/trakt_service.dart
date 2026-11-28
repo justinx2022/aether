@@ -496,6 +496,64 @@ class TraktService implements TrackingService {
     return response.statusCode == 201 || response.statusCode == 200;
   }
 
+  /// Raw entries from an authenticated list endpoint.
+  ///
+  /// Watchlist/history entries look like `{movie: {...}}` or `{show: {...}}`;
+  /// recommendation entries carry the media object at the top level.
+  Future<List<Map<String, dynamic>>> _fetchList(String label, String url) async {
+    await _ensureInit();
+    if (_accessToken == null) return const [];
+    final response = await _sendAuthorized(
+      label,
+      () => _dio.get<dynamic>(
+        url,
+        options: Options(headers: _authHeaders),
+      ),
+    );
+    if (response == null ||
+        response.statusCode != 200 ||
+        response.data is! List) {
+      return const [];
+    }
+    return (response.data as List)
+        .whereType<Map<dynamic, dynamic>>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+  }
+
+  /// The user's watchlist (movies and shows mixed, as added).
+  Future<List<Map<String, dynamic>>> fetchWatchlist() async {
+    return _fetchList('Fetch watchlist', 'https://api.trakt.tv/sync/watchlist');
+  }
+
+  /// The user's watch history, newest first.
+  Future<List<Map<String, dynamic>>> fetchHistory({int limit = 50}) async {
+    return _fetchList(
+      'Fetch history',
+      'https://api.trakt.tv/sync/history?limit=$limit',
+    );
+  }
+
+  /// Trakt's personalized recommendations, computed server-side from the
+  /// user's history, collection and lists across every connected app.
+  Future<List<Map<String, dynamic>>> fetchRecommendations() async {
+    final movies = await _fetchList(
+      'Fetch movie recommendations',
+      'https://api.trakt.tv/recommendations/movies?limit=10&ignore_collected=true',
+    );
+    final shows = await _fetchList(
+      'Fetch show recommendations',
+      'https://api.trakt.tv/recommendations/shows?limit=10&ignore_collected=true',
+    );
+    // /recommendations/* returns the media object at the top level (no
+    // {movie: ...} / {show: ...} wrapper), so wrap it here to match the
+    // shape the watchlist/history converters expect.
+    return [
+      ...movies.map((e) => <String, dynamic>{'movie': e}),
+      ...shows.map((e) => <String, dynamic>{'show': e}),
+    ];
+  }
+
   @override
   Future<List<SyncProgressItem>> pullPlaybackProgress() async {
     await _ensureInit();
