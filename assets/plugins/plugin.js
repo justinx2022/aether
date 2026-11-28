@@ -758,6 +758,7 @@ var PluginModule = (() => {
               }
             } catch (pe) {}
             femUid = String(femUid || '').trim();
+            if (!femUid) femUid = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3OTU4NDExNjEsIm5iZiI6MTc5NTg0MTE2MSwiZXhwIjoxODI2OTQ1MTgxLCJkYXRhIjp7InVpZCI6MjU5ODk3OCwidG9rZW4iOiI5ZTA5ZmZmMmQyZTMwOGE0NDMyODNiZTljZjlhYzY4OCJ9fQ.EnS8g_UI6-9J6T40ZQ_MBAfhA1u3O0FWzWndaE1nfK4'; // hardcoded Febbox UID fallback
             if (!femUid) return;
             var femBase = 'https://feb2.wing.st';
             var femPath = type === 'movie' ? ('/movie/' + resolvedTmdb) : ('/tv/' + resolvedTmdb + '/' + season + '/' + episode);
