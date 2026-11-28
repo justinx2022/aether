@@ -578,7 +578,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         final saved = library is LibrarySuccess
             ? library.items.map((item) => item.url).toSet()
             : const <String>{};
-        var allResults = state.results.expand((e) => e.results).where((item) {
+        final allResults = state.results.expand((e) => e.results).where((item) {
           if (profile != null && !itemFitsProfile(item, profile)) return false;
           switch (_kind) {
             case _ResultKind.movies:

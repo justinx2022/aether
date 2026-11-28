@@ -46,6 +46,7 @@ class MediaKitMoreSheet extends StatefulWidget {
     required this.onSources,
     this.onPip,
     this.isPipMode = false,
+    this.incognito = false,
     this.onToggleDialogueBoost,
     this.isDialogueBoostEnabled = false,
     this.onSleepTimer,
@@ -76,6 +77,7 @@ class MediaKitMoreSheet extends StatefulWidget {
   final VoidCallback onSources;
   final VoidCallback? onPip;
   final bool isPipMode;
+  final bool incognito;
   final VoidCallback? onToggleDialogueBoost;
   final bool isDialogueBoostEnabled;
   final VoidCallback? onSleepTimer;

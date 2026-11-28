@@ -2,7 +2,6 @@ import 'package:aether/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/profile/pin_hash.dart';
 import '../../../core/profile/user_profile.dart';
 import '../../../core/profile/profile_service.dart';
 import '../../../core/profile/character_avatar_widget.dart';

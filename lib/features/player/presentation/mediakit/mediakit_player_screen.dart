@@ -48,7 +48,6 @@ import '../../domain/skip_segments.dart';
 import '../../../skip/data/skip_service.dart';
 import '../../domain/stream_resolver.dart';
 import '../../domain/subtitle_search_target.dart';
-import '../player_platform_service.dart';
 import '../subtitle_search_provider.dart' show subtitleLanguageProvider;
 import '../vlc/next_episode_countdown.dart';
 import '../vlc/panel/player_panel_metrics.dart';
@@ -286,10 +285,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   int? _sleepTimerMinutes;
   int _autoplayStreak = 0;
   List<Episode> _queue = const [];
-  Duration? _loopA;
-  Duration? _loopB;
   StreamSubscription<RemoteCommand>? _remoteSub;
-  final PlayerPlatformService _platform = PlayerPlatformService();
 
   List<SkipSegment> _skipSegments = const [];
 
@@ -3137,6 +3133,72 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
       unawaited(_player.setVolume(_savedVolume > 0 ? _savedVolume : 100));
       _showToast('Unmuted');
     }
+  }
+
+  Future<void> _autoplayOrAsk() async {
+    _autoplayStreak++;
+    if (_autoplayStreak >= 3) {
+      final keep = await _askStillWatching();
+      if (keep != true || _disposed || !mounted) {
+        _autoplayStreak = 0;
+        await _player.pause();
+        return;
+      }
+      _autoplayStreak = 0;
+    }
+    await _advance();
+  }
+
+  Future<bool?> _askStillWatching() {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Still watching?'),
+        content: const Text(
+          'Playback has continued through a few episodes. Keep going?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Stop'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Keep watching'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleRemote(RemoteCommand command) {
+    if (_disposed) return;
+    switch (command.action) {
+      case 'play':
+        unawaited(_player.play());
+      case 'pause':
+        unawaited(_player.pause());
+      case 'seek':
+        final ms = command.positionMs;
+        if (ms != null) unawaited(_player.seek(Duration(milliseconds: ms)));
+      case 'subtitle-later':
+        unawaited(_nudgeSubtitles(250));
+      case 'subtitle-earlier':
+        unawaited(_nudgeSubtitles(-250));
+    }
+  }
+
+  Future<void> _nudgeSubtitles(int deltaMs) async {
+    final prefs = ref.read(playbackPrefsProvider);
+    final next = prefs.subtitleOffsetMs + deltaMs;
+    await ref
+        .read(playbackPrefsProvider.notifier)
+        .update(prefs.copyWith(subtitleOffsetMs: next));
+    await _native?.setProperty('sub-delay', (next / 1000).toString());
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Subtitle offset $next ms')),
+    );
   }
 
   @override

@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../storage/storage_service.dart';
-import 'pin_hash.dart';
 import 'user_profile.dart';
 
 /// The two profiles a fresh install used to write for you.
@@ -229,12 +228,6 @@ class ProfileController extends Notifier<ProfileState> {
       profiles: updated,
       activeProfile: newActive,
     );
-  }
-
-  String? _storedPin(String? pin, String profileId) {
-    if (pin == null || pin.isEmpty) return null;
-    if (pinIsHashed(pin)) return pin;
-    return hashPin(pin, profileId);
   }
 
   Future<void> deleteProfile(String profileId) async {
