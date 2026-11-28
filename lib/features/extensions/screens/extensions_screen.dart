@@ -945,32 +945,6 @@ class _PluginTile extends ConsumerStatefulWidget {
 
 class _PluginTileState extends ConsumerState<_PluginTile> {
   final FocusNode _settingsFocusNode = FocusNode();
-  Future<List<PluginSettingDefinition>>? _settingsFuture;
-  String? _settingsFutureIdentity;
-
-  String _settingsIdentity(ExtensionPlugin plugin) =>
-      '${plugin.packageName}:${plugin.version}:${plugin.sourceUrl}';
-
-  Future<List<PluginSettingDefinition>> _settingsFor(ExtensionPlugin plugin) {
-    final identity = _settingsIdentity(plugin);
-    if (_settingsFuture == null || _settingsFutureIdentity != identity) {
-      _settingsFutureIdentity = identity;
-      _settingsFuture = ref
-          .read(extensionManagerProvider.notifier)
-          .getSettingsForPlugin(plugin);
-    }
-    return _settingsFuture!;
-  }
-
-  @override
-  void didUpdateWidget(covariant _PluginTile oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (_settingsIdentity(oldWidget.plugin) !=
-        _settingsIdentity(widget.plugin)) {
-      _settingsFuture = null;
-      _settingsFutureIdentity = null;
-    }
-  }
 
   @override
   void dispose() {
@@ -1099,65 +1073,27 @@ class _PluginTileState extends ConsumerState<_PluginTile> {
                   ),
 
                 if (isInstalled)
-                  FutureBuilder<List<PluginSettingDefinition>>(
-                    future: _settingsFor(installedPlugin),
-                    builder: (context, snapshot) {
-                      final manifestSettings =
-                          installedPlugin.manifest['settings'];
-                      final hasManifestSettings =
-                          manifestSettings is List &&
-                          manifestSettings.isNotEmpty;
-                      final hasScriptSettings =
-                          snapshot.data?.isNotEmpty ?? false;
-                      final declaresScriptSettings =
-                          installedPlugin.manifest['hasSettings'] == true;
-                      final hasDomains =
-                          installedPlugin.domains?.isNotEmpty ?? false;
-                      final hasStaticProviders =
-                          installedPlugin.providers?.isNotEmpty ?? false;
-
-                      final loadedProviders = ref.watch(
-                        extensionManagerProvider,
+                  // Always show the settings gear on installed plugins.
+                  // Previously it was hidden when no settings/providers
+                  // could be detected (e.g. JS engine not ready yet at first
+                  // build), which made the Febbox UID field unreachable. The
+                  // dialog itself lists whatever the plugin actually
+                  // declares, so showing it always is safe and guarantees
+                  // discoverability.
+                  IconButton(
+                    focusNode: _settingsFocusNode,
+                    icon: const Icon(Icons.settings_outlined),
+                    tooltip: l10n.settings,
+                    onPressed: () async {
+                      await PluginSettingsDialog.open(
+                        context,
+                        installedPlugin,
                       );
-                      final hasLoadedSubProviders = loadedProviders.any(
-                        (provider) => provider.packageName.startsWith(
-                          '${installedPlugin.packageName}::',
-                        ),
-                      );
-                      final hasDynamicProviders = ref
-                          .read(extensionManagerProvider.notifier)
-                          .getProvidersForPlugin(installedPlugin)
-                          .isNotEmpty;
-
-                      final hasSettings =
-                          hasManifestSettings ||
-                          hasScriptSettings ||
-                          declaresScriptSettings ||
-                          hasDomains ||
-                          hasStaticProviders ||
-                          hasDynamicProviders ||
-                          hasLoadedSubProviders;
-
-                      if (!hasSettings) {
-                        return const SizedBox.shrink();
+                      // Back to the gear it came from, so a remote does not
+                      // have to walk the list again.
+                      if (context.mounted) {
+                        _settingsFocusNode.requestFocus();
                       }
-
-                      return IconButton(
-                        focusNode: _settingsFocusNode,
-                        icon: const Icon(Icons.settings_outlined),
-                        tooltip: l10n.settings,
-                        onPressed: () async {
-                          await PluginSettingsDialog.open(
-                            context,
-                            installedPlugin,
-                          );
-                          // Back to the gear it came from, so a remote does
-                          // not have to walk the list again.
-                          if (context.mounted) {
-                            _settingsFocusNode.requestFocus();
-                          }
-                        },
-                      );
                     },
                   ),
 
