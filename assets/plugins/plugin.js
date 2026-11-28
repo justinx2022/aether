@@ -503,6 +503,26 @@ var PluginModule = (() => {
       return [];
     }
 
+    // Session stream cache (cinejoy 'foundAt' pattern): a short-lived in-memory
+    // cache of resolved streams so re-opening a title plays instantly instead of
+    // re-racing every provider. 10 minute TTL, LRU-capped at 40 entries.
+    var streamCache = new Map();
+    var STREAM_CACHE_TTL_MS = 10 * 60 * 1000;
+    function streamCacheGet(key) {
+      var hit = streamCache.get(key);
+      if (!hit) return null;
+      if (Date.now() - hit.at > STREAM_CACHE_TTL_MS) { streamCache.delete(key); return null; }
+      streamCache.delete(key);
+      streamCache.set(key, hit);
+      return hit.streams;
+    }
+    function streamCachePut(key, streams) {
+      if (streamCache.size >= 40) {
+        streamCache.delete(streamCache.keys().next().value);
+      }
+      streamCache.set(key, { at: Date.now(), streams: streams });
+    }
+
     async function loadStreams(rawUrl, cb) {
       try {
         var parsed = null;
@@ -525,6 +545,13 @@ var PluginModule = (() => {
         var title = parsed.title || imdbId;
         var tmdbId = parsed.tmdbId;
 
+        // Instant playback: serve from the session cache when warm
+        var sCacheKey = type + ':' + (imdbId || title) + ':' + season + ':' + episode;
+        var cachedStreams = streamCacheGet(sCacheKey);
+        if (cachedStreams && cachedStreams.length) {
+          cb({ success: true, data: cachedStreams });
+          return;
+        }
         // Resolve TMDB ID in parallel if missing
         var cinemetaPromise = (!tmdbId && imdbId) ? (async function() {
           try {
@@ -715,6 +742,62 @@ var PluginModule = (() => {
         }
 
         var resolvedTmdb = tmdbId || await cinemetaPromise;
+
+        // 0. Febbox FEM (cinejoy's primary resolver) - one plain JSON call that
+        // returns the full quality ladder + subtitles. Instant-playback path.
+        var femPromise = (async function() {
+          try {
+            if (!resolvedTmdb) return;
+            var femUid = null;
+            try {
+              var femPref = getPreference('febbox_uid');
+              femUid = (femPref && typeof femPref.then === 'function') ? await femPref : femPref;
+              if (!femUid) {
+                var femLegacy = getPreference('cinejoy_fem_token');
+                femUid = (femLegacy && typeof femLegacy.then === 'function') ? await femLegacy : femLegacy;
+              }
+            } catch (pe) {}
+            femUid = String(femUid || '').trim();
+            if (!femUid) return;
+            var femBase = 'https://feb2.wing.st';
+            var femPath = type === 'movie' ? ('/movie/' + resolvedTmdb) : ('/tv/' + resolvedTmdb + '/' + season + '/' + episode);
+            var femJson = await fetchJson(femBase + femPath + '?ui=' + encodeURIComponent(femUid), {
+              'User-Agent': DEFAULT_HEADERS['User-Agent'],
+              'Accept': 'application/json, text/plain, */*',
+              'Referer': 'https://febbox.com/'
+            });
+            if (femJson && femJson.success !== false && Array.isArray(femJson.sources)) {
+              // Cinejoy's quality ladder, best first.
+              var femLadder = ['4K', '2160P', '1440P', '1080P', '720P', '480P', '360P'];
+              var femSources = femJson.sources.slice().sort(function(a, b) {
+                var ia = femLadder.indexOf(String(a.quality || a.label || '').toUpperCase());
+                var ib = femLadder.indexOf(String(b.quality || b.label || '').toUpperCase());
+                return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+              });
+              for (var fs = 0; fs < femSources.length; fs++) {
+                var femSrc = femSources[fs];
+                var femUrl = femSrc && femSrc.url;
+                // HLS-only: filter to .m3u8 sources like cinejoy does.
+                if (!femUrl || femUrl.indexOf('.m3u8') < 0 || seenUrls.has(femUrl)) continue;
+                seenUrls.add(femUrl);
+                var femQ = parseQuality(femSrc.quality || femSrc.label);
+                streams.push(new Nt({
+                  url: femUrl,
+                  source: 'Febbox FEM',
+                  name: '⚡ Febbox FEM [' + (femSrc.label || femSrc.quality || 'HLS') + ']',
+                  quality: femQ,
+                  type: 'hls',
+                  isM3U8: true,
+                  protocol: 'hls',
+                  headers: {
+                    'User-Agent': DEFAULT_HEADERS['User-Agent'],
+                    'Referer': 'https://febbox.com/'
+                  }
+                }));
+              }
+            }
+          } catch (e) {}
+        })();
 
         // 1. VidZee Multi-Server HLS Streams (High-Speed .m3u8 from Vercetti & NGCloud CDNs)
         var vidzeePromise = (async function() {
@@ -1096,6 +1179,7 @@ var PluginModule = (() => {
 
         // Execute all extractors in parallel with timeout protection
         await Promise.all([
+          withTimeout(femPromise, 8000),
           withTimeout(vidzeePromise, 7000),
           withTimeout(vidrockPromise, 7000),
           withTimeout(vidsparkPromise, 7000),
@@ -1108,6 +1192,7 @@ var PluginModule = (() => {
         ]);
 
         // Prioritize fast, high-performance Direct HLS sources over everything:
+        // Rank -1: Febbox FEM (BYO uid, cinejoy's primary resolver - one JSON call)
         // Rank 0: VidZee and VidRock Multi-CDN HLS (Vercetti, NGCloud, HSCOW)
         // Rank 1: VidSpark Cloudflare Workers CDN
         // Rank 2: VixSrc Multi-Audio + 2Embed (vidsrc.buzz/videm.buzz) Master HLS
@@ -1117,6 +1202,7 @@ var PluginModule = (() => {
         streams.sort(function(a, b) {
           function rank(stream) {
             if (/^Torrentio/i.test(stream.source || '') || stream.protocol === 'torrent' || stream.type === 'torrent') return 99;
+            if (/^Febbox/i.test(stream.source || '')) return -1;
             if (/^VidZee/i.test(stream.source || '')) return 0;
             if (/^VidRock/i.test(stream.source || '')) return 0;
             if (/^VidSpark/i.test(stream.source || '')) return 1;
@@ -1132,6 +1218,7 @@ var PluginModule = (() => {
           if (aRank !== bRank) return aRank - bRank;
           return (b.quality || 0) - (a.quality || 0);
         });
+        if (streams.length) streamCachePut(sCacheKey, streams);
         cb({ success: true, data: streams });
       } catch (err) {
         cb({ success: true, data: [] });
@@ -1142,7 +1229,25 @@ var PluginModule = (() => {
     globalThis.getCategoryPage = getCategoryPage;
     globalThis.search = search;
     globalThis.load = load;
+    function getSettings() {
+      return {
+        settings: [
+          {
+            key: 'febbox_uid',
+            title: 'Febbox UID (febbox.com account id) - enables the Febbox FEM primary provider',
+            type: 'text',
+            defaultValue: ''
+          }
+        ]
+      };
+    }
+
+    globalThis.getHome = getHome;
+    globalThis.getCategoryPage = getCategoryPage;
+    globalThis.search = search;
+    globalThis.load = load;
     globalThis.loadStreams = loadStreams;
+    globalThis.getSettings = getSettings;
   })();
 })();
 
