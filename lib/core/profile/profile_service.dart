@@ -4,7 +4,31 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../storage/storage_service.dart';
+import 'pin_hash.dart';
 import 'user_profile.dart';
+
+/// The two profiles a fresh install used to write for you.
+///
+/// Left in place only so an install that never edited them can be cleared
+/// and sent through setup. A renamed or otherwise changed profile is kept.
+bool _isUntouchedDemoSeed(List<UserProfile> profiles) {
+  if (profiles.length != 2) return false;
+  final byId = {for (final profile in profiles) profile.id: profile};
+  final justin = byId['profile_default'];
+  final roommate = byId['profile_roomie'];
+  if (justin == null || roommate == null) return false;
+  return _isUntouched(justin, 'Justin', 'avatar_cinema') &&
+      _isUntouched(roommate, 'Roommate', 'avatar_popcorn');
+}
+
+bool _isUntouched(UserProfile profile, String name, String avatarId) {
+  return profile.name == name &&
+      profile.avatarId == avatarId &&
+      (profile.pin == null || profile.pin!.isEmpty) &&
+      !profile.isKids &&
+      profile.preferredGenres.isEmpty &&
+      profile.feedMode == 'all';
+}
 
 class ProfileState {
   final List<UserProfile> profiles;
@@ -57,6 +81,12 @@ class ProfileController extends Notifier<ProfileState> {
       } catch (e) {
         if (kDebugMode) debugPrint('[ProfileController] Failed to parse profiles: $e');
       }
+    }
+
+    if (_isUntouchedDemoSeed(loaded)) {
+      loaded = [];
+      _storage.setString(_kProfilesListKey, null);
+      _storage.setString(_kActiveProfileIdKey, null);
     }
 
     if (loaded.isEmpty) {
@@ -199,6 +229,12 @@ class ProfileController extends Notifier<ProfileState> {
       profiles: updated,
       activeProfile: newActive,
     );
+  }
+
+  String? _storedPin(String? pin, String profileId) {
+    if (pin == null || pin.isEmpty) return null;
+    if (pinIsHashed(pin)) return pin;
+    return hashPin(pin, profileId);
   }
 
   Future<void> deleteProfile(String profileId) async {

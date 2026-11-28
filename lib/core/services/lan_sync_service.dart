@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import '../domain/entity/multimedia_item.dart';
 import '../storage/storage_service.dart';
+import 'remote_commands.dart';
 
 /// Seamless Cross-Device Watch Progress Synchronization over Local Area Network (Wi-Fi).
 ///
@@ -231,6 +232,34 @@ class LanSyncService {
         return;
       }
 
+      if (path == '/api/remote' && request.method == 'POST') {
+        final body = await _readBounded(request);
+        if (body == null) {
+          request.response.statusCode = HttpStatus.requestEntityTooLarge;
+          await request.response.close();
+          return;
+        }
+        final dynamic decoded = jsonDecode(utf8.decode(body));
+        if (decoded is Map) {
+          final action = decoded['action']?.toString() ?? '';
+          final position = decoded['positionMs'];
+          if (action.isNotEmpty) {
+            remoteCommands.add(
+              RemoteCommand(
+                action,
+                positionMs: position is int ? position : null,
+              ),
+            );
+          }
+        }
+        request.response
+          ..statusCode = HttpStatus.ok
+          ..headers.contentType = ContentType.json
+          ..write(jsonEncode({'status': 'ok'}));
+        await request.response.close();
+        return;
+      }
+
       request.response.statusCode = HttpStatus.notFound;
       await request.response.close();
     } catch (e) {
@@ -329,13 +358,16 @@ class LanSyncService {
 
     int mergedCount = 0;
     final localEntries = storage.getWatchHistory();
-    final localMap = {for (final e in localEntries) (e['url'] ?? ''): e};
+    final localMap = {
+      for (final e in localEntries)
+        '${e['profileId'] ?? ''}|${e['url'] ?? ''}': e,
+    };
 
     for (final remote in remoteEntries) {
       final url = remote['url'] as String?;
       if (url == null || url.isEmpty) continue;
 
-      final local = localMap[url];
+      final local = localMap['${remote['profileId'] ?? ''}|$url'];
       final remoteTs = (remote['timestamp'] as int?) ?? 0;
       final localTs = local != null ? ((local['timestamp'] as int?) ?? 0) : 0;
       final remotePos = (remote['position'] as int?) ?? 0;
@@ -368,6 +400,7 @@ class LanSyncService {
           episode: remote['episode'] as int?,
           episodeTitle: remote['episodeTitle'] as String?,
           episodePosterUrl: remote['episodePosterUrl'] as String?,
+          profileId: remote['profileId'] as String?,
         );
         mergedCount++;
       }

@@ -5,7 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../features/settings/presentation/ai_settings_provider.dart';
+import '../../features/settings/presentation/ai_settings_provider.dart';
 
 /// Core Service interfacing Aether with the Dahl Neural Gateway.
 ///

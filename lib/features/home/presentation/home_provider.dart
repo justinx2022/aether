@@ -3,9 +3,9 @@ import 'dart:io';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../../core/extensions/extension_manager.dart';
-import '../../../../core/storage/storage_service.dart';
-import '../../../../core/extensions/base_provider.dart';
+import '../../../core/extensions/extension_manager.dart';
+import '../../../core/storage/storage_service.dart';
+import '../../../core/extensions/base_provider.dart';
 
 import './home_state.dart';
 

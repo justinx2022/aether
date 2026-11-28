@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/utils/layout_constants.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../../../../shared/widgets/text_input_dialog.dart';
+import '../../../shared/widgets/text_input_dialog.dart';
 import 'ai_settings_provider.dart';
 import 'widgets/settings_widgets.dart';
 

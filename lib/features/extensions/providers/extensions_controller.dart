@@ -8,11 +8,11 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../../core/extensions/models/extension_plugin.dart';
-import '../../../../core/extensions/models/extension_repository.dart';
-import '../../../../core/extensions/extension_manager.dart';
-import '../../../../core/extensions/providers.dart';
-import '../../../../core/extensions/services/repository_service.dart';
+import '../../../core/extensions/models/extension_plugin.dart';
+import '../../../core/extensions/models/extension_repository.dart';
+import '../../../core/extensions/extension_manager.dart';
+import '../../../core/extensions/providers.dart';
+import '../../../core/extensions/services/repository_service.dart';
 import '../../../core/models/extension_update_report.dart';
 import '../../../core/storage/settings_repository.dart';
 

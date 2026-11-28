@@ -11,6 +11,7 @@ import '../../../core/utils/stream_quality_sorter.dart';
 import 'package:aether/l10n/generated/app_localizations.dart';
 
 import 'player_settings_provider.dart';
+import '../../playback/playback_prefs.dart';
 import 'widgets/settings_dialogs.dart';
 import 'widgets/settings_widgets.dart';
 import 'widgets/subtitle_appearance_settings.dart';

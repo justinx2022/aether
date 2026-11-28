@@ -8,8 +8,8 @@ import '../../../core/models/tmdb_details.dart';
 
 import 'package:intl/intl.dart';
 
-import '../../../../core/storage/history_repository.dart';
-import '../../../../core/utils/responsive_breakpoints.dart';
+import '../../../core/storage/history_repository.dart';
+import '../../../core/utils/responsive_breakpoints.dart';
 import '../data/tmdb_details_provider.dart';
 
 import 'package:aether/l10n/generated/app_localizations.dart';
@@ -22,9 +22,9 @@ import '../data/lightweight_details_provider.dart';
 import 'widgets/movie_trailers_carousel.dart';
 import 'widgets/movie_production_companies.dart';
 import 'widgets/movie_seasons_list.dart';
-import '../../../../shared/widgets/thumbnail_error_placeholder.dart';
-import '../../../../shared/widgets/shimmer_placeholder.dart';
-import '../../../../shared/widgets/cinema_badge.dart';
+import '../../../shared/widgets/thumbnail_error_placeholder.dart';
+import '../../../shared/widgets/shimmer_placeholder.dart';
+import '../../../shared/widgets/cinema_badge.dart';
 
 class TmdbMovieDetailsScreen extends ConsumerStatefulWidget {
   final int movieId;

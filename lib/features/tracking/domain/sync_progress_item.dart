@@ -1,4 +1,4 @@
-import '../../../../core/domain/entity/multimedia_item.dart';
+import '../../../core/domain/entity/multimedia_item.dart';
 
 class SyncProgressItem {
   final int? id; // Playback ID for Trakt removal

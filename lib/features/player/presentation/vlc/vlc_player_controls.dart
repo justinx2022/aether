@@ -90,6 +90,9 @@ class VlcPlayerControls extends ConsumerStatefulWidget {
     this.onSkipOutro,
     this.promptVisible = false,
     this.locked,
+    this.sleepTimerActive = false,
+    this.sleepTimerTooltip = 'Sleep timer',
+    this.onSleepTimer,
     this.systemVolumeFactory,
     super.key,
   });
@@ -198,6 +201,15 @@ class VlcPlayerControls extends ConsumerStatefulWidget {
   /// reason [chrome] is one: the padlock, the unlock chip, Back and every
   /// clear-the-lock path all write it, and none should own a setState.
   final ValueNotifier<bool>? locked;
+
+  /// Whether a sleep timer is currently armed. The screen owns the timer;
+  /// these controls are rebuilt on every failover.
+  final bool sleepTimerActive;
+
+  final String sleepTimerTooltip;
+
+  /// Opens the sleep-timer sheet. Null hides the button.
+  final VoidCallback? onSleepTimer;
 
   @override
   ConsumerState<VlcPlayerControls> createState() => _VlcPlayerControlsState();
@@ -1679,6 +1691,19 @@ class _VlcPlayerControlsState extends ConsumerState<VlcPlayerControls> {
       // Out of the transport group and in here with the rest: the left end is
       // the episode buttons and the clock now. Absent rather than disabled off
       // touch - see [_lockAvailable].
+      if (widget.onSleepTimer != null)
+        PlayerIconButton(
+          icon: widget.sleepTimerActive
+              ? Icons.alarm_on_rounded
+              : Icons.bedtime_outlined,
+          tooltip: widget.sleepTimerTooltip,
+          isTv: isTv,
+          highlight: widget.sleepTimerActive,
+          onPressed: () {
+            _chrome.poke();
+            widget.onSleepTimer!.call();
+          },
+        ),
       if (_lockAvailable)
         PlayerIconButton(
           icon: Icons.lock_outline_rounded,

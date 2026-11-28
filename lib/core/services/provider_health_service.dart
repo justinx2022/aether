@@ -100,6 +100,7 @@ class ProviderHealthRecord {
 class ProviderHealthService {
   static const String _kPrefsKey = 'provider_health_records_v1';
   final Map<String, ProviderHealthRecord> _records = {};
+  final ValueNotifier<int> revision = ValueNotifier<int>(0);
 
   ProviderHealthService() {
     _loadFromStorage();
@@ -151,6 +152,7 @@ class ProviderHealthService {
       lastAttemptAt: now,
     );
     _saveToStorage();
+    revision.value++;
   }
 
   /// Records a failed attempt (timeout, HTTP error, 403, broken link) for [providerId].
@@ -166,11 +168,18 @@ class ProviderHealthService {
       lastAttemptAt: now,
     );
     _saveToStorage();
+    revision.value++;
   }
 
-  /// Retrieves the health score for a provider (0.0 to 1.0).
-  ///
-  /// Default for an untested provider is 0.9 (benefit of doubt).
+  /// Providers that have failed enough times to be left out of the next play.
+  List<String> quarantinedIds() {
+    return [
+      for (final id in _records.keys)
+        if (isQuarantined(id)) id,
+    ];
+  }
+
+  /// Health score from 0 to 1. An untested provider starts at 0.9.
   double getHealthScore(String providerId) {
     if (providerId.isEmpty) return 0.9;
     final record = _records[providerId];

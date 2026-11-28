@@ -5,10 +5,10 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:dio/dio.dart';
 
-import '../../../../core/extensions/extension_manager.dart';
-import '../../../../core/extensions/base_provider.dart';
-import '../../../../core/domain/entity/multimedia_item.dart';
-import '../../../../core/utils/fuzzy_matcher.dart';
+import '../../../core/extensions/extension_manager.dart';
+import '../../../core/extensions/base_provider.dart';
+import '../../../core/domain/entity/multimedia_item.dart';
+import '../../../core/utils/fuzzy_matcher.dart';
 import '../../explore/data/explore_tmdb_provider.dart';
 import '../../settings/presentation/general_settings_provider.dart';
 import 'search_history_provider.dart';

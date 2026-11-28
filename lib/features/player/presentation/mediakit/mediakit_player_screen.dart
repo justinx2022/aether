@@ -11,6 +11,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart'
     show ProviderListenable;
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -25,6 +26,9 @@ import '../../../../core/services/local_proxy_service.dart';
 import '../../../../core/services/provider_health_service.dart';
 import '../../../../core/services/stream_prewarmer.dart';
 import '../../../../core/services/neural_media_enhancer.dart';
+import '../widgets/sleep_timer_sheet.dart';
+import '../../../playback/playback_prefs.dart';
+import '../../../../core/services/remote_commands.dart';
 import '../../../settings/presentation/ai_settings_provider.dart';
 import '../../../../core/utils/app_utils.dart';
 import '../../../../core/utils/stream_quality_sorter.dart';
@@ -280,6 +284,12 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
 
   Timer? _sleepTimer;
   int? _sleepTimerMinutes;
+  int _autoplayStreak = 0;
+  List<Episode> _queue = const [];
+  Duration? _loopA;
+  Duration? _loopB;
+  StreamSubscription<RemoteCommand>? _remoteSub;
+  final PlayerPlatformService _platform = PlayerPlatformService();
 
   List<SkipSegment> _skipSegments = const [];
 
@@ -310,6 +320,12 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     final native = _native;
     if (native == null) return;
     setState(() => _isDialogueBoostEnabled = !_isDialogueBoostEnabled);
+    final prefs = ref.read(playbackPrefsProvider);
+    unawaited(
+      ref.read(playbackPrefsProvider.notifier).update(
+        prefs.copyWith(dialogueBoost: _isDialogueBoostEnabled),
+      ),
+    );
     if (_isDialogueBoostEnabled) {
       await native.setProperty('af', 'lavfi=[dynaudnorm=f=75:g=25:p=0.55]');
       if (mounted) {
@@ -333,60 +349,14 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     }
   }
 
-  void _showSleepTimerDialog() {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: const Color(0xFF0D0F18),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Padding(
-                padding: EdgeInsets.only(bottom: 12),
-                child: Text(
-                  'Sleep Timer',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 17,
-                  ),
-                ),
-              ),
-              _buildSleepOption(ctx, 'Off', null),
-              _buildSleepOption(ctx, '15 Minutes', 15),
-              _buildSleepOption(ctx, '30 Minutes', 30),
-              _buildSleepOption(ctx, '45 Minutes', 45),
-              _buildSleepOption(ctx, '60 Minutes', 60),
-              _buildSleepOption(ctx, 'End of Current Episode', -1),
-            ],
-          ),
-        ),
-      ),
+  Future<void> _showSleepTimerDialog() async {
+    final pick = await showSleepTimerSheet(
+      context,
+      selected: _sleepTimerMinutes,
+      allowEndOfEpisode: true,
     );
-  }
-
-  Widget _buildSleepOption(BuildContext ctx, String label, int? minutes) {
-    final isSelected = _sleepTimerMinutes == minutes;
-    return ListTile(
-      title: Text(
-        label,
-        style: TextStyle(
-          color: isSelected ? const Color(0xFF818CF8) : Colors.white,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-        ),
-      ),
-      trailing:
-          isSelected ? const Icon(Icons.check, color: Color(0xFF818CF8)) : null,
-      onTap: () {
-        Navigator.pop(ctx);
-        _setSleepTimer(minutes);
-      },
-    );
+    if (pick == null || _disposed || !mounted) return;
+    _setSleepTimer(pick.minutes);
   }
 
   void _setSleepTimer(int? minutes) {
@@ -397,16 +367,19 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Sleep timer turned off')),
       );
-    } else if (minutes == -1) {
+    } else if (minutes < 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Playback will pause at end of episode'),
+          content: Text('Playback will stop at the end of this episode'),
         ),
       );
     } else {
       _sleepTimer = Timer(Duration(minutes: minutes), () {
+        _sleepTimer = null;
+        _sleepTimerMinutes = null;
         if (!_disposed && mounted) {
           _player.pause();
+          setState(() {});
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Sleep timer paused playback')),
           );
@@ -454,6 +427,13 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     }
 
     _item = widget.item;
+    final prefs = _read(playbackPrefsProvider);
+    _isDialogueBoostEnabled = prefs.dialogueBoost;
+    final subtitleLanguage = prefs.subtitleLanguage;
+    if (subtitleLanguage != null && subtitleLanguage.isNotEmpty) {
+      _read(subtitleLanguageProvider.notifier).set(subtitleLanguage);
+    }
+    _remoteSub = remoteCommands.stream.listen(_handleRemote);
     if ((_item.episodes == null || _item.episodes!.isEmpty) &&
         widget.item.url.isNotEmpty) {
       try {
@@ -756,6 +736,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   }
 
   Episode? get _nextEpisode {
+    if (_queue.isNotEmpty) return _queue.first;
     final cur = _effectiveCurrentEpisode;
     final lookup = nextEpisodeFor(
       item: _item,
@@ -787,6 +768,9 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
     if (_advancing) return;
     final next = _nextEpisode;
     if (next == null) return;
+    if (_queue.isNotEmpty && _queue.first.url == next.url) {
+      _queue = _queue.sublist(1);
+    }
     _advancing = true;
     try {
       _recorder?.record(
@@ -931,7 +915,8 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
         // Offering it earlier left the card counting down from fifteen while
         // twenty seconds of the episode were still to play, so the advance it
         // took was a skip.
-        if (_hasNextEpisode &&
+        if (_sleepTimerMinutes != -1 &&
+            _hasNextEpisode &&
             !_nextEpisodeDeclined &&
             (_settings?.showEpisodes ?? true) &&
             _duration > const Duration(minutes: 5)) {
@@ -1051,7 +1036,8 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
             _sideCars.active == null &&
             !_subtitlesOffPending &&
             list.isNotEmpty) {
-          final prefCode = _read(subtitleLanguageProvider);
+          final prefCode = _read(playbackPrefsProvider).subtitleLanguage ??
+              _read(subtitleLanguageProvider);
           final preferred = preferredSubtitleIndex([
             for (final t in list) t.language ?? t.title ?? '',
           ], prefCode);
@@ -1134,8 +1120,24 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
         // stream we are leaving, not the one we are on.
         if (_isLoading || _isSwitching || _isSettlingTrackChange) return;
         _recordFinalProgress();
-        if (_hasNextEpisode && !_nextEpisodeDeclined) {
-          _advance();
+        if (_sleepTimerMinutes == -1) {
+          _sleepTimerMinutes = null;
+          unawaited(_player.pause());
+          if (mounted) {
+            setState(() {});
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Sleep timer stopped at the end of this episode'),
+              ),
+            );
+          }
+          return;
+        }
+        final autoplay = ref.read(playbackPrefsProvider).autoplay;
+        if (_hasNextEpisode &&
+            !_nextEpisodeDeclined &&
+            (autoplay || _queue.isNotEmpty)) {
+          unawaited(_autoplayOrAsk());
         }
       }),
     );
@@ -2359,6 +2361,17 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
                                 if (track.id != current.id) {
                                   _holdThroughTrackChange();
                                   unawaited(_player.setAudioTrack(track));
+                                  final language = track.language ?? track.title;
+                                  if (language != null && language.isNotEmpty) {
+                                    final prefs = ref.read(playbackPrefsProvider);
+                                    unawaited(
+                                      ref
+                                          .read(playbackPrefsProvider.notifier)
+                                          .update(
+                                            prefs.copyWith(audioLanguage: language),
+                                          ),
+                                    );
+                                  }
                                 }
                               },
                             ),
@@ -2945,6 +2958,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   @override
   void dispose() {
     _disposed = true;
+    _remoteSub?.cancel();
     try {
       WidgetsBinding.instance.removeObserver(this);
     } catch (_) {}
@@ -3968,6 +3982,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
   /// how the film is played rather than what is playing.
   Future<void> _showMoreSheet() async {
     _onUserActivity();
+    final incognito = ref.read(incognitoSessionProvider);
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -3982,6 +3997,7 @@ class _MediaKitPlayerScreenState extends ConsumerState<MediaKitPlayerScreen>
         quality: _currentQualityLabel,
         isTv: _isTv,
         isLive: isLiveSource(_item, _currentVideoUrl),
+        incognito: incognito,
         onSpeed: _setPlaybackSpeed,
         onFit: _setFit,
         onFullscreen: _toggleFullscreen,

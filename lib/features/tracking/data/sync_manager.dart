@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../../core/logger/app_logger.dart';
-import '../../../../core/storage/history_repository.dart';
-import '../../../../core/storage/storage_service.dart';
-import '../../../../core/domain/entity/multimedia_item.dart';
+import '../../../core/logger/app_logger.dart';
+import '../../../core/storage/history_repository.dart';
+import '../../../core/storage/storage_service.dart';
+import '../../../core/domain/entity/multimedia_item.dart';
 import '../../explore/data/explore_tmdb_provider.dart';
 import '../domain/sync_progress_item.dart';
 import 'simkl_service.dart';

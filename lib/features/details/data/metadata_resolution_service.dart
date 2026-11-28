@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../../core/domain/entity/multimedia_item.dart';
-import '../../../../core/services/tmdb_service.dart';
+import '../../../core/domain/entity/multimedia_item.dart';
+import '../../../core/services/tmdb_service.dart';
 import '../../explore/data/explore_tmdb_provider.dart';
 
 part 'metadata_resolution_service.g.dart';

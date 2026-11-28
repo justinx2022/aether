@@ -4,12 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/anilist_explore_provider.dart';
 import 'widgets/explore_carousel.dart';
 import 'widgets/media_horizontal_list.dart';
-import '../../../../core/utils/layout_constants.dart';
-import '../../../../core/utils/responsive_breakpoints.dart';
-import '../../../../shared/widgets/shimmer_placeholder.dart';
-import '../../../../core/domain/entity/multimedia_item.dart';
-import '../../../../core/router/app_router.dart';
-import '../../../../core/recommendations/recommendations_service.dart';
+import '../../../core/utils/layout_constants.dart';
+import '../../../core/utils/responsive_breakpoints.dart';
+import '../../../shared/widgets/shimmer_placeholder.dart';
+import '../../../core/domain/entity/multimedia_item.dart';
+import '../../../core/router/app_router.dart';
+import '../../../core/recommendations/recommendations_service.dart';
 import 'view_all_screen.dart';
 
 class AnilistExploreScreen extends ConsumerStatefulWidget {

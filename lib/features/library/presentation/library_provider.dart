@@ -1,7 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../../core/domain/entity/multimedia_item.dart';
-import '../../../../core/storage/library_repository.dart';
+import '../../../core/domain/entity/multimedia_item.dart';
+import '../../../core/storage/library_repository.dart';
 
 import './library_state.dart';
 

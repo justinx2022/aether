@@ -4,8 +4,8 @@ import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'skip_service.dart';
-import '../../../../core/logger/app_logger.dart';
-import '../../../../core/network/dio_client_provider.dart';
+import '../../../core/logger/app_logger.dart';
+import '../../../core/network/dio_client_provider.dart';
 
 part 'intro_db_service.g.dart';
 

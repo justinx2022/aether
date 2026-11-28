@@ -16,6 +16,8 @@ import '../../../../shared/widgets/section_header.dart';
 import '../../../../shared/widgets/shimmer_placeholder.dart';
 import '../../../../shared/widgets/thumbnail_error_placeholder.dart';
 import '../history_provider.dart';
+import '../../domain/watch_stats.dart';
+import '../../domain/collections.dart';
 
 /// The viewer's own trail through the app.
 ///
@@ -79,6 +81,24 @@ class _HistoryTabState extends ConsumerState<HistoryTab>
             ),
           ),
         ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Wrap(
+              spacing: 8,
+              children: [
+                TextButton(
+                  onPressed: () => _showStats(context, history),
+                  child: const Text('Watch stats'),
+                ),
+                TextButton(
+                  onPressed: () => _saveCollection(context, history),
+                  child: const Text('Save as collection'),
+                ),
+              ],
+            ),
+          ),
+        ),
         SliverList.builder(
           itemCount: history.length,
           itemBuilder: (context, index) {
@@ -113,6 +133,68 @@ class _HistoryTabState extends ConsumerState<HistoryTab>
           ),
         ),
       ],
+    );
+  }
+
+  void _showStats(BuildContext context, List<HistoryItem> history) {
+    final stats = watchStatsFor(history);
+    final hours = stats.watched.inMinutes / 60;
+    final genres = stats.topGenres
+        .map((entry) => '${entry.key} (${entry.value})')
+        .join(', ');
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Watch stats'),
+        content: Text(
+          '${stats.titles} titles\n'
+          '${hours.toStringAsFixed(1)} hours\n'
+          '${stats.finished} finished\n'
+          '${genres.isEmpty ? 'No genres yet' : genres}',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _saveCollection(
+    BuildContext context,
+    List<HistoryItem> history,
+  ) async {
+    final name = TextEditingController(text: 'Weekend');
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Collection'),
+        content: TextField(
+          controller: name,
+          decoration: const InputDecoration(labelText: 'Name'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (saved != true) return;
+    final controller = ref.read(collectionsProvider.notifier);
+    for (final row in history.take(20)) {
+      await controller.addItem(name.text, row.item);
+    }
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Saved to ${name.text}')),
     );
   }
 

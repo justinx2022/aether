@@ -717,6 +717,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             onTap: () => ref
                 .read(fullScreenModeProvider.notifier)
                 .setEnabled(!fullScreenModeEnabled),
+            isLast: true,
           ),
       ],
     );

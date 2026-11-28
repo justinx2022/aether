@@ -6,11 +6,11 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'tracking_service.dart';
 import '../domain/sync_progress_item.dart';
-import '../../../../core/domain/entity/multimedia_item.dart';
-import '../../../../core/logger/app_logger.dart';
-import '../../../../core/network/dio_client_provider.dart';
-import '../../../../core/storage/secure_token_storage.dart';
-import '../../../../core/config/sync_config.dart';
+import '../../../core/domain/entity/multimedia_item.dart';
+import '../../../core/logger/app_logger.dart';
+import '../../../core/network/dio_client_provider.dart';
+import '../../../core/storage/secure_token_storage.dart';
+import '../../../core/config/sync_config.dart';
 
 part 'mal_service.g.dart';
 

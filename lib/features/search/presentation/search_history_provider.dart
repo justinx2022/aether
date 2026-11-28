@@ -1,7 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../data/search_history_store.dart';
-import '../../../../core/utils/fuzzy_matcher.dart';
+import '../../../core/utils/fuzzy_matcher.dart';
 
 part 'search_history_provider.g.dart';
 

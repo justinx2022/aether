@@ -1,4 +1,4 @@
-import '../../../../core/domain/entity/multimedia_item.dart';
+import '../../../core/domain/entity/multimedia_item.dart';
 
 sealed class LibraryState {
   const LibraryState();

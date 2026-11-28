@@ -5,8 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'skip_service.dart';
-import '../../../../core/network/dio_client_provider.dart';
-import '../../../../core/config/sync_config.dart';
+import '../../../core/network/dio_client_provider.dart';
+import '../../../core/config/sync_config.dart';
 
 part 'anime_skip_service.g.dart';
 

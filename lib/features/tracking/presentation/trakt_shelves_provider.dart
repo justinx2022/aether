@@ -1,9 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/domain/entity/multimedia_item.dart';
-import '../../../../core/network/dio_client_provider.dart';
-import '../../../../core/recommendations/recommendations_service.dart';
+import '../../../core/domain/entity/multimedia_item.dart';
+import '../../../core/network/dio_client_provider.dart';
+import '../../../core/recommendations/recommendations_service.dart';
 import '../data/trakt_service.dart';
 
 /// Turns a raw Trakt sync/recommendations entry (`{movie: ...}` or

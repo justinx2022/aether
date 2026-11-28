@@ -1,11 +1,11 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../../core/storage/history_repository.dart';
-import '../../../../core/domain/entity/multimedia_item.dart';
-import '../../../../core/profile/profile_service.dart';
+import '../../../core/storage/history_repository.dart';
+import '../../../core/domain/entity/multimedia_item.dart';
+import '../../../core/profile/profile_service.dart';
 import '../../settings/presentation/general_settings_provider.dart';
 
-export '../../../../core/storage/history_repository.dart' show HistoryItem;
+export '../../../core/storage/history_repository.dart' show HistoryItem;
 
 part 'history_provider.g.dart';
 
@@ -14,54 +14,22 @@ class WatchHistory extends _$WatchHistory {
   @override
   List<HistoryItem> build() {
     final repository = ref.watch(historyRepositoryProvider);
-    final activeProfile = ref.watch(profileControllerProvider).activeProfile;
-    final all = repository.getWatchHistory();
-    if (activeProfile == null) return all;
-
-    return all.where((h) {
-      // 1. Profile isolation: match activeProfile id or legacy unassigned entries
-      if (h.profileId != null && h.profileId != activeProfile.id) {
-        return false;
-      }
-      // 2. Kids Shield: filter adult content
-      if (activeProfile.isKids) {
-        final title = h.item.title.toLowerCase();
-        final desc = (h.item.description ?? '').toLowerCase();
-        if (title.contains('18+') ||
-            desc.contains('erotic') ||
-            desc.contains('nudity') ||
-            desc.contains('violence')) {
-          return false;
-        }
-      }
-      return true;
-    }).toList();
+    final profiles = ref.watch(profileControllerProvider);
+    return historyForProfile(
+      repository.getWatchHistory(),
+      profiles.activeProfile,
+      profiles.profiles,
+    );
   }
 
   void refresh() {
     final repository = ref.read(historyRepositoryProvider);
-    final activeProfile = ref.read(profileControllerProvider).activeProfile;
-    final all = repository.getWatchHistory();
-    if (activeProfile == null) {
-      state = all;
-      return;
-    }
-    state = all.where((h) {
-      if (h.profileId != null && h.profileId != activeProfile.id) {
-        return false;
-      }
-      if (activeProfile.isKids) {
-        final title = h.item.title.toLowerCase();
-        final desc = (h.item.description ?? '').toLowerCase();
-        if (title.contains('18+') ||
-            desc.contains('erotic') ||
-            desc.contains('nudity') ||
-            desc.contains('violence')) {
-          return false;
-        }
-      }
-      return true;
-    }).toList();
+    final profiles = ref.read(profileControllerProvider);
+    state = historyForProfile(
+      repository.getWatchHistory(),
+      profiles.activeProfile,
+      profiles.profiles,
+    );
   }
 
   Future<void> clearAllHistory() async {
@@ -102,7 +70,7 @@ class WatchHistory extends _$WatchHistory {
     String? episodePosterUrl,
   }) async {
     final enabled = ref.read(generalSettingsProvider).watchHistoryEnabled;
-    if (!enabled) return;
+    if (!enabled || ref.read(incognitoSessionProvider)) return;
 
     // For livestreams, we don't save progress but we still want it in history
     final isLivestream = item.contentType == MultimediaContentType.livestream;

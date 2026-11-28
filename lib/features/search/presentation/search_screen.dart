@@ -15,6 +15,11 @@ import 'widgets/search_suggestion_row.dart';
 import 'widgets/bouncy_entry_animation.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/loading_indicator.dart';
+import '../../../core/profile/profile_feed.dart';
+import '../../../core/profile/profile_service.dart';
+import '../../library/presentation/library_provider.dart';
+import '../../library/presentation/library_state.dart';
+import '../../../core/domain/entity/multimedia_item.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -31,6 +36,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   final FocusNode _liveTvFocusNode = FocusNode();
   final FocusNode _firstSuggestionFocusNode = FocusNode();
   final FocusNode _firstResultFocusNode = FocusNode();
+  _ResultKind _kind = _ResultKind.all;
 
   /// Whether the recents-and-suggestions panel is covering the results.
   ///
@@ -567,7 +573,25 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
     return searchResultsAsync.when(
       data: (state) {
-        final allResults = state.results.expand((e) => e.results).toList();
+        final profile = ref.watch(profileControllerProvider).activeProfile;
+        final library = ref.watch(libraryProvider);
+        final saved = library is LibrarySuccess
+            ? library.items.map((item) => item.url).toSet()
+            : const <String>{};
+        var allResults = state.results.expand((e) => e.results).where((item) {
+          if (profile != null && !itemFitsProfile(item, profile)) return false;
+          switch (_kind) {
+            case _ResultKind.movies:
+              return item.contentType == MultimediaContentType.movie;
+            case _ResultKind.series:
+              return item.contentType == MultimediaContentType.series ||
+                  item.contentType == MultimediaContentType.anime;
+            case _ResultKind.library:
+              return saved.contains(item.url);
+            case _ResultKind.all:
+              return true;
+          }
+        }).toList();
 
         if (allResults.isEmpty && !state.isLoading) {
           return _buildEmptyState(context);
@@ -578,23 +602,71 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         // RepaintBoundary isolates list repaints from the rest of the
         // screen (app bar, background) so each incremental result update
         // only repaints the list — not the entire scaffold.
-        return RepaintBoundary(
-          child: ListView.builder(
-            padding: EdgeInsets.only(
-              bottom: LayoutConstants.shellBottomContentPadding(context),
+        return Column(
+          children: [
+            SizedBox(
+              height: 48,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                children: [
+                  for (final kind in _ResultKind.values)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                        label: Text(switch (kind) {
+                          _ResultKind.all => 'All',
+                          _ResultKind.movies => 'Movies',
+                          _ResultKind.series => 'Series',
+                          _ResultKind.library => 'In my list',
+                        }),
+                        selected: _kind == kind,
+                        onSelected: (_) => setState(() => _kind = kind),
+                      ),
+                    ),
+                ],
+              ),
             ),
-            itemCount: state.results.length,
-            itemBuilder: (context, index) {
-              final pResult = state.results[index];
-              return SearchResultSection(
-                key: ValueKey(pResult.providerId),
-                providerName: pResult.providerName,
-                providerId: pResult.providerId,
-                results: pResult.results,
-                firstCardFocusNode: index == 0 ? _firstResultFocusNode : null,
-              );
-            },
-          ),
+            Expanded(
+              child: RepaintBoundary(
+                child: ListView.builder(
+                  padding: EdgeInsets.only(
+                    bottom: LayoutConstants.shellBottomContentPadding(context),
+                  ),
+                  itemCount: state.results.length,
+                  itemBuilder: (context, index) {
+                    final pResult = state.results[index];
+                    final visible = pResult.results.where((item) {
+                      if (profile != null && !itemFitsProfile(item, profile)) {
+                        return false;
+                      }
+                      switch (_kind) {
+                        case _ResultKind.movies:
+                          return item.contentType == MultimediaContentType.movie;
+                        case _ResultKind.series:
+                          return item.contentType == MultimediaContentType.series ||
+                              item.contentType == MultimediaContentType.anime;
+                        case _ResultKind.library:
+                          return saved.contains(item.url);
+                        case _ResultKind.all:
+                          return true;
+                      }
+                    }).toList();
+                    if (visible.isEmpty) return const SizedBox.shrink();
+                    return SearchResultSection(
+                      key: ValueKey(pResult.providerId),
+                      providerName: pResult.providerName,
+                      providerId: pResult.providerId,
+                      results: visible,
+                      firstCardFocusNode: index == 0
+                          ? _firstResultFocusNode
+                          : null,
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
         );
       },
       loading: () => const Center(child: AppLoadingIndicator()),
@@ -743,3 +815,5 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 }
+
+enum _ResultKind { all, movies, series, library }

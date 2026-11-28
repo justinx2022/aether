@@ -6,12 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:collection/collection.dart';
 
-import '../../../../core/domain/entity/multimedia_item.dart';
+import '../../../core/domain/entity/multimedia_item.dart';
 import '../../../core/extensions/base_provider.dart';
 import '../../../core/extensions/extension_manager.dart';
 import '../../../core/recommendations/recommendations_service.dart';
-import '../../../../core/storage/library_repository.dart';
-import '../../../../core/storage/history_repository.dart';
+import '../../../core/storage/library_repository.dart';
+import '../../../core/storage/history_repository.dart';
 
 import 'package:aether/core/storage/episode_watch_repository.dart';
 import 'package:aether/core/storage/storage_service.dart';
@@ -687,13 +687,9 @@ class DetailsController extends _$DetailsController {
       return episodes;
     }
 
-    bool isMovie =
+    final isMovie =
         contextItem.contentType == MultimediaContentType.movie ||
         contextItem.contentType == MultimediaContentType.livestream;
-
-    if (!isMovie && episodes.length == 1) {
-      isMovie = true;
-    }
 
     if (isMovie) {
       state = state.copyWith(
