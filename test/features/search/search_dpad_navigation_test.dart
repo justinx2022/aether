@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../support/in_memory_storage.dart';
+import 'package:aether/core/storage/storage_service.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -57,6 +59,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            storageServiceProvider.overrideWithValue(InMemoryStorage()),
             searchHistoryStoreProvider.overrideWithValue(
               _FakeStore(List<String>.from(history)),
             ),
@@ -154,6 +157,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            storageServiceProvider.overrideWithValue(InMemoryStorage()),
             searchHistoryStoreProvider.overrideWithValue(
               _FakeStore(List<String>.from(history)),
             ),

@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/profile/profile_feed.dart';
-import 'package:skystream/core/profile/user_profile.dart';
+import 'package:aether/core/domain/entity/multimedia_item.dart';
+import 'package:aether/core/profile/profile_feed.dart';
+import 'package:aether/core/profile/user_profile.dart';
 
 MultimediaItem _item({
   required String title,

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../support/in_memory_storage.dart';
+import 'package:aether/core/storage/storage_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:aether/features/search/data/search_history_store.dart';
@@ -45,6 +47,7 @@ void main() {
 
     final container = ProviderContainer(
       overrides: [
+        storageServiceProvider.overrideWithValue(InMemoryStorage()),
         searchHistoryStoreProvider.overrideWithValue(store),
         searchResultsProvider.overrideWith(
           (ref) => Stream.value(const SearchAggregateState()),

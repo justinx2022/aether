@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:skystream/core/profile/pin_hash.dart';
+import 'package:aether/core/profile/pin_hash.dart';
 
 void main() {
   test('a hashed pin matches the same digits and not another profile', () {
