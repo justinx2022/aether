@@ -374,7 +374,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     bool isWidescreen,
   ) {
     final data = home.sections;
-    final profiles = ref.watch(profileControllerProvider);
     return RefreshIndicator(
           onRefresh: () async => ref.read(homeDataProvider.notifier).fetch(),
           child: CustomScrollView(
